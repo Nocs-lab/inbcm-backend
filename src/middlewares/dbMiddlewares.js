@@ -1,44 +1,71 @@
 import xlsx from 'xlsx';
-import db from '../models/db.js';
+import fs from 'fs';
+import { BemMuseologico } from '../models/db.js'; // Importe o modelo BemMuseologico
 
-const processarPlanilha = async (req, res, next) => {
-    if (!req.file) {
-        return res.status(400).json({
-            erro: true,
-            message: "Nenhuma planilha encontrada no upload"
-        });
+const getFirstXlsxFile = (directory) => {
+    const files = fs.readdirSync(directory);
+    for (const file of files) {
+        if (file.endsWith('.xlsx')) {
+            return file;
+        }
     }
+    return null; // Retorna null se nenhum arquivo .xlsx for encontrado
+};
 
-    const workbook = xlsx.readFile(req.file.path);
-    const sheetName = workbook.SheetNames[0]; // Assume que a planilha está na primeira aba
-    const worksheet = workbook.Sheets[sheetName];
-    const dados = xlsx.utils.sheet_to_json(worksheet);
-
-    console.log("Nomes das colunas extraídas da planilha:", Object.keys(dados[0]));
-
+export const getData = () => {
     try {
-        // Remove os asteriscos dos nomes das colunas
-        const dadosSemAsteriscos = dados.map((linha) => {
-            const linhaSemAsteriscos = {};
-            for (const chave in linha) {
-                const novaChave = chave.replace('*', '');
-                linhaSemAsteriscos[novaChave] = linha[chave];
+        const uploadDirectory = './src/uploads/';
+        const fileName = getFirstXlsxFile(uploadDirectory);
+        
+        if (!fileName) {
+            console.error('Nenhum arquivo .xlsx encontrado na pasta de uploads');
+            return null;
+        }
+
+        const workbook = xlsx.readFile(uploadDirectory + fileName);
+        const sheetName = workbook.SheetNames[0];
+        let data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null });
+
+        // Convertendo todos os valores para strings
+        data = data.map(row => {
+            const stringRow = {};
+            for (const key in row) {
+                stringRow[key] = row[key] !== null ? String(row[key]) : '';
             }
-            return linhaSemAsteriscos;
+            return stringRow;
         });
 
-        // Aqui você pode enviar os dados para o banco de dados
-        // Exemplo fictício de como salvar no banco de dados:
-        await db('tb_bem_museologico').insert(dadosSemAsteriscos);
-
-        // Se o processo de envio para o banco de dados for bem-sucedido, você pode passar para o próximo middleware
-        next();
+        console.log(data);
+        
+        return data;
     } catch (error) {
-        console.error('Erro ao processar a planilha e enviar para o banco de dados:', error);
-        // Não envie resposta aqui
-        // O erro será tratado no controller
-        next(error); // Passe o erro para o próximo middleware (controller)
+        console.error('Erro ao ler arquivo Excel: ', error);
+        return null;
     }
 };
 
-export default processarPlanilha;
+
+export const postData = async (rowData) => {
+    try {
+        await BemMuseologico.create(rowData); // Use o método create do Sequelize para inserir os dados
+        console.log('Dados inseridos com sucesso');
+    } catch (error) {
+        console.error('Erro ao inserir dados: ', error);
+        throw error; // Lançar o erro para ser tratado pelo controlador
+    }
+};
+
+export const processExcelData = async () => {
+    const data = getData();
+    console.log(data);
+    for (const rowData of data) {
+        console.log(rowData);
+
+      try {
+        await postData(rowData);
+        console.log('Dados inseridos com sucesso');
+      } catch (error) {
+        console.error('Erro ao inserir dados: ', error);
+      }
+    }
+};
