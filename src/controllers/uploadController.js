@@ -1,5 +1,4 @@
-import uploadMiddleware from '../middlewares/uploadMiddlewares.js';
-import multer from 'multer';
+import processarPlanilha from '../middlewares/uploadMiddlewares.js';
 
 const getHome = (req, res) => {
     res.send('Rota de getHome');
@@ -7,26 +6,14 @@ const getHome = (req, res) => {
 
 const postUpload = async (req, res) => {
     try {
-        // Aqui vamos usar a função de middleware diretamente no roteador
-        uploadMiddleware.single('planilha')(req, res, async (err) => {
-            if (err instanceof multer.MulterError) {
-                return res.status(400).json({
-                    erro: true,
-                    message: "Erro ao fazer upload da planilha"
-                });
-            } else if (err) {
+        processarPlanilha(req, res, (err) => {
+            if (err) {
                 return res.status(500).json({
                     erro: true,
                     message: "Erro interno do servidor"
                 });
             }
-
-            // Se o upload for bem-sucedido
-            return res.status(200).json({
-                success: true,
-                message: "Upload da planilha realizado com sucesso"
-            });
-            
+            // A resposta será enviada pelo middleware após o processamento da planilha
         });
     } catch (err) {
         console.error('Erro interno do servidor:', err);
@@ -36,8 +23,6 @@ const postUpload = async (req, res) => {
         });
     }
 };
-
-// Em controllers/dataController.js
 
 
 export default { 

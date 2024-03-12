@@ -15,84 +15,18 @@ const sequelize = new Sequelize({
 });
 
 // Defina o modelo da tabela tb_bem_museologico
-const BemMuseologico = sequelize.define('tb_bem_museologico', {
-  Num_de_Registro: {
+const BemMuseologico = sequelize.define('user', {
+  id: {
     type: Sequelize.STRING,
     allowNull: true,
     primaryKey: true
   },
-  Outros_Numeros: {
+  nome: {
     type: Sequelize.STRING
   },
-  Situacao: {
+  email: {
     type: Sequelize.STRING,
     allowNull: true
-  },
-  Denominacao: {
-    type: Sequelize.STRING,
-    allowNull: true
-  },
-  Titulo: {
-    type: Sequelize.STRING
-  },
-  Autor: {
-    type: Sequelize.STRING,
-    allowNull: true
-  },
-  Classificacao: {
-    type: Sequelize.STRING
-  },
-  Resumo_Descritivo: {
-    type: Sequelize.STRING,
-    allowNull: true
-  },
-  Dimensoes: {
-    type: Sequelize.STRING,
-    allowNull: true
-  },
-  Altura: {
-    type: Sequelize.STRING
-  },
-  Largura: {
-    type: Sequelize.STRING
-  },
-  Profundidade: {
-    type: Sequelize.STRING
-  },
-  Diametro: {
-    type: Sequelize.STRING
-  },
-  Espessura: {
-    type: Sequelize.STRING
-  },
-  Unid_de_pesagem: {
-    type: Sequelize.STRING,
-    allowNull: true
-  },
-  Peso: {
-    type: Sequelize.STRING,
-    allowNull: true
-  },
-  Material_Tecnica: {
-    type: Sequelize.STRING,
-    allowNull: true
-  },
-  Estado_de_Conservacao: {
-    type: Sequelize.STRING,
-    allowNull: true
-  },
-  Local_de_Producao: {
-    type: Sequelize.STRING
-  },
-  Data_de_Producao: {
-    type: Sequelize.STRING
-  },
-  Condicoes_de_Reproducao: {
-    type: Sequelize.STRING,
-    allowNull: true
-  },
-  Midias_Relacionadas: {
-    type: Sequelize.STRING
   }
 });
 
