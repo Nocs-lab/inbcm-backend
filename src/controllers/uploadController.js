@@ -1,7 +1,26 @@
 import processarPlanilha from '../middlewares/uploadMiddlewares.js';
+import sequelize from '../models/db.js';
 
-const getHome = (req, res) => {
-    res.send('Rota de getHome');
+const getTeste = (req, res) => {
+    res.send('Rota de getTeste');
+};
+
+const getUpload = (req, res) => {
+    const sql = 'SELECT * FROM users';
+    sequelize.query(sql)
+        .then(rows => {
+            console.log("VEJA A PLANILHA 👍");
+            return res.status(200).json({
+                registros: rows
+            });
+        })
+        .catch(err => {
+            console.error('❌Erro ao consultar o banco de dados:', err);
+            return res.status(500).json({
+                erro: true,
+                message: "❌Erro interno do servidor"
+            });
+        });
 };
 
 const postUpload = async (req, res) => {
@@ -10,7 +29,7 @@ const postUpload = async (req, res) => {
             if (err) {
                 return res.status(500).json({
                     erro: true,
-                    message: "Erro interno do servidor"
+                    message: "❌Erro interno do servidor"
                 });
             }
             // A resposta será enviada pelo middleware após o processamento da planilha
@@ -19,13 +38,14 @@ const postUpload = async (req, res) => {
         console.error('Erro interno do servidor:', err);
         return res.status(500).json({
             erro: true,
-            message: "Erro interno do servidor"
+            message: "❌Erro interno do servidor"
         });
     }
 };
 
 
 export default { 
-    getHome,
-    postUpload
+    getTeste,
+    postUpload,
+    getUpload
 };

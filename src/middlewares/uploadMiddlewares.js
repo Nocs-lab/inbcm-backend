@@ -29,12 +29,12 @@ const processarPlanilha = async (req, res, next) => {
         if (err instanceof multer.MulterError) {
             return res.status(400).json({
                 erro: true,
-                message: "Erro ao fazer upload da planilha"
+                message: "❌Erro ao fazer upload da planilha"
             });
         } else if (err) {
             return res.status(500).json({
                 erro: true,
-                message: "Erro interno do servidor"
+                message: "❌Erro interno do servidor"
             });
         }
 
@@ -64,13 +64,13 @@ const processarPlanilha = async (req, res, next) => {
             // Retornar uma resposta ao cliente
             return res.status(200).json({
                 success: true,
-                message: "Upload da planilha realizado com sucesso"
+                message: "✅Upload da planilha realizado com sucesso"
             });
         } catch (error) {
-            console.error('Erro ao inserir dados no banco de dados:', error);
+            console.error('❌Erro ao inserir dados no banco de dados:', error);
             return res.status(500).json({
                 erro: true,
-                message: "Erro ao inserir dados no banco de dados"
+                message: "❌Erro ao inserir dados no banco de dados"
             });
         }
     });
