@@ -20,7 +20,7 @@ https://github.com/Nocs-lab/inbcm-backend-upload.git
 ```
 npm install
 ```
-4. Crie um arquivo `.env` na raiz do projeto e adicione os dados do banco para conextar com o Sequelize:
+4. Crie um arquivo `.env` na raiz do projeto e adicione os dados do banco para conectar com o Sequelize:
 ```
 DB_HOST=localhost
 DB_PORT=3306

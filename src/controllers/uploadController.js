@@ -1,4 +1,4 @@
-import processarPlanilha from '../middlewares/uploadMiddlewares.js';
+import processarPlanilha from '../services/uploadService.js';
 import sequelize from '../models/db.js';
 
 const getTeste = (req, res) => {
@@ -6,6 +6,7 @@ const getTeste = (req, res) => {
 };
 
 const getUpload = (req, res) => {
+    // Consulta ao banco de dados para obter os registros inseridos
     const sql = 'SELECT * FROM users';
     sequelize.query(sql)
         .then(rows => {
@@ -22,6 +23,7 @@ const getUpload = (req, res) => {
             });
         });
 };
+
 
 const postUpload = async (req, res) => {
     try {

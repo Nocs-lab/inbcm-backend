@@ -3,7 +3,7 @@ import xlsx from 'xlsx';
 import path from 'path';
 import { BemMuseologico } from '../models/db.js';
 
-const uploadMiddleware = multer({
+const uploadPlanilha = multer({
     storage: multer.diskStorage({
         destination: (req, file, cb) => {
             cb(null, path.join(process.cwd(), '/src/uploads/'));
@@ -25,7 +25,7 @@ const uploadMiddleware = multer({
 }).single('planilha');
 
 const processarPlanilha = async (req, res, next) => {
-    uploadMiddleware(req, res, async (err) => {
+    uploadPlanilha(req, res, async (err) => {
         if (err instanceof multer.MulterError) {
             return res.status(400).json({
                 erro: true,

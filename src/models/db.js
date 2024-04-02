@@ -14,8 +14,8 @@ const sequelize = new Sequelize({
   database: process.env.DB_DATABASE
 });
 
-// Defina o modelo da tabela tb_bem_museologico
-const BemMuseologico = sequelize.define('users', {
+
+const BemMuseologico = sequelize.define('users', { 
   id: {
     type: Sequelize.STRING,
     allowNull: true,
