@@ -1,7 +1,9 @@
 import multer from 'multer';
-import xlsx from 'xlsx';
 import path from 'path';
-import { BemMuseologico } from '../models/db.js';
+import FilaService from './FilaService.js';
+import xlsx from 'xlsx';
+
+const filaService = new FilaService();
 
 const uploadPlanilha = multer({
     storage: multer.diskStorage({
@@ -38,41 +40,26 @@ const processarPlanilha = async (req, res, next) => {
             });
         }
 
-        // Se o upload for bem-sucedido, agora lemos o arquivo e convertemos para JSON
-        const workbook = xlsx.readFile(req.file.path);
+        const caminhoArquivo = req.file.path;
+
+        // Ler o arquivo .xlsx e converter para JSON
+        const workbook = xlsx.readFile(caminhoArquivo);
         const sheet_name_list = workbook.SheetNames;
-        const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name_list[0]], 
-            {defval: ''},
-            {raw: true}
-        );
+        const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name_list[0]], {
+            defval: '',
+            raw: true
+        });
 
-        console.log(data);
+        // Enviar o JSON obtido para a fila do RabbitMQ
+        await filaService.conectar();
+        await filaService.enviarMensagem('planilhas', data);
+        await filaService.fecharConexao();
 
-        // Agora você tem os dados da planilha em formato JSON em 'data'
-
-        // Vamos enviar os dados para o banco de dados
-        try {
-            const postPlanilha = await Promise.all(data.map((row) => BemMuseologico.create({
-                id: row.id,
-                nome: row.nome,
-                email: row.email,
-                
-            })));
-
-            console.log(postPlanilha);
-
-            // Retornar uma resposta ao cliente
-            return res.status(200).json({
-                success: true,
-                message: "✅Upload da planilha realizado com sucesso"
-            });
-        } catch (error) {
-            console.error('❌Erro ao inserir dados no banco de dados:', error);
-            return res.status(500).json({
-                erro: true,
-                message: "❌Erro ao inserir dados no banco de dados"
-            });
-        }
+        // Retornar uma resposta ao cliente
+        return res.status(200).json({
+            success: true,
+            message: "✅Upload da planilha realizado com sucesso"
+        });
     });
 };
 
