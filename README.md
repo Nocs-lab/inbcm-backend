@@ -32,4 +32,7 @@ DB_DATABASE=inbcm_teste
 ```
 npm start
 ```
-
+6. Inicie o serviço da fila(certifique-se de ter o rabbitMQ instalado):
+```
+npx nodemon --exec babel-node src/services/consumer.js
+```
