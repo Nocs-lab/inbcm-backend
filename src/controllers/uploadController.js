@@ -9,7 +9,7 @@ const getUpload = (req, res) => {
     // Consulta ao banco de dados para obter os registros inseridos
     const sql = 'SELECT * FROM users';
     sequelize.query(sql)
-        .then(rows => {
+        .then(([rows]) => { // Desestruturação do array para pegar apenas os resultados
             console.log("VEJA A PLANILHA 👍");
             return res.status(200).json({
                 registros: rows
