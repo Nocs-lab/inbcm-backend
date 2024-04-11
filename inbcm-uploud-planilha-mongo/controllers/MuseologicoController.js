@@ -10,7 +10,7 @@ class UploadController {
       return res.status(200).json(result);
     } catch (error) {
       console.error(error);
-      return res.status(500).json({ success: false, message: 'Erro ao processar e salvar os dados.' });
+      return res.status(500).json({ success: false, message: 'Erro ao processar e salvar os dados .' });
     }
   }
 }
