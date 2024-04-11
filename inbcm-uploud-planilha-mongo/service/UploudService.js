@@ -1,6 +1,5 @@
 const xlsx = require('xlsx');
 const amqp = require('amqplib/callback_api');
-const mongoose = require('mongoose');
 const Fila = require('../models/Fila'); // Importando o modelo Fila
 
 class UploadService {
@@ -14,7 +13,7 @@ class UploadService {
           if (error1) {
             reject(error1);
           }
-          const queue = 'fileQueue';
+          const queue = 'fila_INBCM';
           const msg = { name: file.originalname, path: file.path };
 
           channel.assertQueue(queue, {
