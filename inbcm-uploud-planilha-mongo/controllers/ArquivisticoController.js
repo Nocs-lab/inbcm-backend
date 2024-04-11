@@ -1,5 +1,5 @@
 const UploadService = require('../service/UploudService');
-const arquivisticoModel = require('../models/Arquivistico');
+const arquivisticoModel = require('../models/Arquivistico.js');
 
 const uploadService = new UploadService();
 
