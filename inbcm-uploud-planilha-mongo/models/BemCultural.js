@@ -16,4 +16,4 @@ const BemCultural = new mongoose.Schema({
 });
 
 // Exporte o modelo base
-module.exports = mongoose.model('Bem', BemCultural);
+module.exports = mongoose.model('bens', BemCultural);

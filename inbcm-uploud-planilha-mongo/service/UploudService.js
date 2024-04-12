@@ -1,6 +1,6 @@
 const xlsx = require('xlsx');
 const amqp = require('amqplib/callback_api');
-const Fila = require('../models/Fila'); // Importando o modelo Fila
+const Fila = require('../models/Descricao'); // Importando o modelo Fila
 
 class UploadService {
   async sendToQueue(file) {
