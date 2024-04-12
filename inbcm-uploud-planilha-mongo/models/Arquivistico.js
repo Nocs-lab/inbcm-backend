@@ -16,7 +16,6 @@ const ArquivisticoSchema = new mongoose.Schema({
   notasConservacao: { type: String },
   pontosAcessoIndexacaoAssuntos: { type: String },
 });
-console.log('Dados do documento arquivístico:', this);
 
 // Use discriminadores para distinguir os modelos
 module.exports = Bem.discriminator('Arquivistico', ArquivisticoSchema);
