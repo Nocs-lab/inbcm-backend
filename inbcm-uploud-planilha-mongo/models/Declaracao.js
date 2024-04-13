@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
 
-const DescricaoSchema = new Schema({
+const DeclaracaoSchema = new Schema({
     nome: String, // Nome do arquivo
     caminho: String, // Caminho completo do arquivo (ex: uploads/planilha.xlsx)
     dataEnvio: {
@@ -14,7 +14,7 @@ const DescricaoSchema = new Schema({
         enum: [
             'em processamento', // A declaração foi recebida, mas o processamento ainda não foi concluído.
             'em fila de restituição', // Indica que o contribuinte tem direito a restituição, mas ainda não foi disponibilizada.
-            'processada', // A declaração foi recebida pela Receita Federal e o processamento foi concluído.
+            'processado', // A declaração foi recebida pela Receita Federal e o processamento foi concluído.
             'com pendências', // Foram encontradas pendências em relação a algumas informações.
             'em análise', // A declaração aguarda a apresentação de documentos ou a conclusão da análise de documentos.
             'retificada', // A declaração foi substituída por declaração retificadora apresentada pelo contribuinte.
@@ -25,4 +25,4 @@ const DescricaoSchema = new Schema({
     }
 });
 
-module.exports = mongoose.model('Descricoes', DescricaoSchema);
+module.exports = mongoose.model('Declaracoes', DeclaracaoSchema);
