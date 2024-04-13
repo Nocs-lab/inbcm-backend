@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const Bem = require('./BemCultural.js');
+import mongoose from 'mongoose';
+import Bem from './BemCultural.js';
 
 // Modelo específico para documentos arquivísticos
 const ArquivisticoSchema = new mongoose.Schema({
@@ -17,6 +17,8 @@ const ArquivisticoSchema = new mongoose.Schema({
   pontosAcessoIndexacaoAssuntos: { type: String },
 });
 
-
 // Use discriminadores para distinguir os modelos
-module.exports = Bem.discriminator('Arquivistico', ArquivisticoSchema);
+const Arquivistico = Bem.discriminator('Arquivistico', ArquivisticoSchema);
+
+// Exporte o modelo Arquivistico
+export default Arquivistico;

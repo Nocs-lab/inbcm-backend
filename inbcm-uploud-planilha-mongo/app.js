@@ -1,15 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const routes = require('./routes/routes'); // Importar as rotas
+import express from 'express';
+import cors from 'cors';
+import routes from './routes/routes.js';
 
 const app = express();
 
-// Configurar middlewares
 app.use(cors());
 app.use(express.json());
-
-// Usar as rotas importadas
 app.use('/api', routes);
 
-// Exportar a aplicação configurada
-module.exports = app;
+export default app;

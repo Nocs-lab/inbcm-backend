@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const Bem = require('./BemCultural.js');
+import mongoose from 'mongoose';
+import Bem from './BemCultural.js';
 
 // Modelo específico para documentos bibliográficos
 const BibliograficoSchema = new mongoose.Schema({
@@ -14,4 +14,6 @@ const BibliograficoSchema = new mongoose.Schema({
 });
 
 // Use discriminadores para distinguir os modelos
-module.exports = Bem.discriminator('Bibliografico', BibliograficoSchema);
+const Bibliografico = Bem.discriminator('Bibliografico', BibliograficoSchema);
+
+export default Bibliografico;

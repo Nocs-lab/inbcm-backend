@@ -1,4 +1,5 @@
-const UploadService = require('../service/UploadService');
+import UploadService from '../service/UploadService.js';
+
 const uploadService = new UploadService();
 
 class ArquivisticoController {
@@ -18,4 +19,5 @@ class ArquivisticoController {
     }
 }
 
-module.exports = ArquivisticoController;
+// Exporta a classe ArquivisticoController como exportação padrão
+export default ArquivisticoController;

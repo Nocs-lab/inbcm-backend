@@ -1,12 +1,12 @@
-// routes.js
-const express = require('express');
-const routes = express.Router(); // Cria um roteador usando Express
-const upload = require('../middlewares/UploadMiddleware'); // Importa o middleware de upload
+import express from 'express';
+import upload from '../middlewares/UploadMiddleware.js';
 
 // Importar controladores
-const BibliograficoController = require('../controllers/BibliograficoController');
-const MuseologicoController = require('../controllers/MuseologicoController');
-const ArquivisticoController = require('../controllers/ArquivisticoController');
+import BibliograficoController from '../controllers/BibliograficoController.js';
+import MuseologicoController from '../controllers/MuseologicoController.js';
+import ArquivisticoController from '../controllers/ArquivisticoController.js';
+
+const routes = express.Router(); // Cria um roteador usando Express
 
 // Instanciar controladores
 const bibliograficoController = new BibliograficoController();
@@ -24,4 +24,4 @@ routes.get('/teste', (req, res) => {
 });
 
 // Exportar o roteador configurado
-module.exports = routes;
+export default routes;

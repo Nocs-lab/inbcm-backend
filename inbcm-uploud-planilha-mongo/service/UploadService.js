@@ -1,6 +1,5 @@
-const amqp = require('amqplib/callback_api');
-const Declaracoes = require('../models/Declaracao'); // Importe o modelo Declaracoes
-
+import amqp from 'amqplib/callback_api.js';
+import Declaracoes from '../models/Declaracao.js'; // Importe o modelo Declaracoes
 
 class UploadService {
     async sendToQueue(file, tipoArquivo) {
@@ -48,7 +47,7 @@ class UploadService {
                     });
 
                     // Feche a conexão após um curto período de tempo
-                    setTimeout(function() {
+                    setTimeout(() => {
                         connection.close();
                     }, 500);
                 });
@@ -60,4 +59,4 @@ class UploadService {
     }
 }
 
-module.exports = UploadService;
+export default UploadService;

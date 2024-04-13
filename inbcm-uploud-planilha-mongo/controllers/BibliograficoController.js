@@ -1,4 +1,5 @@
-const UploadService = require('../service/UploadService');
+import UploadService from '../service/UploadService.js';
+
 const uploadService = new UploadService();
 
 class BibliograficoController {
@@ -18,4 +19,5 @@ class BibliograficoController {
     }
 }
 
-module.exports = BibliograficoController;
+// Exporta a classe BibliograficoController como exportação padrão
+export default BibliograficoController;

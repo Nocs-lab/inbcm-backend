@@ -1,5 +1,4 @@
-// upload.js
-const multer = require('multer');
+import multer from 'multer';
 
 // Configuração de multer para lidar com uploads de arquivos
 const storage = multer.diskStorage({
@@ -7,11 +6,12 @@ const storage = multer.diskStorage({
         cb(null, 'uploads/');
     },
     filename: function (req, file, cb) {
-        // Define o nome do arquivo para ser o nome original
+        // Define o nome do arquivo
         cb(null, Date.now() + '-' + file.originalname);
     }
 });
 
 const upload = multer({ storage });
 
-module.exports = upload;
+// Exporte o middleware de upload
+export default upload;

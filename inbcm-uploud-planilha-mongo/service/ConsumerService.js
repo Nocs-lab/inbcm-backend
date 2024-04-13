@@ -1,22 +1,28 @@
-const amqp = require('amqplib/callback_api');
-const xlsx = require('xlsx');
-const Bibliografico = require('../models/Bibliografico');
-const Museologico = require('../models/Museologico');
-const Arquivistico = require('../models/Arquivistico');
-const Declaracoes = require('../models/Declaracao');
-const path = require('path');
-const connectDB = require('../db/conn');
+import amqp from 'amqplib/callback_api.js';
+import xlsx from 'xlsx';
+import Bibliografico from '../models/Bibliografico.js';
+import Museologico from '../models/Museologico.js';
+import Arquivistico from '../models/Arquivistico.js';
+import Declaracoes from '../models/Declaracao.js';
+import { fileURLToPath } from 'url';
+import path from 'path';
+import connectDB from '../db/conn.js';
 
 // Chamar a conexão com o banco de dados
 connectDB();
 
-amqp.connect('amqp://localhost', function (error0, connection) {
+// Obter o caminho do arquivo atual
+const __filename = fileURLToPath(import.meta.url);
+// Obter o diretório do arquivo atual
+const __dirname = path.dirname(__filename);
+
+amqp.connect('amqp://localhost', (error0, connection) => {
     if (error0) {
         console.error('Erro ao conectar à fila:', error0);
         return;
     }
 
-    connection.createChannel(function (error1, channel) {
+    connection.createChannel((error1, channel) => {
         if (error1) {
             console.error('Erro ao criar canal:', error1);
             return;
@@ -32,7 +38,7 @@ amqp.connect('amqp://localhost', function (error0, connection) {
         console.log(`Aguardando mensagens na fila: ${queue}`);
 
         // Consome as mensagens da fila
-        channel.consume(queue, async function (msg) {
+        channel.consume(queue, async (msg) => {
             console.log('Mensagem recebida:', msg.content.toString());
 
             try {
@@ -73,7 +79,7 @@ amqp.connect('amqp://localhost', function (error0, connection) {
 
                     case 'museologico':
                         await Museologico.insertMany(data);
-                        console.log('Dados inseridos nos bens Museologicos:', data);
+                        console.log('Dados inseridos nos bens Museologico:', data);
 
                         // Atualizar o status da declaração para 'inserido'
                         if (declaracao) {

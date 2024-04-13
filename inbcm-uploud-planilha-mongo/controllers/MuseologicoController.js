@@ -1,4 +1,5 @@
-const UploadService = require('../service/UploadService');
+import UploadService from '../service/UploadService.js';
+
 const uploadService = new UploadService();
 
 class MuseologicoController {
@@ -18,4 +19,5 @@ class MuseologicoController {
     }
 }
 
-module.exports = MuseologicoController;
+// Exporta a classe MuseologicoController como exportação padrão
+export default MuseologicoController;
