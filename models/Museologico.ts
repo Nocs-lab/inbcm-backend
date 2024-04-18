@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
-import Bem from './BemCultural.js';
+import mongoose from "mongoose";
+import Bem from "./BemCultural";
 
 // Modelo específico para documentos museológicos
 const MuseologicoSchema = new mongoose.Schema({
@@ -11,4 +11,4 @@ const MuseologicoSchema = new mongoose.Schema({
 });
 
 // Use discriminadores para distinguir os modelos
-export default Bem.discriminator('Museologico', MuseologicoSchema);
+export default Bem.discriminator("Museologico", MuseologicoSchema);

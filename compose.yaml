@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASS}
+
+  rabbitmq:
+    image: rabbitmq:alpine
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq/
+
+volumes:
+  mongo:
+  rabbitmq:
