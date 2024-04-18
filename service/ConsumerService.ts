@@ -10,9 +10,6 @@ import connectDB from "../db/conn";
 // Chamar a conexão com o banco de dados
 connectDB();
 
-// Obter o diretório do arquivo atual
-const __dirname = path.dirname(__filename);
-
 amqp.connect("amqp://localhost", (error0, connection) => {
   if (error0) {
     console.error("Erro ao conectar à fila:", error0);
