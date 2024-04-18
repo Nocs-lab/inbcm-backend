@@ -17,8 +17,28 @@ services:
       - 5672:5672
       - 15672:15672
     volumes:
-      - rabbitmq:/var/lib/rabbitmq/
+      - rabbitmq:/var/lib/rabbitmq
+
+  mysql:
+    image: mysql
+    environment:
+      MYSQL_ROOT_USER: root
+      MYSQL_RANDOM_ROOT_PASSWORD: "true"
+      MYSQL_USER: keycloak
+      MYSQL_PASSWORD: ${KEYCLOAK_DB_PASS}
+      MYSQL_DATABASE: keycloak
+      MYSQL_SCHEMA: keycloak
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql:/var/lib/mysql
+
+  keycloak:
+    build:
+      context: .
+      dockerfile: Dockerfile.keycloak
 
 volumes:
   mongo:
   rabbitmq:
+  mysql:

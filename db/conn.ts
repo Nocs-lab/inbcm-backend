@@ -4,7 +4,7 @@ async function main() {
   try {
     mongoose.set("strictQuery", true);
     await mongoose.connect(
-      "mongodb+srv://ricksonroccha:kkiag6cSXcij3IXY@cluster0.pwhthy0.mongodb.net/INBCM",
+      `mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@localhost`,
     );
     console.log("Conectado ao MongoDB!");
   } catch (error) {
