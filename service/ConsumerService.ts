@@ -6,11 +6,14 @@ import Arquivistico from "../models/Arquivistico";
 import Declaracoes from "../models/Declaracao";
 import path from "path";
 import connectDB from "../db/conn";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 // Chamar a conexão com o banco de dados
 connectDB();
 
-amqp.connect("amqp://localhost", (error0, connection) => {
+amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
   if (error0) {
     console.error("Erro ao conectar à fila:", error0);
     return;

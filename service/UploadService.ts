@@ -1,5 +1,8 @@
 import amqp from "amqplib/callback_api.js";
 import Declaracoes from "../models/Declaracao"; // Importe o modelo Declaracoes
+import dotenv from "dotenv";
+
+dotenv.config();
 
 class UploadService {
   async sendToQueue(file: Express.Multer.File, tipoArquivo: string) {
@@ -17,7 +20,7 @@ class UploadService {
         await declaracao.save();
 
         // Conecte-se à fila
-        amqp.connect("amqp://localhost", function (error0, connection) {
+        amqp.connect(process.env.QUEUE_URL!, function (error0, connection) {
 
 
 

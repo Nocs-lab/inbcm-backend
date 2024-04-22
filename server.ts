@@ -1,5 +1,8 @@
 import app from "./app";
 import conn from "./db/conn";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 conn();
 
