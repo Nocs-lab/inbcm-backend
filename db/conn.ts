@@ -3,8 +3,9 @@ import mongoose from "mongoose";
 async function main() {
   try {
     mongoose.set("strictQuery", true);
+
     await mongoose.connect(
-      `mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@localhost`,
+      `mongodb+srv://ricksonroccha:kkiag6cSXcij3IXY@cluster0.pwhthy0.mongodb.net/INBCM`,
     );
     console.log("Conectado ao MongoDB!");
   } catch (error) {

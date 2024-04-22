@@ -18,6 +18,9 @@ class UploadService {
 
         // Conecte-se à fila
         amqp.connect("amqp://localhost", function (error0, connection) {
+
+
+
           if (error0) {
             reject(error0);
           }
@@ -33,6 +36,7 @@ class UploadService {
               path: file.path,
               tipoArquivo, // Incluir o tipo de arquivo na mensagem
             };
+            console.log("fila conectada!");
 
             // Assegure-se de que a fila está declarada
             channel.assertQueue(queue, {
