@@ -8,7 +8,7 @@ class DeclaracoesController {
         {},
         {
           responsavelEnvio: 1,
-          dia: 1,
+          data: 1,
           hora: 1,
           tipo: 1,
           tipoArquivo: 1, // Incluir o campo tipoArquivo
