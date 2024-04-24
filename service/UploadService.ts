@@ -1,19 +1,24 @@
-import amqp from "amqplib/callback_api.js";
-import Declaracoes from "../models/Declaracao"; // Importe o modelo Declaracoes
+import amqp from "amqplib/callback_api";
+import Declaracoes from "../models/Declaracao";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 class UploadService {
-  async sendToQueue(file: Express.Multer.File, tipoArquivo: string) {
+  async sendToQueue(file: Express.Multer.File, tipoArquivo: string, responsavelEnvio: string, tipo: string) {
     return new Promise(async (resolve, reject) => {
       try {
         // Crie uma nova entrada no banco de dados Declaracoes
         const declaracao = new Declaracoes({
           nome: file.originalname,
           caminho: file.path,
-          // dataEnvio será definida automaticamente como a data atual
-          // status será definido automaticamente como 'em processamento'
+          responsavelEnvio,
+          data: new Date().toLocaleDateString("pt-BR"), // Data do envio no formato brasileiro (dd/mm/yyyy)
+          hora: new Date().toLocaleTimeString(), // Hora do envio
+          tipo, // Tipo da declaração
+          tipoArquivo, // Tipo do arquivo
+          status: "em processamento", // status será definido automaticamente como 'em processamento'
+          hashArquivo: "", // Você pode gerar um hash aqui se necessário
         });
 
         // Salve a entrada no banco de dados
@@ -21,9 +26,6 @@ class UploadService {
 
         // Conecte-se à fila
         amqp.connect(process.env.QUEUE_URL!, function (error0, connection) {
-
-
-
           if (error0) {
             reject(error0);
           }
@@ -37,7 +39,10 @@ class UploadService {
             const msg = {
               name: file.originalname,
               path: file.path,
-              tipoArquivo, // Incluir o tipo de arquivo na mensagem
+              tipoArquivo,
+              responsavelEnvio,
+              tipo,
+              // Adicione mais campos conforme necessário
             };
             console.log("fila conectada!");
 

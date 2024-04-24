@@ -38,7 +38,7 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
     channel.consume(
       queue,
       async (msg) => {
-        console.log("Mensagem recebida:", msg?.content.toString()); // TODO: Fix thiss
+        console.log("Mensagem recebida:", msg?.content.toString());
 
         try {
           const fileData = JSON.parse(msg?.content.toString()!);
@@ -47,7 +47,7 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
           const fileName = fileData.name;
 
           // Buscar a declaração correspondente no banco de dados
-          const declaracao = await Declaracoes.findOne({ caminho: filePath });
+          const declaracao = await Declaracoes.findOne({ caminho: filePath, tipoArquivo });
 
           // Atualizar o status da declaração para 'em processamento'
           if (declaracao) {
@@ -106,8 +106,8 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
           console.error("Erro durante o processamento da mensagem:", error);
 
           // Se houver um erro, atualizar o status da declaração para 'com pendências'
-          const filePath = ""; //TODO: Fix this
-          const declaracao = await Declaracoes.findOne({ caminho: filePath });
+          const filePath = "";
+          const declaracao = await Declaracoes.findOne({ caminho: filePath, tipoArquivo });
           if (declaracao) {
             declaracao.status = "com pendências";
             await declaracao.save();
@@ -116,7 +116,7 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
       },
       {
         noAck: true,
-      },
+      }
     );
   });
 });
