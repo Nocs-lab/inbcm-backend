@@ -5,6 +5,7 @@ import upload from "../middlewares/UploadMiddleware";
 import BibliograficoController from "../controllers/BibliograficoController";
 import MuseologicoController from "../controllers/MuseologicoController";
 import ArquivisticoController from "../controllers/ArquivisticoController";
+import DeclaracoesController from "../controllers/DeclaracaoController";
 
 const routes = express.Router(); // Cria um roteador usando Express
 
@@ -34,6 +35,9 @@ routes.post(
 routes.get("/teste", (req, res) => {
   res.send("Rota de teste funcionando!");
 });
+
+// Rota para buscar todas as declarações
+routes.get('/declaracoes', DeclaracoesController.getDeclaracoes);
 
 // Exportar o roteador configurado
 export default routes;
