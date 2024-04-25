@@ -1,6 +1,6 @@
 import amqp from 'amqplib/callback_api';
+import { Recibo } from '../../models/Recibo';
 import { ReciboService } from './ReciboService';
-import { Recibo } from '../models/Recibo';
 
 export class ReciboProducer {
   static sendReciboToQueue(recibo: Recibo): void {

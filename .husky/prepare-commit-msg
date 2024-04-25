@@ -1,4 +1,14 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+# check if a rebase is taking place
+# https://stackoverflow.com/questions/3921409/how-to-know-if-there-is-a-git-rebase-in-progress
+if [ -d "./.git/rebase-merge" ] || [ -d "./.git/rebase-apply" ]; then
+  exit
+else
+  # allow to use bash prompt in hook
+  # https://stackoverflow.com/questions/48640615/bash-confirmation-wont-wait-for-user-input
+  exec < /dev/tty
+fi
+
 exec < /dev/tty && node_modules/.bin/cz --hook || true

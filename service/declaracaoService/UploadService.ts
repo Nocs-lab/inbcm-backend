@@ -1,6 +1,6 @@
 import amqp from "amqplib/callback_api";
-import Declaracoes from "../models/Declaracao";
 import dotenv from "dotenv";
+import Declaracoes from "../../models/Declaracao";
 
 dotenv.config();
 
@@ -12,7 +12,7 @@ class UploadService {
         const declaracao = new Declaracoes({
           nome: file.originalname,
           caminho: file.path,
-          responsavelEnvio,
+          responsavelEnvio: "Usuario exemplo",
           data: new Date().toLocaleDateString("pt-BR"), // Data do envio no formato brasileiro (dd/mm/yyyy)
           hora: new Date().toLocaleTimeString(), // Hora do envio
           tipo, // Tipo da declaração
