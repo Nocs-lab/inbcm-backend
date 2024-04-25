@@ -5,7 +5,12 @@ import PDFDocument from "pdfkit";
 export class ReciboService {
   static async generateReciboPDF(recibo: Recibo, outputPath: string = "recibos/recibo.pdf"): Promise<void> {
     const doc = new PDFDocument();
-
+    const diretorio = 'recibos';
+    
+    // Verifica se o diretório existe, se não, cria
+    if (!fs.existsSync(diretorio)) {
+      fs.mkdirSync(diretorio);
+    }
    
     const stream = fs.createWriteStream(outputPath);
     doc.pipe(stream);
@@ -28,7 +33,7 @@ export class ReciboService {
       .fontSize(16)
       .text('Recibo de Declaração de Bens Culturais Musealizados', { align: 'center' });
 
-    // Informações do recibo
+    
     doc.moveDown(2);
     doc
       .fontSize(12)
