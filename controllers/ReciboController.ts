@@ -1,13 +1,13 @@
-import { Request, Response } from 'express';
-import { ReciboProducer } from '../service/ReciboProducer';
-import { Recibo, ReciboModel } from '../models/Recibo';
 import { format } from 'date-fns';
+import { Request, Response } from 'express';
+import { Recibo } from '../models/Recibo';
+import { ReciboProducer } from '../service/reciboService/ReciboProducer';
 export class ReciboController {
   static async gerarRecibo(req: Request, res: Response): Promise<void> {
     try {
       // Gerar um número de identificação único aleatório
       const numeroIdentificacao = Math.floor(Math.random() * 1000000).toString();
-      
+
       // Obter a data e hora atuais
       const dataAtual = new Date();
       const dataHoraEnvio = format(dataAtual, 'dd/MM/yyyy');
