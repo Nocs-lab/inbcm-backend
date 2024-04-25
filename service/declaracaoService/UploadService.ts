@@ -12,7 +12,7 @@ class UploadService {
         const declaracao = new Declaracoes({
           nome: file.originalname,
           caminho: file.path,
-          responsavelEnvio: "Usuario exemplo",
+          responsavelEnvio: "Thiago Campos",
           data: new Date().toLocaleDateString("pt-BR"), // Data do envio no formato brasileiro (dd/mm/yyyy)
           hora: new Date().toLocaleTimeString(), // Hora do envio
           tipo, // Tipo da declaração
