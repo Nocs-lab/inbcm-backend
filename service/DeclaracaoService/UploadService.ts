@@ -1,6 +1,6 @@
 import amqp from "amqplib/callback_api";
-import Declaracoes from "../models/Declaracao";
 import dotenv from "dotenv";
+import Declaracoes from "../../models/Declaracao";
 
 dotenv.config();
 
