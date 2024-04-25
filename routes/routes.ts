@@ -6,7 +6,8 @@ import BibliograficoController from "../controllers/BibliograficoController";
 import MuseologicoController from "../controllers/MuseologicoController";
 import ArquivisticoController from "../controllers/ArquivisticoController";
 import DeclaracoesController from "../controllers/DeclaracaoController";
-import {ReciboController}  from "../controllers/ReciboController"; 
+import {ReciboController}  from "../controllers/ReciboController";
+import UsuarioController from "../controllers/UsuarioController";
 
 const routes = express.Router(); // Cria um roteador usando Express
 
@@ -37,9 +38,14 @@ routes.post(
 routes.get("/teste", (req, res) => {
   res.send("Rota de teste funcionando!");
 });
+
 routes.post("/recibo/gerar", upload.single("file"), ReciboController.gerarRecibo);
+
 // Rota para buscar todas as declarações
 routes.get('/declaracoes', DeclaracoesController.getDeclaracoes);
+
+// Rota para criar usuários
+routes.post("/usuarios", UsuarioController.criarUsuario);
 
 // Exportar o roteador configurado
 export default routes;
