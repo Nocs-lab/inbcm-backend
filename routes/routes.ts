@@ -6,6 +6,7 @@ import BibliograficoController from "../controllers/BibliograficoController";
 import MuseologicoController from "../controllers/MuseologicoController";
 import ArquivisticoController from "../controllers/ArquivisticoController";
 import DeclaracoesController from "../controllers/DeclaracaoController";
+import {ReciboController}  from "../controllers/ReciboController"; 
 
 const routes = express.Router(); // Cria um roteador usando Express
 
@@ -13,6 +14,7 @@ const routes = express.Router(); // Cria um roteador usando Express
 const bibliograficoController = new BibliograficoController();
 const museologicoController = new MuseologicoController();
 const arquivisticoController = new ArquivisticoController();
+const reciboController = new ReciboController();
 
 // Definir rotas de upload para cada tipo de arquivo
 routes.post(
@@ -35,7 +37,7 @@ routes.post(
 routes.get("/teste", (req, res) => {
   res.send("Rota de teste funcionando!");
 });
-
+routes.post("/recibo/gerar", upload.single("file"), ReciboController.gerarRecibo);
 // Rota para buscar todas as declarações
 routes.get('/declaracoes', DeclaracoesController.getDeclaracoes);
 
