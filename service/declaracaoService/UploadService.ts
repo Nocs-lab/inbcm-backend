@@ -1,4 +1,5 @@
 import amqp from "amqplib/callback_api";
+import crypto from "crypto";
 import dotenv from "dotenv";
 import Declaracoes from "../../models/Declaracao";
 
@@ -8,6 +9,9 @@ class UploadService {
   async sendToQueue(file: Express.Multer.File, tipoArquivo: string, responsavelEnvio: string, tipo: string) {
     return new Promise(async (resolve, reject) => {
       try {
+        // Gere um hash do caminho do arquivo
+        const hashArquivo = crypto.createHash('sha256').update(file.path).digest('hex');
+
         // Crie uma nova entrada no banco de dados Declaracoes
         const declaracao = new Declaracoes({
           nome: file.originalname,
@@ -18,7 +22,7 @@ class UploadService {
           tipo, // Tipo da declaração
           tipoArquivo, // Tipo do arquivo
           status: "em pré-processamento", // status será definido automaticamente como 'em pré-processamento'
-          hashArquivo: "", // Você pode gerar um hash aqui se necessário
+          hashArquivo, // Hash do caminho do arquivo
         });
 
         // Salve a entrada no banco de dados
@@ -42,6 +46,7 @@ class UploadService {
               tipoArquivo,
               responsavelEnvio,
               tipo,
+              hashArquivo, // Inclua o hash na mensagem
               // Adicione mais campos conforme necessário
             };
             console.log("fila conectada!");

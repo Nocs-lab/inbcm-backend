@@ -1,3 +1,4 @@
+
 import amqp from "amqplib/callback_api";
 import xlsx from "xlsx";
 import Bibliografico from "../models/Bibliografico";
@@ -46,8 +47,9 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
           const tipoArquivo = fileData.tipoArquivo;
           const fileName = fileData.name;
 
-          // Buscar a declaração correspondente no banco de dados
-          const declaracao = await Declaracoes.findOne({ caminho: filePath, tipoArquivo });
+          // Use o hash do caminho do arquivo para buscar a declaração correspondente no banco de dados
+          const hashArquivo = fileData.hashArquivo;
+          const declaracao = await Declaracoes.findOne({ hashArquivo, tipoArquivo });
 
           // Atualizar o status da declaração para 'em processamento'
           if (declaracao) {
@@ -68,7 +70,7 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
             case "bibliografico":
               await Bibliografico.insertMany(data);
               console.log("Dados inseridos para análise nos bens Bibliografico:", data);
-              
+
               // Atualizar o status da declaração para 'inserido'
               if (declaracao) {
                 declaracao.status = "em análise";
@@ -79,7 +81,7 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
             case "museologico":
               await Museologico.insertMany(data);
               console.log("Dados inseridos para análise nos bens Museologico:", data);
-              
+
               // Atualizar o status da declaração para 'inserido'
               if (declaracao) {
                 declaracao.status = "em análise";
@@ -90,7 +92,7 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
             case "arquivistico":
               await Arquivistico.insertMany(data);
               console.log("Dados inseridos para análise Arquivisticos:", data);
-              
+
 
               // Atualizar o status da declaração para 'inserido'
               if (declaracao) {
