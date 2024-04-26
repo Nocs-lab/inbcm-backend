@@ -67,33 +67,34 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
           switch (tipoArquivo) {
             case "bibliografico":
               await Bibliografico.insertMany(data);
-              console.log("Dados inseridos na coleção Bibliografico:", data);
-
+              console.log("Dados inseridos para análise nos bens Bibliografico:", data);
+              
               // Atualizar o status da declaração para 'inserido'
               if (declaracao) {
-                declaracao.status = "inserido";
+                declaracao.status = "em análise";
                 await declaracao.save();
               }
               break;
 
             case "museologico":
               await Museologico.insertMany(data);
-              console.log("Dados inseridos nos bens Museologico:", data);
-
+              console.log("Dados inseridos para análise nos bens Museologico:", data);
+              
               // Atualizar o status da declaração para 'inserido'
               if (declaracao) {
-                declaracao.status = "inserido";
+                declaracao.status = "em análise";
                 await declaracao.save();
               }
               break;
 
             case "arquivistico":
               await Arquivistico.insertMany(data);
-              console.log("Dados inseridos nos bens Arquivisticos:", data);
+              console.log("Dados inseridos para análise Arquivisticos:", data);
+              
 
               // Atualizar o status da declaração para 'inserido'
               if (declaracao) {
-                declaracao.status = "inserido";
+                declaracao.status = "em análise";
                 await declaracao.save();
               }
               break;

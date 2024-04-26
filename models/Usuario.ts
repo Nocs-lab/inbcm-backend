@@ -6,9 +6,9 @@ const AutoIncrement = AutoIncrementFactory(mongoose);
 const UsuarioSchema = new Schema({
   id_user: { type: Number },
   nome: { type: String, required: true },
-  email: { type: String, required: true },
+  acervo: { type: String, required: true },
   museu: { type: String, required: true },
-  cpf: { type: String, required: true },
+  ano: { type: String, required: true },
 });
 
 UsuarioSchema.plugin(AutoIncrement, { inc_field: 'id_user' });

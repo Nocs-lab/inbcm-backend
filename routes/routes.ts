@@ -1,5 +1,10 @@
 import express from "express";
 import upload from "../middlewares/UploadMiddleware";
+// import {
+//   validarArquivistico,
+//   validarBibliografico,
+//   validarMuseologico,
+// } from "../middlewares/ValidacaoCampoMiddleware";
 
 // Importar controladores
 import BibliograficoController from "../controllers/BibliograficoController";
@@ -21,17 +26,20 @@ const reciboController = new ReciboController();
 routes.post(
   "/bibliografico/upload",
   upload.single("file"),
-  bibliograficoController.uploadBibliograficoModel,
+  //validarBibliografico, // Aplicar middleware de validação para planilha bibliográfica
+  bibliograficoController.uploadBibliograficoModel
 );
 routes.post(
   "/museologico/upload",
   upload.single("file"),
-  museologicoController.uploadMuseologicoModel,
+  //validarMuseologico, // Aplicar middleware de validação para planilha museológica
+  museologicoController.uploadMuseologicoModel
 );
 routes.post(
   "/arquivistico/upload",
   upload.single("file"),
-  arquivisticoController.uploadArquivisticoModel,
+  //validarArquivistico, // Aplicar middleware de validação para planilha arquivística
+  arquivisticoController.uploadArquivisticoModel
 );
 
 // Adicionar rota de teste

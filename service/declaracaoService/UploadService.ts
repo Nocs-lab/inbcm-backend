@@ -17,7 +17,7 @@ class UploadService {
           hora: new Date().toLocaleTimeString(), // Hora do envio
           tipo, // Tipo da declaração
           tipoArquivo, // Tipo do arquivo
-          status: "em processamento", // status será definido automaticamente como 'em processamento'
+          status: "em pré-processamento", // status será definido automaticamente como 'em pré-processamento'
           hashArquivo: "", // Você pode gerar um hash aqui se necessário
         });
 

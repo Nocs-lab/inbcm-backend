@@ -7,7 +7,7 @@ const DeclaracaoSchema = new Schema({
     type: String,
     enum: [
       "em processamento",
-      "em fila de restituição",
+      "em pré-processamento",
       "inserido",
       "com pendências",
       "em análise",
@@ -15,7 +15,7 @@ const DeclaracaoSchema = new Schema({
       "cancelada",
       "tratamento manual",
     ],
-    default: "em processamento",
+    default: "em pré-processamento",
   },
   responsavelEnvio: String,
   data: String,
