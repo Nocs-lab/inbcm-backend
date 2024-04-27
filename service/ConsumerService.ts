@@ -74,7 +74,7 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
           const alerts = [];
           camposObrigatorios[tipoArquivo].forEach(campo => {
             if (!data.some(item => item.hasOwnProperty(campo))) {
-              alerts.push(`O campo '${campo}' é obrigatório, mas há itens na declaração em que este dado não foi informado.`);
+              alerts.push(`O campo '${campo}' é obrigatório, mas há itens na declaração em que este dado não foi informado. Se desejar, você pode preencher e reenviar sua declaração.`);
             }
           });
 
@@ -118,7 +118,7 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
           const filePath = "";
           const declaracao = await Declaracoes.findOne({ caminho: filePath, tipoArquivo });
           if (declaracao) {
-            declaracao.status = "com pendências";
+            declaracao.status = "cancelada";
             await declaracao.save();
           }
         }

@@ -82,7 +82,14 @@ function validarTipoArquivo(req, res, next) {
   const colunasExcedentes = firstRow.filter(coluna => !colunasEsperadasTipo.includes(coluna));
 
   if (colunasFaltantes.length > 0 || colunasExcedentes.length > 0) {
-    return res.status(400).json({ error: 'A planilha não corresponde ao formato esperado.' });
+    const errors = [];
+    if (colunasFaltantes.length > 0) {
+      errors.push(`Na declaração enviada, a(s) coluna(s) "${colunasFaltantes.join('", "')}" não está(ão) no modelo definido pela Resolução Normativa do IBRAM, nº 6, de 31 de agosto de 2021.`);
+    }
+    if (colunasExcedentes.length > 0) {
+      errors.push(`Na declaração enviada, a(s) coluna(s) "${colunasExcedentes.join('", "')}" são excedentes e não estão no modelo definido pela Resolução Normativa do IBRAM, nº 6, de 31 de agosto de 2021.`);
+    }
+    return res.status(400).json({ error: 'A planilha não corresponde ao formato esperado.', menssage: errors });
   }
 
   next();
