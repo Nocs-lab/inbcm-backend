@@ -64,27 +64,7 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
           const sheet = workbook.Sheets[sheetName];
           const data = xlsx.utils.sheet_to_json(sheet);
 
-          // Verificar campos obrigatórios e emitir alertas se houver campos faltantes
-          const camposObrigatorios = {
-            arquivistico: ["codigoReferencia", "data"],
-            bibliografico: ["numeroRegistro", "situacao"],
-            museologico: ["numeroRegistro", "denominacao"]
-          };
-
-          const alerts = [];
-          camposObrigatorios[tipoArquivo].forEach(campo => {
-            if (!data.some(item => item.hasOwnProperty(campo))) {
-              alerts.push(`O campo '${campo}' é obrigatório, mas há itens na declaração em que este dado não foi informado. Se desejar, você pode preencher e reenviar sua declaração.`);
-            }
-          });
-
-          // Emitir alertas se houver campos obrigatórios não preenchidos
-          if (alerts.length > 0) {
-            console.log("Alertas:", alerts);
-            // Você pode enviar os alertas para algum serviço de notificação aqui
-          }
-
-          // Inserir os dados na coleção correta independentemente das pendências
+          // Inserir os dados na coleção correta
           switch (tipoArquivo) {
             case "bibliografico":
               await Bibliografico.insertMany(data);
@@ -106,9 +86,9 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
               break;
           }
 
-          // Atualizar o status da declaração com base nas pendências
+          // Atualizar o status da declaração para 'com pendências' ou 'em análise'
           if (declaracao) {
-            declaracao.status = alerts.length > 0 ? "com pendências" : "em análise";
+            declaracao.status = data.length > 0 ? "em análise" : "com pendências";
             await declaracao.save();
           }
         } catch (error) {
@@ -118,7 +98,7 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
           const filePath = "";
           const declaracao = await Declaracoes.findOne({ caminho: filePath, tipoArquivo });
           if (declaracao) {
-            declaracao.status = "cancelada";
+            declaracao.status = "com pendências";
             await declaracao.save();
           }
         }
