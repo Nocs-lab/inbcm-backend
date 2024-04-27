@@ -1,4 +1,3 @@
-
 import amqp from "amqplib/callback_api";
 import xlsx from "xlsx";
 import Bibliografico from "../models/Bibliografico";
@@ -65,45 +64,52 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
           const sheet = workbook.Sheets[sheetName];
           const data = xlsx.utils.sheet_to_json(sheet);
 
-          // Inserir os dados na coleção correta
+          // Verificar campos obrigatórios e emitir alertas se houver campos faltantes
+          const camposObrigatorios = {
+            arquivistico: ["codigoReferencia", "data"],
+            bibliografico: ["numeroRegistro", "situacao"],
+            museologico: ["numeroRegistro", "denominacao"]
+          };
+
+          const alerts = [];
+          camposObrigatorios[tipoArquivo].forEach(campo => {
+            if (!data.some(item => item.hasOwnProperty(campo))) {
+              alerts.push(`O campo '${campo}' é obrigatório, mas há itens na declaração em que este dado não foi informado.`);
+            }
+          });
+
+          // Emitir alertas se houver campos obrigatórios não preenchidos
+          if (alerts.length > 0) {
+            console.log("Alertas:", alerts);
+            // Você pode enviar os alertas para algum serviço de notificação aqui
+          }
+
+          // Inserir os dados na coleção correta independentemente das pendências
           switch (tipoArquivo) {
             case "bibliografico":
               await Bibliografico.insertMany(data);
               console.log("Dados inseridos para análise nos bens Bibliografico:", data);
-
-              // Atualizar o status da declaração para 'inserido'
-              if (declaracao) {
-                declaracao.status = "em análise";
-                await declaracao.save();
-              }
               break;
 
             case "museologico":
               await Museologico.insertMany(data);
               console.log("Dados inseridos para análise nos bens Museologico:", data);
-
-              // Atualizar o status da declaração para 'inserido'
-              if (declaracao) {
-                declaracao.status = "em análise";
-                await declaracao.save();
-              }
               break;
 
             case "arquivistico":
               await Arquivistico.insertMany(data);
               console.log("Dados inseridos para análise Arquivisticos:", data);
-
-
-              // Atualizar o status da declaração para 'inserido'
-              if (declaracao) {
-                declaracao.status = "em análise";
-                await declaracao.save();
-              }
               break;
 
             default:
               console.error("Tipo de arquivo desconhecido:", tipoArquivo);
               break;
+          }
+
+          // Atualizar o status da declaração com base nas pendências
+          if (declaracao) {
+            declaracao.status = alerts.length > 0 ? "com pendências" : "em análise";
+            await declaracao.save();
           }
         } catch (error) {
           console.error("Erro durante o processamento da mensagem:", error);
