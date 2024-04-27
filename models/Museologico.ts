@@ -7,7 +7,6 @@ const MuseologicoSchema = new mongoose.Schema({
   outrosNumeros: { type: String },
   situacao: { type: String },
   denominacao: { type: String, required: true },
-
   autor: { type: String },
   classificacao: { type: String },
   resumoDescritivo: { type: String },

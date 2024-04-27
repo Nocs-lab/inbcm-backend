@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import UploadService from "../service/declaracaoService/UploadService";
+import UploadService from "../service/declaracaoService/DeclaracaoService";
 
 const uploadService = new UploadService();
 
@@ -8,7 +8,6 @@ class BibliograficoController {
     try {
       const file = req.file!;
       const tipoArquivo = "bibliografico"; // Definir o tipo de arquivo como 'bibliografico'
-
       // Chama a função de upload com o arquivo e o tipo de arquivo
       await uploadService.sendToQueue(file, tipoArquivo);
 

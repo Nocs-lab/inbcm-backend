@@ -1,4 +1,5 @@
 import Declaracoes from "../models/Declaracao";
+//import UploadService from "../service/declaracaoService/UploadService";
 
 class DeclaracoesController {
   async getDeclaracoes(req, res) {
@@ -28,5 +29,7 @@ class DeclaracoesController {
     }
   }
 }
+
+
 
 export default new DeclaracoesController();
