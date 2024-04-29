@@ -9,11 +9,14 @@ class DeclaracoesController {
         {},
         {
           responsavelEnvio: 1,
-          data: 1,
-          hora: 1,
-          tipo: 1,
-          tipoArquivo: 1, // Incluir o campo tipoArquivo
+          anoDeclaracao: 1,
+          recibo: 1,
+          dataCriacao: 1,
+          museologico: 1,
+          bibliografico: 1,
+          arquivistico: 1,
           status: 1,
+          hashArquivo: 0, // Excluir o hash do resultado
           _id: 0, // Excluir o _id do resultado
         }
       );

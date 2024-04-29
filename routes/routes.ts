@@ -20,27 +20,28 @@ const reciboController = new ReciboController();
 
 // Definir rotas de upload para cada tipo de arquivo
 routes.post(
-  "/bibliografico/upload",
+  "/bibliografico/upload/:anoDeclaracao",
   upload.single("file"),
   validarPlanilha,
   bibliograficoController.uploadBibliograficoModel
 );
 routes.post(
-  "/museologico/upload",
+  "/museologico/upload/:anoDeclaracao",
   upload.single("file"),
   validarPlanilha,
   museologicoController.uploadMuseologicoModel
 );
 routes.post(
-  "/arquivistico/upload",
+  "/arquivistico/upload/:anoDeclaracao",
   upload.single("file"),
   validarPlanilha,
   arquivisticoController.uploadArquivisticoModel
 );
 
 // Adicionar rota de teste
-routes.get("/teste", (req, res) => {
-  res.send("Rota de teste funcionando!");
+routes.get("/teste/:anoDeclaracao", (req, res) => {
+  const { anoDeclaracao } = req.params;
+  res.send(anoDeclaracao);
 });
 routes.post("/recibo/gerar", upload.single("file"), ReciboController.gerarRecibo);
 

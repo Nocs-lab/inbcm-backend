@@ -6,7 +6,7 @@ import Declaracoes from "../../models/Declaracao";
 dotenv.config();
 
 class UploadService {
-  async sendToQueue(file: Express.Multer.File, tipoArquivo: string, responsavelEnvio: string, tipo: string) {
+  async sendToQueue(file: Express.Multer.File, tipoArquivo: string, anoDeclaracao: string) {
     return new Promise(async (resolve, reject) => {
       try {
         // Gere um hash do caminho do arquivo
@@ -16,10 +16,10 @@ class UploadService {
         const declaracao = new Declaracoes({
           nome: file.originalname,
           caminho: file.path,
+          ano: anoDeclaracao,
           responsavelEnvio: "Thiago Campos",
           data: new Date().toLocaleDateString("pt-BR"), // Data do envio no formato brasileiro (dd/mm/yyyy)
           hora: new Date().toLocaleTimeString(), // Hora do envio
-          tipo, // Tipo da declaração
           tipoArquivo, // Tipo do arquivo
           status: "em pré-processamento", // status será definido automaticamente como 'em pré-processamento'
           hashArquivo, // Hash do caminho do arquivo
@@ -43,9 +43,8 @@ class UploadService {
             const msg = {
               name: file.originalname,
               path: file.path,
+              ano: anoDeclaracao,
               tipoArquivo,
-              responsavelEnvio,
-              tipo,
               hashArquivo, // Inclua o hash na mensagem
               // Adicione mais campos conforme necessário
             };

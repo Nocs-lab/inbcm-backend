@@ -2,6 +2,7 @@ import mongoose, { Schema } from "mongoose";
 
 const DeclaracaoSchema = new Schema({
   nome: String,
+  ano: String,
   caminho: String,
   status: {
     type: String,
@@ -29,7 +30,7 @@ const DeclaracaoSchema = new Schema({
   tipoArquivo: {
     type: String,
     enum: ["bibliografico", "museologico", "arquivistico"],
-    required: true, // Se desejar que seja obrigatório
+     // Se desejar que seja obrigatório
   },
 });
 
