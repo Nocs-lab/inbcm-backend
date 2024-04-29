@@ -13,10 +13,10 @@ class MuseologicoController {
 
       // Verifica se há alertas na requisição e envia junto com a resposta
       if (req.alerts && req.alerts.length > 0) {
-        return res.status(203).json({ message: "Declaração recebida com sucesso.", alerts: req.alerts });
+        return res.status(203).json({ message: "Declaração recebida com sucesso para análise.", alerts: req.alerts });
       }
 
-      return res.status(201).json({ message: "Declaração recebida com sucesso." });
+      return res.status(201).json({ message: "Declaração recebida com sucesso para análise." });
     } catch (error) {
       console.error("Erro ao enviar arquivo museológico para a fila:", error);
       return res

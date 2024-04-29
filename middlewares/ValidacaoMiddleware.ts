@@ -95,9 +95,24 @@ function validarTipoArquivo(req, res, next) {
   // Verificar campos obrigatórios e emitir alertas se houver campos faltantes
   const data = xlsx.utils.sheet_to_json(worksheet);
   const camposObrigatorios = {
-    arquivistico: ["codigoReferencia", "data"],
-    bibliografico: ["numeroRegistro", "situacao"],
-    museologico: ["numeroRegistro", "denominacao"]
+    arquivistico: [
+      "codigoReferencia", "titulo", "data", "nivelDescricao",
+      "dimensaoSuporte", "nomeProdutor",
+    ],
+    bibliografico: [
+      "numeroRegistro", "situacao", "titulo",
+      "tipo", "identificacaoResponsabilidade", "localProducao",
+      "editora", "data", "dimensaoFisica", "materialTecnica",
+      "encadernacao", "resumoDescritivo", "estadoConservacao",
+      "assuntoPrincipal", "condicoesReproducao", "midiasRelacionadas"
+    ],
+    museologico: [
+      "numeroRegistro", "denominacao", "situacao",
+      "denominacao", "autor", "resumoDescritivo",
+      "dimensoes", "materialTecnica", "estadoConservacao",
+      "condicoesReproducao", "midiasRelacionadas",
+      "condicoesReproducao", "midiasRelacionadas"
+    ]
   };
   const alerts = [];
   const camposFaltantesPorLinha = {};

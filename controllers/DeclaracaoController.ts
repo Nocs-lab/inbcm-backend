@@ -32,4 +32,5 @@ class DeclaracoesController {
 
 
 
+
 export default new DeclaracoesController();
