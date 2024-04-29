@@ -6,7 +6,7 @@ import validarPlanilha from "../middlewares/ValidacaoMiddleware";
 import BibliograficoController from "../controllers/BibliograficoController";
 import MuseologicoController from "../controllers/MuseologicoController";
 import ArquivisticoController from "../controllers/ArquivisticoController";
-import DeclaracoesController from "../controllers/DeclaracaoController";
+import DeclaracaoController from "../controllers/DeclaracaoController";
 import {ReciboController}  from "../controllers/ReciboController";
 import UsuarioController from "../controllers/UsuarioController";
 
@@ -17,6 +17,7 @@ const bibliograficoController = new BibliograficoController();
 const museologicoController = new MuseologicoController();
 const arquivisticoController = new ArquivisticoController();
 const reciboController = new ReciboController();
+const declaracaoController = new DeclaracaoController();
 
 // Definir rotas de upload para cada tipo de arquivo
 routes.post(
@@ -43,10 +44,16 @@ routes.get("/teste/:anoDeclaracao", (req, res) => {
   const { anoDeclaracao } = req.params;
   res.send(anoDeclaracao);
 });
+
+
 routes.post("/recibo/gerar", upload.single("file"), ReciboController.gerarRecibo);
 
 // Rota para buscar todas as declarações
-routes.get('/declaracoes', DeclaracoesController.getDeclaracoes);
+// routes.get('/declaracoes', DeclaracoesController.mostrarDeclaracao);
+
+routes.post("/declaracao/:anoDeclaracao", (req, res) => declaracaoController.criarDeclaracao(req, res));
+
+
 
 // Rota para criar usuários
 routes.post("/usuarios", UsuarioController.criarUsuario);

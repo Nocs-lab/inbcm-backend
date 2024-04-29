@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import UploadService from "../service/declaracaoService/DeclaracaoService";
+import UploadService from "../queue/Producer";
 
 const uploadService = new UploadService();
 

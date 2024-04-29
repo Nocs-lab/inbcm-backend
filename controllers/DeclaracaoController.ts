@@ -1,39 +1,39 @@
-import Declaracoes from "../models/Declaracao";
-//import UploadService from "../service/declaracaoService/UploadService";
+// DeclaracaoController.ts
+import { Request, Response } from "express";
+import DeclaracaoService from "../service/declaracao/DeclaracaoService";
 
-class DeclaracoesController {
-  async getDeclaracoes(req, res) {
+class DeclaracaoController {
+  private declaracaoService: DeclaracaoService;
+
+  constructor() {
+    this.declaracaoService = new DeclaracaoService();
+    // Adicione a linha acima para inicializar o serviço
+  }
+
+  async mostrarDeclaracao(req: Request, res: Response) {
     try {
-      // Busca todas as declarações no banco de dados, selecionando os campos desejados
-      const declaracoes = await Declaracoes.find(
-        {},
-        {
-          responsavelEnvio: 1,
-          anoDeclaracao: 1,
-          recibo: 1,
-          dataCriacao: 1,
-          museologico: 1,
-          bibliografico: 1,
-          arquivistico: 1,
-          status: 1,
-          hashArquivo: 0, // Excluir o hash do resultado
-          _id: 0, // Excluir o _id do resultado
-        }
-      );
-
-      if (declaracoes.length === 0) {
-        return res.status(404).json({ message: "Nenhuma declaração foi encontrada no histórico." });
-      }
-
-      return res.status(200).json(declaracoes);
+      // Seu código para mostrar as declarações...
     } catch (error) {
       console.error("Erro ao buscar declarações:", error);
-      return res.status(500).json({ message: "Erro ao buscar declarações" });
+      res.status(500).json({ message: "Erro ao buscar declarações." });
+    }
+  }
+
+  async criarDeclaracao(req: Request, res: Response) {
+    try {
+      // Extrair o ano da declaração dos parâmetros da requisição
+      const { anoDeclaracao } = req.params;
+
+      // Chamar o serviço para criar a declaração
+      const novaDeclaracao = await this.declaracaoService.criarDeclaracao(anoDeclaracao);
+
+      // Enviar a resposta com a nova declaração
+      res.status(201).json({ message: "Declaração criada com sucesso.", declaracao: novaDeclaracao });
+    } catch (error) {
+      console.error("Erro ao criar declaração:", error);
+      res.status(500).json({ message: "Erro ao criar declaração." });
     }
   }
 }
 
-
-
-
-export default new DeclaracoesController();
+export default DeclaracaoController;

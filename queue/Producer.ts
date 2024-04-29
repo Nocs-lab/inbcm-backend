@@ -1,7 +1,7 @@
 import amqp from "amqplib/callback_api";
 import crypto from "crypto";
 import dotenv from "dotenv";
-import Declaracoes from "../../models/Declaracao";
+import Declaracoes from "../models/Declaracao";
 
 dotenv.config();
 
@@ -21,7 +21,7 @@ class UploadService {
           data: new Date().toLocaleDateString("pt-BR"), // Data do envio no formato brasileiro (dd/mm/yyyy)
           hora: new Date().toLocaleTimeString(), // Hora do envio
           tipoArquivo, // Tipo do arquivo
-          status: "em pré-processamento", // status será definido automaticamente como 'em pré-processamento'
+          status: "em processamento", // status será definido automaticamente como 'em pré-processamento'
           hashArquivo, // Hash do caminho do arquivo
         });
 
