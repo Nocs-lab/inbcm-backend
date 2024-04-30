@@ -1,6 +1,6 @@
 import xlsx from "xlsx";
 
-function validarTipoArquivo(req, res, next) {
+function ValidacaoMiddleware(req, res, next) {
   const tipoDeclaracao = req.path.split('/')[1]; // Obtém o tipo de arquivo da rota
   const colunasEsperadas = {
     arquivistico: [
@@ -141,4 +141,4 @@ function validarTipoArquivo(req, res, next) {
   next();
 }
 
-export default validarTipoArquivo;
+export default ValidacaoMiddleware;

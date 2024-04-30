@@ -1,6 +1,6 @@
 import DeclaracaoService from "../service/declaracao/DeclaracaoService";
 
-async function validarDeclaracaoExistente(req, res, next) {
+async function DeclaracaoMiddleware(req, res, next) {
   const { anoDeclaracao } = req.params;
 
   try {
@@ -19,4 +19,4 @@ async function validarDeclaracaoExistente(req, res, next) {
   }
 }
 
-export default validarDeclaracaoExistente;
+export default DeclaracaoMiddleware;

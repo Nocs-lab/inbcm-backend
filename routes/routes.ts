@@ -1,7 +1,7 @@
 import express from "express";
-import upload from "../middlewares/UploadMiddleware";
-import validarPlanilha from "../middlewares/ValidacaoMiddleware";
-import validarDeclaracaoExistente from "../middlewares/DeclaracaoMiddleware";
+import UploadMiddleware from "../middlewares/UploadMiddleware";
+import ValidacaoMiddleware from "../middlewares/ValidacaoMiddleware";
+import DeclaracaoMiddleware from "../middlewares/DeclaracaoMiddleware";
 
 // Importar controladores
 import BibliograficoController from "../controllers/BibliograficoController";
@@ -23,23 +23,23 @@ const declaracaoController = new DeclaracaoController();
 // Definir rotas de upload para cada tipo de arquivo
 routes.post(
   "/bibliografico/upload/:anoDeclaracao",
-  validarDeclaracaoExistente,
-  upload.single("file"),
-  validarPlanilha,
+  DeclaracaoMiddleware,
+  UploadMiddleware.single("file"),
+  ValidacaoMiddleware,
   bibliograficoController.uploadBibliograficoModel
 );
 routes.post(
   "/museologico/upload/:anoDeclaracao",
-  validarDeclaracaoExistente,
-  upload.single("file"),
-  validarPlanilha,
+  DeclaracaoMiddleware,
+  UploadMiddleware.single("file"),
+  ValidacaoMiddleware,
   museologicoController.uploadMuseologicoModel
 );
 routes.post(
   "/arquivistico/upload/:anoDeclaracao",
-  validarDeclaracaoExistente,
-  upload.single("file"),
-  validarPlanilha,
+  DeclaracaoMiddleware,
+  UploadMiddleware.single("file"),
+  ValidacaoMiddleware,
   arquivisticoController.uploadArquivisticoModel
 );
 
@@ -50,12 +50,14 @@ routes.get("/teste/:anoDeclaracao", (req, res) => {
 });
 
 
-routes.post("/recibo/gerar", upload.single("file"), ReciboController.gerarRecibo);
+routes.post("/recibo/gerar", UploadMiddleware.single("file"), ReciboController.gerarRecibo);
+
 
 // Rota para buscar todas as declarações
-// routes.get('/declaracoes', DeclaracoesController.mostrarDeclaracao);
+//routes.get('/declaracoes', DeclaracaoController.getDeclaracoes);
 
-routes.post("/declaracao/:anoDeclaracao", (req, res) => declaracaoController.criarDeclaracao(req, res));
+
+routes.post("/declaracao/gerar", (req, res) => declaracaoController.criarDeclaracao(req, res));
 
 
 
