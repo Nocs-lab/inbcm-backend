@@ -15,7 +15,7 @@ class DeclaracaoService {
         recibo: false,
         hashDeclaracao,
         dataCriacao: new Date(),
-        status: "em processamento"
+        status: "solicitada"
       });
 
       return novaDeclaracao;
@@ -38,6 +38,7 @@ class DeclaracaoService {
       if (!declaracao) {
         throw new Error("Declaração não encontrada para o ano especificado.");
       }
+
       declaracao.arquivistico = { ...declaracao.arquivistico, ...dadosArquivistico };
       await declaracao.save();
       return declaracao;
@@ -71,6 +72,24 @@ class DeclaracaoService {
       return declaracao;
     } catch (error: any) {
       throw new Error("Erro ao atualizar dados arquivísticos: " + error.message);
+    }
+  }
+
+  async atualizarStatusDeclaracao(hashArquivo: string, tipoArquivo: string, novoStatus: any) {
+    try {
+      // Buscar a declaração pelo hash do arquivo e pelo tipo de arquivo
+      const declaracao = await Declaracoes.findOne({ hashArquivo, tipoArquivo });
+
+      // Verificar se a declaração foi encontrada
+      if (!declaracao) {
+        throw new Error("Declaração não encontrada para o hash e tipo de arquivo especificados.");
+      }
+
+      // Atualizar o status da declaração
+      declaracao.status = novoStatus;
+      await declaracao.save();
+    } catch (error: any) {
+      throw new Error("Erro ao atualizar o status da declaração: " + error.message);
     }
   }
 

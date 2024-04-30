@@ -10,7 +10,7 @@ const declaracaoService = new DeclaracaoService();
 
 class BibliograficoController {
 
-  async atualizarBibliografico(req, res) {
+  async atualizarBibliografico(req: any, res: any) {
     try {
       const file = req.file!;
       const { anoDeclaracao } = req.params;
@@ -21,7 +21,7 @@ class BibliograficoController {
 
       const dadosBibliografico = {
         nome: "Bibliografico",
-        status: "em processamento",
+        status: "inserido",
         dataCriacao: new Date(),
         situacao: "Normal",
         hashArquivo: hashArquivo,

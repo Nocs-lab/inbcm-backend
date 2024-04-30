@@ -10,7 +10,7 @@ const declaracaoService = new DeclaracaoService();
 
 class ArquivisticoController {
 
-  async atualizarArquivistico(req, res) {
+  async atualizarArquivistico(req: any, res: any) {
     try {
 
 
@@ -25,7 +25,7 @@ class ArquivisticoController {
 
       const dadosArquivistico = {
         nome: "Arquivistico",
-        status: "em processamento",
+        status: "inserido",
         dataCriacao: new Date(),
         situacao: "Normal",
         hashArquivo: hashArquivo,

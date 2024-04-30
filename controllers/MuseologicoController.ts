@@ -9,8 +9,8 @@ const uploadService = new UploadService();
 const declaracaoService = new DeclaracaoService();
 
 class MuseologicoController {
-  
-  async atualizarMuseologico(req, res) {
+
+  async atualizarMuseologico(req: any, res: any) {
     try {
       const file = req.file!;
       const { anoDeclaracao } = req.params;
@@ -21,7 +21,7 @@ class MuseologicoController {
 
       const dadosMuseologico = {
         nome: "Museologico",
-        status: "em processamento",
+        status: "inserido",
         dataCriacao: new Date(),
         situacao: "Normal",
         hashArquivo: hashArquivo,

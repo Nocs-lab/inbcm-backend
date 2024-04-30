@@ -9,7 +9,7 @@ class DeclaracaoController {
     this.declaracaoService = new DeclaracaoService();
   }
 
-  async mostrarDeclaracoes(req, res) {
+  async mostrarDeclaracoes(req: any, res: any) {
     try {
       // Busca todas as declarações no banco de dados, selecionando os campos desejados
       const declaracoes = await Declaracoes.find(

@@ -9,16 +9,16 @@ const DeclaracaoSchema = new Schema({
   status: {
     type: String,
     enum: [
+      "solicitada",
       "em processamento",
       "processada",
-      "inserido",
       "com pendências",
       "em análise",
       "cancelada",
       "tratamento manual",
       "finalizada",
     ],
-    default: "em pré-processamento",
+    default: "cancelada",
   },
 
   arquivistico: {
@@ -30,7 +30,6 @@ const DeclaracaoSchema = new Schema({
         "em processamento",
         "inserido",
         "com pendências",
-        "em análise",
         "inexistente"
       ],
       default: "inexistente",
@@ -52,7 +51,6 @@ const DeclaracaoSchema = new Schema({
         "em processamento",
         "inserido",
         "com pendências",
-        "em análise",
         "inexistente"
       ],
       default: "inexistente",
@@ -74,7 +72,6 @@ const DeclaracaoSchema = new Schema({
         "em processamento",
         "inserido",
         "com pendências",
-        "em análise",
         "inexistente"
       ],
       default: "inexistente",
