@@ -52,14 +52,11 @@ routes.get("/teste/:anoDeclaracao", (req, res) => {
 
 routes.post("/recibo/gerar", UploadMiddleware.single("file"), ReciboController.gerarRecibo);
 
-
-// Rota para buscar todas as declarações
-//routes.get('/declaracoes', DeclaracaoController.getDeclaracoes);
-
-
 routes.post("/declaracao/gerar", (req, res) => declaracaoController.criarDeclaracao(req, res));
 
-
+// Rota para buscar todas as declarações
+routes.get("/declaracoes", declaracaoController.getDeclaracao);
+routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
 
 // Rota para criar usuários
 routes.post("/usuarios", UsuarioController.criarUsuario);
