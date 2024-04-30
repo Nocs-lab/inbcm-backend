@@ -21,26 +21,26 @@ const reciboController = new ReciboController();
 const declaracaoController = new DeclaracaoController();
 
 // Definir rotas de upload para cada tipo de arquivo
-routes.post(
+routes.put(
   "/bibliografico/upload/:anoDeclaracao",
   DeclaracaoMiddleware,
   UploadMiddleware.single("file"),
   ValidacaoMiddleware,
-  bibliograficoController.uploadBibliograficoModel
+  bibliograficoController.atualizarBibliografico
 );
-routes.post(
+routes.put(
   "/museologico/upload/:anoDeclaracao",
   DeclaracaoMiddleware,
   UploadMiddleware.single("file"),
   ValidacaoMiddleware,
-  museologicoController.uploadMuseologicoModel
+  museologicoController.atualizarMuseologico
 );
-routes.post(
+routes.put(
   "/arquivistico/upload/:anoDeclaracao",
   DeclaracaoMiddleware,
   UploadMiddleware.single("file"),
   ValidacaoMiddleware,
-  arquivisticoController.uploadArquivisticoModel
+  arquivisticoController.atualizarArquivistico
 );
 
 // Adicionar rota de teste
@@ -49,15 +49,14 @@ routes.get("/teste/:anoDeclaracao", (req, res) => {
   res.send(anoDeclaracao);
 });
 
-routes.post("/recibo/gerar", upload.single("file"), ReciboController.gerarRecibo);
 
-// Rota para buscar todas as declarações
-//routes.get('/declaracoes', DeclaracaoController.getDeclaracoes);
-
+routes.post("/recibo/gerar", UploadMiddleware.single("file"), ReciboController.gerarRecibo);
 
 routes.post("/declaracao/gerar", (req, res) => declaracaoController.criarDeclaracao(req, res));
 
-
+// Rota para buscar todas as declarações
+routes.get("/declaracoes", declaracaoController.getDeclaracao);
+routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
 
 // Rota para criar usuários
 routes.post("/usuarios", UsuarioController.criarUsuario);
