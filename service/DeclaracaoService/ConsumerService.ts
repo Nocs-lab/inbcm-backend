@@ -1,3 +1,5 @@
+// No arquivo do consumidor da fila (o código que consome a fila)
+
 import amqp from "amqplib/callback_api";
 import xlsx from "xlsx";
 import Bibliografico from "../../models/Bibliografico";
@@ -7,11 +9,14 @@ import Declaracoes from "../../models/Declaracao";
 import path from "path";
 import connectDB from "../../db/conn";
 import dotenv from "dotenv";
+import DeclaracaoService from "./declaracao/DeclaracaoService"; // Importar o serviço de declaração
 
 dotenv.config();
 
 // Chamar a conexão com o banco de dados
 connectDB();
+
+const declaracaoService = new DeclaracaoService(); // Instanciar o serviço de declaração
 
 amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
   if (error0) {
@@ -46,14 +51,11 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
           const tipoArquivo = fileData.tipoArquivo;
           const fileName = fileData.name;
 
-          // Buscar a declaração correspondente no banco de dados
-          const declaracao = await Declaracoes.findOne({ caminho: filePath, tipoArquivo });
+          // Use o hash do caminho do arquivo para buscar a declaração correspondente no banco de dados
+          const hashArquivo = fileData.hashArquivo;
 
           // Atualizar o status da declaração para 'em processamento'
-          if (declaracao) {
-            declaracao.status = "em processamento";
-            await declaracao.save();
-          }
+          await declaracaoService.atualizarStatusDeclaracao(hashArquivo, tipoArquivo, "em processamento");
 
           const absoluteFilePath = path.resolve(__dirname, "..", filePath);
 
@@ -67,51 +69,28 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
           switch (tipoArquivo) {
             case "bibliografico":
               await Bibliografico.insertMany(data);
-              console.log("Dados inseridos na coleção Bibliografico:", data);
-
-              // Atualizar o status da declaração para 'inserido'
-              if (declaracao) {
-                declaracao.status = "inserido";
-                await declaracao.save();
-              }
+              console.log("Dados inseridos para análise nos bens Bibliografico:", data);
               break;
 
             case "museologico":
               await Museologico.insertMany(data);
-              console.log("Dados inseridos nos bens Museologico:", data);
-
-              // Atualizar o status da declaração para 'inserido'
-              if (declaracao) {
-                declaracao.status = "inserido";
-                await declaracao.save();
-              }
+              console.log("Dados inseridos para análise nos bens Museologico:", data);
               break;
 
             case "arquivistico":
               await Arquivistico.insertMany(data);
-              console.log("Dados inseridos nos bens Arquivisticos:", data);
-
-              // Atualizar o status da declaração para 'inserido'
-              if (declaracao) {
-                declaracao.status = "inserido";
-                await declaracao.save();
-              }
+              console.log("Dados inseridos para análise Arquivisticos:", data);
               break;
 
             default:
               console.error("Tipo de arquivo desconhecido:", tipoArquivo);
               break;
           }
+
+          // Atualizar o status da declaração para 'em análise' ou 'com pendências'
+          await declaracaoService.atualizarStatusDeclaracao(hashArquivo, tipoArquivo, data.length > 0 ? "em análise" : "com pendências");
         } catch (error) {
           console.error("Erro durante o processamento da mensagem:", error);
-
-          // Se houver um erro, atualizar o status da declaração para 'com pendências'
-          const filePath = "";
-          const declaracao = await Declaracoes.findOne({ caminho: filePath, tipoArquivo });
-          if (declaracao) {
-            declaracao.status = "com pendências";
-            await declaracao.save();
-          }
         }
       },
       {

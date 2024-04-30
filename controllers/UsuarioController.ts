@@ -4,14 +4,14 @@ import { Request, Response } from "express";
 class UsuarioController {
   async criarUsuario(req: Request, res: Response) {
     try {
-      const { nome, email, museu, cpf } = req.body;
+      const { nome, acervo, museu, ano } = req.body;
 
       // Crie um novo usuário com os dados fornecidos
       const usuario = new Usuario({
         nome,
-        email,
+        acervo,
         museu,
-        cpf,
+        ano,
       });
 
       // Salve o usuário no banco de dados

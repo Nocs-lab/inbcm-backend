@@ -1,35 +1,87 @@
 import mongoose, { Schema } from "mongoose";
 
 const DeclaracaoSchema = new Schema({
-  nome: String,
-  caminho: String,
+  anoDeclaracao: String,
+  responsavelEnvio: String,
+  recibo: Boolean,
+  hashDeclaracao: String,
+  dataCriacao: { type: Date, default: Date.now() },
   status: {
     type: String,
     enum: [
+      "solicitada",
       "em processamento",
-      "em fila de restituição",
-      "inserido",
+      "processada",
       "com pendências",
       "em análise",
-      "retificada",
       "cancelada",
       "tratamento manual",
+      "finalizada",
     ],
-    default: "em processamento",
+    default: "cancelada",
   },
-  responsavelEnvio: String,
-  data: String,
-  hora: String,
-  tipo: {
-    type: String,
-    enum: ["Normal", "Retificadora"],
-    default: "Normal",
+
+  arquivistico: {
+    nome: String,
+    caminho: String,
+    status: {
+      type: String,
+      enum: [
+        "em processamento",
+        "inserido",
+        "com pendências",
+        "inexistente"
+      ],
+      default: "inexistente",
+    },
+    dataCriacao: { type: Date},
+    hora: String,
+    situacao: {
+      type: String
+    },
+    hashArquivo: String,
   },
-  hashArquivo: String,
-  tipoArquivo: {
-    type: String,
-    enum: ["bibliografico", "museologico", "arquivistico"],
-    required: true, // Se desejar que seja obrigatório
+
+  bibliografico: {
+    nome: String,
+    caminho: String,
+    status: {
+      type: String,
+      enum: [
+        "em processamento",
+        "inserido",
+        "com pendências",
+        "inexistente"
+      ],
+      default: "inexistente",
+    },
+    dataCriacao: { type: Date},
+    hora: String,
+    situacao: {
+      type: String
+    },
+    hashArquivo: String,
+  },
+
+  museologico: {
+    nome: String,
+    caminho: String,
+    status: {
+      type: String,
+      enum: [
+        "em processamento",
+        "inserido",
+        "com pendências",
+        "inexistente"
+      ],
+      default: "inexistente",
+    },
+    dataCriacao: { type: Date },
+    hora: String,
+    situacao: {
+      type: String
+    },
+    hashArquivo: String,
   },
 });
 

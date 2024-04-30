@@ -1,33 +1,46 @@
 import type { Request, Response } from "express";
-import UploadService from "../service/DeclaracaoService/UploadService";
+import UploadService from "../queue/Producer";
+import DeclaracaoService from "../service/declaracao/DeclaracaoService";
+import crypto from "crypto";
+
+
 
 const uploadService = new UploadService();
+const declaracaoService = new DeclaracaoService();
 
 class MuseologicoController {
-  async uploadMuseologicoModel(req: Request, res: Response) {
+
+  async atualizarMuseologico(req: any, res: any) {
     try {
       const file = req.file!;
-      const tipoArquivo = "museologico"; // Definir o tipo de arquivo como 'museologico'
+      const { anoDeclaracao } = req.params;
+      const tipoArquivo = "museologico";
+      const hashArquivo = crypto.createHash('sha256').update(file.path).digest('hex');
 
-      // Chama a função de upload com o arquivo e o tipo de arquivo
-      await uploadService.sendToQueue(file, tipoArquivo);
+      await uploadService.sendToQueue(file, tipoArquivo, anoDeclaracao, hashArquivo);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
-          message: "Arquivo museológico enviado para a fila com sucesso.",
-        });
+      const dadosMuseologico = {
+        nome: "Museologico",
+        status: "inserido",
+        dataCriacao: new Date(),
+        situacao: "Normal",
+        hashArquivo: hashArquivo,
+      };
+      // Chamar o método através da instância do serviço
+      await declaracaoService.atualizarMuseologico(anoDeclaracao, dadosMuseologico);
+
+      if (req.alerts && req.alerts.length > 0) {
+        return res.status(203).json({ message: "Declaração recebida com sucesso para análise.", alerts: req.alerts });
+      }
+
+      return res.status(201).json({ message: "Declaração recebida com sucesso para análise." });
     } catch (error) {
-      console.error("Erro ao enviar arquivo museológico para a fila:", error);
-      return res
-        .status(500)
-        .json({
-          success: false,
-          message: "Erro ao enviar arquivo museológico para a fila.",
-        });
+      console.error("Erro ao enviar dados museológicos:", error);
+      res.status(500).json({ message: "Erro ao enviar dados museológicos." });
     }
   }
+
+
 }
 
 // Exporta a classe MuseologicoController como exportação padrão

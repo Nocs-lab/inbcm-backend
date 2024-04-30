@@ -3,14 +3,24 @@ import Bem from "./BemCultural";
 
 // Modelo específico para documentos bibliográficos
 const BibliograficoSchema = new mongoose.Schema({
-  tipo: { type: String, required: true },
-  editora: { type: String, required: true },
-  dimensaoFisica: { type: String, required: true },
+  numeroRegistro: { type: String},
+  outrosNumeros: { type: String },
+  situacao: { type: String },
+  tipo: { type: String},
+  identificacaoResponsabilidade: { type: String},
+  localProducao: { type: String },
+  editora: { type: String},
+  data: { type: String },
+  dimensaoFisica: { type: String},
+  materialTecnica: { type: String },
   encadernacao: { type: String },
-  identificacaoResponsabilidade: { type: String, required: true },
-  assuntoPrincipal: { type: String, required: true },
+  resumoDescritivo: { type: String },
+  estadoConservacao: { type: String },
+  assuntoPrincipal: { type: String},
   assuntoCronologico: { type: String },
-  assuntoGeografico: { type: String },
+  assuntoGeografico: { type: String }
+
+
 });
 
 // Use discriminadores para distinguir os modelos
