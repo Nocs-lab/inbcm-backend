@@ -4,7 +4,7 @@ services:
   mongo:
     image: mongo
     ports:
-      - "27017:27017"
+      - "64000:27017"
     volumes:
       - mongo:/data/db
     environment:
@@ -25,7 +25,7 @@ services:
       MYSQL_ROOT_USER: root
       MYSQL_RANDOM_ROOT_PASSWORD: "true"
       MYSQL_USER: keycloak
-      MYSQL_PASSWORD: ${KEYCLOAK_DB_PASS}
+      MYSQL_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       MYSQL_DATABASE: keycloak
       MYSQL_SCHEMA: keycloak
     ports:
@@ -37,6 +37,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.keycloak
+      args:
+        DB_USERNAME: keycloak
+        DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    depends_on:
+      - mysql
 
 volumes:
   mongo:

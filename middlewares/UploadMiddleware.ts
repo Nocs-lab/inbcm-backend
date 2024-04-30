@@ -13,5 +13,11 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+//fila do pre-processamento:
+
+//converter o arquivo
+
+// verificar os campos obrigatórios dos arquivos e emitir !alerta! caso falte um campo obrigatório
+
 // Exporte o middleware de upload
 export default upload;
