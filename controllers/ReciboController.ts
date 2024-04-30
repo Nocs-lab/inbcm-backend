@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 import { Request, Response } from 'express';
 import { Recibo } from '../models/Recibo';
 import { ReciboProducer } from '../service/ReciboService/ReciboProducer';
+
 export class ReciboController {
   static async gerarRecibo(req: Request, res: Response): Promise<void> {
     try {
