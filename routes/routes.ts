@@ -49,9 +49,7 @@ routes.get("/teste/:anoDeclaracao", (req, res) => {
   res.send(anoDeclaracao);
 });
 
-
-routes.post("/recibo/gerar", UploadMiddleware.single("file"), ReciboController.gerarRecibo);
-
+routes.post("/recibo/gerar", upload.single("file"), ReciboController.gerarRecibo);
 
 // Rota para buscar todas as declarações
 //routes.get('/declaracoes', DeclaracaoController.getDeclaracoes);
