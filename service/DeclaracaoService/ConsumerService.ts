@@ -1,11 +1,11 @@
 import amqp from "amqplib/callback_api";
 import xlsx from "xlsx";
-import Bibliografico from "../models/Bibliografico";
-import Museologico from "../models/Museologico";
-import Arquivistico from "../models/Arquivistico";
-import Declaracoes from "../models/Declaracao";
+import Bibliografico from "../../models/Bibliografico";
+import Museologico from "../../models/Museologico";
+import Arquivistico from "../../models/Arquivistico";
+import Declaracoes from "../../models/Declaracao";
 import path from "path";
-import connectDB from "../db/conn";
+import connectDB from "../../db/conn";
 import dotenv from "dotenv";
 
 dotenv.config();

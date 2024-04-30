@@ -38,6 +38,7 @@ routes.post(
 routes.get("/teste", (req, res) => {
   res.send("Rota de teste funcionando!");
 });
+
 routes.post("/recibo/gerar", upload.single("file"), ReciboController.gerarRecibo);
 
 // Rota para buscar todas as declarações
