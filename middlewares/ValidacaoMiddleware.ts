@@ -61,6 +61,9 @@ function validarTipoArquivo(req, res, next) {
     ]
   };
 
+
+
+
   const file = req.file;
 
   if (!file) {

@@ -1,6 +1,7 @@
 import express from "express";
 import upload from "../middlewares/UploadMiddleware";
 import validarPlanilha from "../middlewares/ValidacaoMiddleware";
+import validarDeclaracaoExistente from "../middlewares/DeclaracaoMiddleware";
 
 // Importar controladores
 import BibliograficoController from "../controllers/BibliograficoController";
@@ -22,18 +23,21 @@ const declaracaoController = new DeclaracaoController();
 // Definir rotas de upload para cada tipo de arquivo
 routes.post(
   "/bibliografico/upload/:anoDeclaracao",
+  validarDeclaracaoExistente,
   upload.single("file"),
   validarPlanilha,
   bibliograficoController.uploadBibliograficoModel
 );
 routes.post(
   "/museologico/upload/:anoDeclaracao",
+  validarDeclaracaoExistente,
   upload.single("file"),
   validarPlanilha,
   museologicoController.uploadMuseologicoModel
 );
 routes.post(
   "/arquivistico/upload/:anoDeclaracao",
+  validarDeclaracaoExistente,
   upload.single("file"),
   validarPlanilha,
   arquivisticoController.uploadArquivisticoModel

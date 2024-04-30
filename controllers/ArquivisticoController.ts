@@ -8,12 +8,9 @@ class ArquivisticoController {
     try {
       const file = req.file!;
       const tipoArquivo = "arquivistico"; // Definir o tipo de arquivo como 'arquivistico'
-      const anoDeclaracao = req.params.anoDeclaracao!;
-
-
 
       // Chama a função de upload com o arquivo e o tipo de arquivo
-      await uploadService.sendToQueue(file, tipoArquivo, anoDeclaracao);
+      await uploadService.sendToQueue(file, tipoArquivo);
 
       // Verifica se há alertas na requisição e envia junto com a resposta
       if (req.alerts && req.alerts.length > 0) {
