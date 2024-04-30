@@ -1,7 +1,12 @@
 import type { Request, Response } from "express";
 import UploadService from "../queue/Producer";
+import DeclaracaoService from "../service/declaracao/DeclaracaoService";
+import crypto from "crypto";
+
+
 
 const uploadService = new UploadService();
+const declaracaoService = new DeclaracaoService();
 
 class ArquivisticoController {
   async uploadArquivisticoModel(req: Request, res: Response) {
@@ -26,6 +31,27 @@ class ArquivisticoController {
           success: false,
           message: "Erro ao enviar arquivo arquivístico para a fila.",
         });
+    }
+  }
+
+  async atualizarArquivistico(req, res) {
+    try {
+      const file = req.file!;
+      const { anoDeclaracao } = req.params;
+      const hashArquivo = crypto.createHash('sha256').update(file.path).digest('hex');
+      const dadosArquivistico = {
+        nome: "Arquivistico",
+        status: "em processamento",
+        dataCriacao: new Date(),
+        situacao: "Normal",
+        hashArquivo: hashArquivo,
+      };
+      // Chamar o método através da instância do serviço
+      const declaracaoAtualizada = await declaracaoService.atualizarArquivistico(anoDeclaracao, dadosArquivistico);
+      res.status(200).json(declaracaoAtualizada);
+    } catch (error) {
+      console.error("Erro ao atualizar dados arquivísticos:", error);
+      res.status(500).json({ message: "Erro ao atualizar dados arquivísticos." });
     }
   }
 }

@@ -1,7 +1,12 @@
 import type { Request, Response } from "express";
 import UploadService from "../queue/Producer";
+import crypto from "crypto";
+import DeclaracaoService from "../service/declaracao/DeclaracaoService";
+
+
 
 const uploadService = new UploadService();
+const declaracaoService = new DeclaracaoService();
 
 class BibliograficoController {
   async uploadBibliograficoModel(req: Request, res: Response) {
@@ -27,6 +32,30 @@ class BibliograficoController {
         });
     }
   }
+
+
+  async atualizarBibliografico(req, res) {
+    try {
+      const file = req.file!;
+      const { anoDeclaracao } = req.params;
+      const hashArquivo = crypto.createHash('sha256').update(file.path).digest('hex');
+      const dadosBibliografico = {
+        nome: "Bibliografico",
+        status: "em processamento",
+        dataCriacao: new Date(),
+        situacao: "Normal",
+        hashArquivo: hashArquivo,
+      };
+      // Chamar o método através da instância do serviço
+      const declaracaoAtualizada = await declaracaoService.atualizarBibliografico(anoDeclaracao, dadosBibliografico);
+      res.status(200).json(declaracaoAtualizada);
+    } catch (error) {
+      console.error("Erro ao atualizar dados bibliográficos:", error);
+      res.status(500).json({ message: "Erro ao atualizar dados bibliográficos." });
+    }
+  }
+
+
 }
 
 // Exporta a classe BibliograficoController como exportação padrão

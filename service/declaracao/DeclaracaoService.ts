@@ -32,6 +32,49 @@ class DeclaracaoService {
   }
 
 
+  async atualizarArquivistico(anoDeclaracao: string, dadosArquivistico: any) {
+    try {
+      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
+      if (!declaracao) {
+        throw new Error("Declaração não encontrada para o ano especificado.");
+      }
+      declaracao.arquivistico = { ...declaracao.arquivistico, ...dadosArquivistico };
+      await declaracao.save();
+      return declaracao;
+    } catch (error: any) {
+      throw new Error("Erro ao atualizar dados arquivísticos: " + error.message);
+    }
+  }
+
+  async atualizarBibliografico(anoDeclaracao: string, dadosBibliografico: any) {
+    try {
+      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
+      if (!declaracao) {
+        throw new Error("Declaração não encontrada para o ano especificado.");
+      }
+      declaracao.bibliografico = { ...declaracao.bibliografico, ...dadosBibliografico };
+      await declaracao.save();
+      return declaracao;
+    } catch (error: any) {
+      throw new Error("Erro ao atualizar dados arquivísticos: " + error.message);
+    }
+  }
+
+  async atualizarMuseologico(anoDeclaracao: string, dadosMuseologico: any) {
+    try {
+      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
+      if (!declaracao) {
+        throw new Error("Declaração não encontrada para o ano especificado.");
+      }
+      declaracao.museologico = { ...declaracao.museologico, ...dadosMuseologico };
+      await declaracao.save();
+      return declaracao;
+    } catch (error: any) {
+      throw new Error("Erro ao atualizar dados arquivísticos: " + error.message);
+    }
+  }
+
 }
+
 
 export default DeclaracaoService;
