@@ -4,7 +4,7 @@
   "description": "",
   "main": "server.ts",
   "scripts": {
-    "dev": "concurrently \"nodemon server.ts\" \"nodemon service/ConsumerService.ts\"",
+    "dev":"concurrently \"nodemon server.ts\" \"nodemon service/ConsumerService.ts\" \"nodemon service/ConsumerRecibo.ts\"",
     "start:docker:dev": "docker compose -f compose.yaml -f compose.dev.yaml up",
     "prepare": "husky install"
   },
