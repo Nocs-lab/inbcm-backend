@@ -14,7 +14,7 @@ function enviarParaFilaRabbitMQ(declaracaoId: string): void {
       }
       channel.assertQueue(nomeFilaRecibo, { durable: false });
       channel.sendToQueue(nomeFilaRecibo, Buffer.from(declaracaoId));
-      console.log("Declaração enviada para a fila:", declaracaoId);
+      console.log("Recibo de declaração enviado para a fila:", declaracaoId);
     });
   });
 }
