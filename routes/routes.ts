@@ -1,4 +1,5 @@
 import express from "express";
+import fs from 'fs';
 import UploadMiddleware from "../middlewares/UploadMiddleware";
 import ValidacaoMiddleware from "../middlewares/ValidacaoMiddleware";
 import DeclaracaoMiddleware from "../middlewares/DeclaracaoMiddleware";
@@ -8,7 +9,7 @@ import BibliograficoController from "../controllers/BibliograficoController";
 import MuseologicoController from "../controllers/MuseologicoController";
 import ArquivisticoController from "../controllers/ArquivisticoController";
 import DeclaracaoController from "../controllers/DeclaracaoController";
-import {ReciboController}  from "../controllers/ReciboController";
+import ReciboController from "../controllers/ReciboController"; 
 import UsuarioController from "../controllers/UsuarioController";
 
 const routes = express.Router(); // Cria um roteador usando Express
@@ -50,13 +51,16 @@ routes.get("/teste/:anoDeclaracao", (req, res) => {
 });
 
 
-routes.post("/recibo/gerar", UploadMiddleware.single("file"), ReciboController.gerarRecibo);
+routes.get("/recibo/:id", reciboController.gerarRecibo);
+
+
 
 routes.post("/declaracao/gerar", (req, res) => declaracaoController.criarDeclaracao(req, res));
 
 // Rota para buscar todas as declarações
 routes.get("/declaracoes", declaracaoController.getDeclaracao);
 routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
+
 
 // Rota para criar usuários
 routes.post("/usuarios", UsuarioController.criarUsuario);
