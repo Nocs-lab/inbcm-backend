@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
-import { emitirReciboDeclaracao, lerConteudoPDF } from "../service/reciboService/ReciboService";
+import { emitirReciboDeclaracao, lerConteudoPDF } from "../service/recibo/ReciboService";
 
 class ReciboController {
   async gerarRecibo(req: Request, res: Response): Promise<void> {
