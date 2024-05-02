@@ -73,7 +73,7 @@ function lerConteudoPDF(caminhoPDF: string): Promise<Buffer> {
                 dataHoraEnvio: new Date(),
                 numeroIdentificacao: declaracao.hashDeclaracao,
                 responsavelEnvio: declaracao.responsavelEnvio,
-                confirmacaoRecebimento: true // Iniciando como falso por padrão
+                confirmacaoRecebimento: true 
             });
             await recibo.save();
         }
@@ -87,3 +87,4 @@ function lerConteudoPDF(caminhoPDF: string): Promise<Buffer> {
 
 
 export { emitirReciboDeclaracao, lerConteudoPDF };
+
