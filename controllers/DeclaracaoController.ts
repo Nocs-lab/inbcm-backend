@@ -11,22 +11,15 @@ class DeclaracaoController {
 
   async mostrarDeclaracoes(req: any, res: any) {
     try {
-      // Busca todas as declarações no banco de dados, selecionando os campos desejados
-      const declaracoes = await Declaracoes.find(
-        {},
-        {
-          responsavelEnvio: 1,
-          anoDeclaracao: 1,
-          recibo: 1,
-          hashDeclaracao: 1,
-          dataCriacao: 1, // Incluir o campo tipoArquivo
-          status: 1,
-          _id: 0, // Excluir o _id do resultado
-          arquivistico: 1,
-          bibliografico: 1,
-          museologico: 1,
-        }
-      );
+      const declaracoes = await Declaracoes.find({}, {
+        responsavelEnvio: 1,
+        data: 1,
+        hora: 1,
+        tipo: 1,
+        tipoArquivo: 1,
+        status: 1,
+        _id: 0,
+      }).populate('responsavelEnvio', 'nome email'); // Popula os dados do usuário
 
       if (declaracoes.length === 0) {
         return res.status(404).json({ message: "Nenhuma declaração foi encontrada no histórico." });
