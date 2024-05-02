@@ -1,8 +1,6 @@
-
-import { format } from 'date-fns';
-import { Request, Response } from 'express';
-import { Recibo } from '../models/Recibo';
-import { ReciboProducer } from '../service/ReciboService/ReciboProducer';
+import { Request, Response } from "express";
+import mongoose from "mongoose";
+import { emitirReciboDeclaracao, lerConteudoPDF } from "../service/recibo/ReciboService";
 
 class ReciboController {
   async gerarRecibo(req: Request, res: Response): Promise<void> {
@@ -25,5 +23,4 @@ class ReciboController {
     }
   }
 }
-
-export default ReciboController;
+export default  ReciboController;
