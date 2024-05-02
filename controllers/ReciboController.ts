@@ -1,35 +1,29 @@
+
 import { format } from 'date-fns';
 import { Request, Response } from 'express';
 import { Recibo } from '../models/Recibo';
 import { ReciboProducer } from '../service/ReciboService/ReciboProducer';
 
-export class ReciboController {
-  static async gerarRecibo(req: Request, res: Response): Promise<void> {
+class ReciboController {
+  async gerarRecibo(req: Request, res: Response): Promise<void> {
     try {
-      // Gerar um número de identificação único aleatório
-      const numeroIdentificacao = Math.floor(Math.random() * 1000000).toString();
+      const declaracaoId = mongoose.Types.ObjectId.createFromHexString(req.params.id);
+     
+      const caminhoDeclaracao = await emitirReciboDeclaracao(declaracaoId);
 
-      // Obter a data e hora atuais
-      const dataAtual = new Date();
-      const dataHoraEnvio = format(dataAtual, 'dd/MM/yyyy');
-      // Verificar se o PDF foi solicitado na requisição
-      const reciboSolicitado = req.body.pdfSolicitado === true;
+      
+      const pdfConteudo = await lerConteudoPDF(caminhoDeclaracao);
 
-      // Definir o valor de confirmacaoRecebimento com base na solicitação de PDF
-      const confirmacaoRecebimento = reciboSolicitado ? 'sim' : 'não';
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="recibo.pdf"`);
 
-      const recibo: Recibo = {
-        numeroIdentificacao,
-        dataHoraEnvio,
-        confirmacaoRecebimento,
-      };
-
-      await ReciboProducer.sendReciboToQueue(recibo);
-
-      res.status(200).json({ success: true, message: 'Recibo gerado com sucesso.' });
+    
+      res.status(200).send(pdfConteudo);
     } catch (error) {
-      console.error('Erro ao gerar recibo:', error);
-      res.status(500).json({ success: false, message: 'Erro ao gerar recibo.' });
+      console.error("Erro ao gerar recibo:", error);
+      res.status(500).json({ error: "Erro ao gerar recibo." });
     }
   }
 }
+
+export default ReciboController;
