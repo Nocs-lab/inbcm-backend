@@ -9,9 +9,8 @@ import BibliograficoController from "../controllers/BibliograficoController";
 import MuseologicoController from "../controllers/MuseologicoController";
 import ArquivisticoController from "../controllers/ArquivisticoController";
 import DeclaracaoController from "../controllers/DeclaracaoController";
-import ReciboController from "../controllers/ReciboController"; 
 import UsuarioController from "../controllers/UsuarioController";
-
+import ReciboController from "../controllers/ReciboController";
 const routes = express.Router(); // Cria um roteador usando Express
 
 // Instanciar controladores

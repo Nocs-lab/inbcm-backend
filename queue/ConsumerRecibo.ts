@@ -1,6 +1,6 @@
 import amqp from "amqplib/callback_api";
 import { Types } from "mongoose";
-import { emitirReciboDeclaracao } from "../service/reciboService/ReciboService";
+import { emitirReciboDeclaracao } from "../service/recibo/ReciboService";
 
 const nomeFilaRecibo = "fila_recibo";
 
