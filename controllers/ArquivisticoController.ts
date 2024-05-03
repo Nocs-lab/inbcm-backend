@@ -1,7 +1,5 @@
-import crypto from "crypto";
 import UploadService from "../queue/Producer";
 import DeclaracaoService from "../service/DeclaracaoService";
-
 
 
 const uploadService = new UploadService();
@@ -15,19 +13,17 @@ class ArquivisticoController {
 
       const file = req.file!;
       const { anoDeclaracao } = req.params;
-      const hashArquivo = crypto.createHash('sha256').update(file.path).digest('hex');
+
 
       const tipoArquivo = "arquivistico"; // Definir o tipo de arquivo como 'arquivistico'
 
       // Chama a função de upload com o arquivo e o tipo de arquivo
-      await uploadService.sendToQueue(file, tipoArquivo, anoDeclaracao, hashArquivo);
+      await uploadService.sendToQueue(file, tipoArquivo);
 
       const dadosArquivistico = {
         nome: "Arquivistico",
-        status: "inserido",
-        dataCriacao: new Date(),
-        situacao: "Normal",
-        hashArquivo: hashArquivo,
+        status: "em análise",
+       
       };
       // Chamar o método através da instância do serviço
       await declaracaoService.atualizarArquivistico(anoDeclaracao, dadosArquivistico);

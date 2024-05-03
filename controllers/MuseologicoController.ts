@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import UploadService from "../queue/Producer";
 import DeclaracaoService from "../service/DeclaracaoService";
 
@@ -14,16 +13,14 @@ class MuseologicoController {
       const file = req.file!;
       const { anoDeclaracao } = req.params;
       const tipoArquivo = "museologico";
-      const hashArquivo = crypto.createHash('sha256').update(file.path).digest('hex');
 
-      await uploadService.sendToQueue(file, tipoArquivo, anoDeclaracao, hashArquivo);
+
+      await uploadService.sendToQueue(file, tipoArquivo, anoDeclaracao);
 
       const dadosMuseologico = {
         nome: "Museologico",
-        status: "inserido",
-        dataCriacao: new Date(),
-        situacao: "Normal",
-        hashArquivo: hashArquivo,
+        status: "em análise",
+        
       };
       // Chamar o método através da instância do serviço
       await declaracaoService.atualizarMuseologico(anoDeclaracao, dadosMuseologico);

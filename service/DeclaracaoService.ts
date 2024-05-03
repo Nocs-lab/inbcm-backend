@@ -15,7 +15,7 @@ class DeclaracaoService {
         recibo: false,
         hashDeclaracao,
         dataCriacao: new Date(),
-        status: "solicitada"
+        status: "em análise"
       });
 
       return novaDeclaracao;

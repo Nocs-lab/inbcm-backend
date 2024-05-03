@@ -9,16 +9,14 @@ const DeclaracaoSchema = new Schema({
   status: {
     type: String,
     enum: [
-      "solicitada",
       "em processamento",
       "processada",
       "com pendências",
+      "em análise por técnicos do IBRAM",
       "em análise",
-      "cancelada",
-      "tratamento manual",
       "finalizada",
     ],
-    default: "cancelada",
+    default: "em análise",
   },
 
   arquivistico: {
@@ -34,12 +32,6 @@ const DeclaracaoSchema = new Schema({
       ],
       default: "inexistente",
     },
-    dataCriacao: { type: Date},
-    hora: String,
-    situacao: {
-      type: String
-    },
-    hashArquivo: String,
   },
 
   bibliografico: {
@@ -55,12 +47,6 @@ const DeclaracaoSchema = new Schema({
       ],
       default: "inexistente",
     },
-    dataCriacao: { type: Date},
-    hora: String,
-    situacao: {
-      type: String
-    },
-    hashArquivo: String,
   },
 
   museologico: {
@@ -76,12 +62,6 @@ const DeclaracaoSchema = new Schema({
       ],
       default: "inexistente",
     },
-    dataCriacao: { type: Date },
-    hora: String,
-    situacao: {
-      type: String
-    },
-    hashArquivo: String,
   },
 });
 

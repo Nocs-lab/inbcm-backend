@@ -44,10 +44,10 @@ routes.put(
 );
 
 // Adicionar rota de teste
-routes.get("/teste/:anoDeclaracao", (req, res) => {
-  const { anoDeclaracao } = req.params;
-  res.send(anoDeclaracao);
-});
+// routes.get("/teste/:anoDeclaracao", (req, res) => {
+//   const { anoDeclaracao } = req.params;
+//   res.send(anoDeclaracao);
+// });
 
 
 routes.get("/recibo/:id", reciboController.gerarRecibo);
@@ -62,7 +62,7 @@ routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno)
 
 
 // Rota para criar usuários
-routes.post("/usuarios", UsuarioController.criarUsuario);
+//routes.post("/usuarios", UsuarioController.criarUsuario);
 
 // Exportar o roteador configurado
 export default routes;
