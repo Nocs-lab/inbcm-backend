@@ -1,6 +1,6 @@
 import amqp from "amqplib/callback_api";
 import { Types } from "mongoose";
-import { emitirReciboDeclaracao } from "../service/recibo/ReciboService";
+import { emitirReciboDeclaracao } from "../service/ReciboService";
 
 const nomeFilaRecibo = "fila_recibo";
 
@@ -19,10 +19,10 @@ async function consumirFilaRecibo(): Promise<void> {
             channel.consume(nomeFilaRecibo, async function (msg) {
                 if (msg !== null) {
                     try {
-                        const declaracaoIdString = msg.content.toString(); 
+                        const declaracaoIdString = msg.content.toString();
                         console.log("Mensagem de recibo recebida para declaração:", declaracaoIdString);
 
-                        
+
                         const declaracaoId = Types.ObjectId.createFromHexString(declaracaoIdString);
 
                         await emitirReciboDeclaracao(declaracaoId);

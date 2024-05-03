@@ -24,7 +24,7 @@ const storage = multer.diskStorage({
   }
 
     // Define o nome do arquivo
-    const IDENTIFICADORMUSEU = "01";
+    const IDENTIFICADORMUSEU = "81";
     const ANODECLARACAO = req.params.anoDeclaracao;
     const TIPODECLARACAO =  tipoDeclaracao;
     const TIPOACERVO = tipoAcervo;

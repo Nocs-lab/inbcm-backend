@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import DeclaracaoService from "../service/declaracao/DeclaracaoService";
 import Declaracoes from "../models/Declaracao";
+import DeclaracaoService from "../service/DeclaracaoService";
 
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;

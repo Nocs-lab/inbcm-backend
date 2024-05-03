@@ -1,7 +1,6 @@
-import type { Request, Response } from "express";
-import UploadService from "../queue/Producer";
-import DeclaracaoService from "../service/declaracao/DeclaracaoService";
 import crypto from "crypto";
+import UploadService from "../queue/Producer";
+import DeclaracaoService from "../service/DeclaracaoService";
 
 
 

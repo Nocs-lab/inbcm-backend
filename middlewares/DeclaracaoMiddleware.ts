@@ -1,4 +1,4 @@
-import DeclaracaoService from "../service/declaracao/DeclaracaoService";
+import DeclaracaoService from "../service/DeclaracaoService";
 
 async function DeclaracaoMiddleware(req: any, res: any, next: any) {
   const { anoDeclaracao } = req.params;

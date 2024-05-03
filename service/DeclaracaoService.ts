@@ -1,5 +1,5 @@
-import Declaracoes from "../../models/Declaracao";
 import crypto from "crypto";
+import Declaracoes from "../models/Declaracao";
 
 class DeclaracaoService {
 
