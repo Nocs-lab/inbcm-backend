@@ -9,12 +9,10 @@ class DeclaracaoController {
     this.declaracaoService = new DeclaracaoService();
   }
 
-  
-
   async getDeclaracaoAno(req: Request, res: Response) {
     try {
       const { anoDeclaracao } = req.params;
-      const declaracao = await Declaracoes.findOne({ anoDeclaracao: anoDeclaracao });
+      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
 
       if (!declaracao) {
         return res.status(404).json({ message: "Declaração não encontrada para o ano especificado." });
@@ -42,14 +40,25 @@ class DeclaracaoController {
     }
   }
 
-  async criarDeclaracao(req: Request, res: Response) {
+  async uploadDeclaracao(req: Request, res: Response) {
     try {
       const { anoDeclaracao } = req.body;
-      const novaDeclaracao = await this.declaracaoService.criarDeclaracao(anoDeclaracao);
-      res.status(201).json({ message: "Declaração criada com sucesso.", declaracao: novaDeclaracao });
+
+      // Verificar se a declaração já existe
+      let declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(anoDeclaracao);
+
+      // Se a declaração não existe, retornar uma resposta indicando isso
+      if (!declaracaoExistente) {
+        return res.status(404).json({ message: "Declaração não encontrada para o ano especificado." });
+      }
+
+      // Se a declaração existe, atualizar o status
+      await this.declaracaoService.atualizarStatusDeclaracao(declaracaoExistente.hashDeclaracao, 'tipoArquivo', 'novoStatus');
+      return res.status(200).json({ message: "Status da declaração atualizado com sucesso." });
+
     } catch (error) {
-      console.error("Erro ao criar declaração:", error);
-      res.status(500).json({ message: "Erro ao criar declaração." });
+      console.error("Erro ao verificar e atualizar declaração:", error);
+      return res.status(500).json({ message: "Erro ao verificar e atualizar declaração." });
     }
   }
 }

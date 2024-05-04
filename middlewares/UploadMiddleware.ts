@@ -1,4 +1,5 @@
 import multer from "multer";
+import { RequestHandler } from "express";
 
 // Configuração de multer para lidar com uploads de arquivos
 const storage = multer.diskStorage({
@@ -6,27 +7,25 @@ const storage = multer.diskStorage({
     cb(null, "uploads/");
   },
   filename: function (req, file, cb) {
+    let tipoAcervo = '';
+    switch (file.fieldname) {
+      case 'museologico':
+        tipoAcervo = 'M'; // Museológico
+        break;
+      case 'bibliografico':
+        tipoAcervo = 'B'; // Bibliográfico
+        break;
+      case 'arquivistico':
+        tipoAcervo = 'A'; // Arquivístico
+        break;
+      default:
+        cb(new Error('Tipo de declaração inválido.'), "");
+        return;
+    }
 
-  let tipoAcervo = '';
-  let tipoDeclaracao = req.path.split('/')[1]; // Obtém o tipo de arquivo da rota
-  switch (tipoDeclaracao) {
-    case 'museologico':
-      tipoAcervo = 'M'; // Museológico
-      break;
-    case 'bibliografico':
-      tipoAcervo = 'B'; // Bibliográfico
-      break;
-    case 'arquivistico':
-      tipoAcervo = 'A'; // Arquivístico
-      break;
-    default:
-      throw new Error('Tipo de declaração inválido.');
-  }
-
-    // Define o nome do arquivo
     const IDENTIFICADORMUSEU = "81";
     const ANODECLARACAO = req.params.anoDeclaracao;
-    const TIPODECLARACAO =  tipoDeclaracao;
+    const TIPODECLARACAO = file.fieldname;
     const TIPOACERVO = tipoAcervo;
     const date = new Date();
     const DATA = date.toLocaleString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\//g, '').replace(',', '_').replace(/:/g, '');
@@ -35,7 +34,19 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+// Crie o middleware de upload para lidar com vários arquivos
+const uploadMiddleware: RequestHandler = (req, res, next) => {
+  multer({ storage }).fields([
+    { name: "arquivistico", maxCount: 1 },
+    { name: "bibliografico", maxCount: 1 },
+    { name: "museologico", maxCount: 1 }
+  ])(req, res, err => {
+    if (err) {
+      return res.status(400).json({ message: "Erro ao fazer upload dos arquivos." });
+    }
+    next();
+  });
+};
 
 // Exporte o middleware de upload
-export default upload;
+export default uploadMiddleware;
