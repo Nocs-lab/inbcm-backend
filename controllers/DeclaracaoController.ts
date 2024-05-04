@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import Declaracoes from "../models/Declaracao";
 import DeclaracaoService from "../service/DeclaracaoService";
-import UploadService from "../queue/Producer";
+import UploadService from "../queue/ProducerDeclaracao";
 import crypto from "crypto";
 
 class DeclaracaoController {
