@@ -47,6 +47,8 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
         try {
           const fileData = JSON.parse(msg?.content.toString()!);
           const filePath = fileData.path;
+          console.log(filePath);
+
           const tipoArquivo = fileData.tipoArquivo;
           const fileName = fileData.name;
 
@@ -87,7 +89,7 @@ amqp.connect(process.env.QUEUE_URL!, (error0, connection) => {
           }
 
           // Atualizar o status da declaração para 'em análise' ou 'com pendências'
-          await declaracaoService.atualizarStatusDeclaracao(hashArquivo, tipoArquivo, data.length > 0 ? "em análise" : "com pendências");
+          await declaracaoService.atualizarStatusDeclaracao(hashArquivo, tipoArquivo, data.length > 0 ? "processada" : "com pendências");
         } catch (error) {
           console.error("Erro durante o processamento da mensagem:", error);
         }

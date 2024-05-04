@@ -31,6 +31,31 @@ class DeclaracaoService {
     return declaracaoExistente;
   }
 
+  async atualizarArquivosDeclaracao(anoDeclaracao: string, dadosArquivos: any) {
+    try {
+      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
+      if (!declaracao) {
+        throw new Error("Declaração não encontrada para o ano especificado.");
+      }
+
+      // Atualizar os dados dos arquivos
+      if (dadosArquivos.arquivistico) {
+        declaracao.arquivistico = dadosArquivos.arquivistico;
+      }
+      if (dadosArquivos.bibliografico) {
+        declaracao.bibliografico = dadosArquivos.bibliografico;
+      }
+      if (dadosArquivos.museologico) {
+        declaracao.museologico = dadosArquivos.museologico;
+      }
+
+      await declaracao.save();
+      return declaracao;
+    } catch (error: any) {
+      throw new Error("Erro ao atualizar dados dos arquivos da declaração: " + error.message);
+    }
+  }
+
 
   async atualizarArquivistico(anoDeclaracao: string, dadosArquivistico: any) {
     try {
@@ -92,6 +117,8 @@ class DeclaracaoService {
       throw new Error("Erro ao atualizar o status da declaração: " + error.message);
     }
   }
+
+  
 
 }
 

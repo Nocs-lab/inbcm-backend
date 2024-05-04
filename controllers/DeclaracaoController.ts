@@ -1,12 +1,19 @@
 import { Request, Response } from "express";
 import Declaracoes from "../models/Declaracao";
 import DeclaracaoService from "../service/DeclaracaoService";
+import UploadService from "../queue/Producer";
+import crypto from "crypto";
 
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;
+  private uploadService: UploadService;
 
   constructor() {
     this.declaracaoService = new DeclaracaoService();
+    this.uploadService = new UploadService();
+
+    // Faz o bind do contexto atual para a função uploadDeclaracao
+    this.uploadDeclaracao = this.uploadDeclaracao.bind(this);
   }
 
   async getDeclaracaoAno(req: Request, res: Response) {
@@ -42,23 +49,56 @@ class DeclaracaoController {
 
   async uploadDeclaracao(req: Request, res: Response) {
     try {
-      const { anoDeclaracao } = req.body;
+      const { anoDeclaracao } = req.params;
+      const arquivistico = req.files?.arquivistico;
+      const bibliografico = req.files?.bibliografico;
+      const museologico = req.files?.museologico;
 
-      // Verificar se a declaração já existe
+
+      // Verificar se a declaração já existe para o ano especificado
       let declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(anoDeclaracao);
 
-      // Se a declaração não existe, retornar uma resposta indicando isso
+      // Se não existir, criar uma nova declaração
       if (!declaracaoExistente) {
-        return res.status(404).json({ message: "Declaração não encontrada para o ano especificado." });
+        declaracaoExistente = await this.declaracaoService.criarDeclaracao(anoDeclaracao);
+        console.log("Declaração criada com sucesso.");
+      }
+      if (arquivistico) {
+        const hashArquivo = crypto.createHash('sha256').digest('hex');
+        await this.uploadService.sendToQueue(arquivistico[0], 'arquivistico', anoDeclaracao);
+        await this.declaracaoService.atualizarArquivistico(anoDeclaracao, {
+            nome: 'arquivistico',
+            status: 'em análise',
+            hashArquivo: hashArquivo,
+        });
       }
 
-      // Se a declaração existe, atualizar o status
-      await this.declaracaoService.atualizarStatusDeclaracao(declaracaoExistente.hashDeclaracao, 'tipoArquivo', 'novoStatus');
-      return res.status(200).json({ message: "Status da declaração atualizado com sucesso." });
+      if (bibliografico) {
+        const hashArquivo = crypto.createHash('sha256').digest('hex');
+        await this.uploadService.sendToQueue(bibliografico[0], 'bibliografico', anoDeclaracao);
+        await this.declaracaoService.atualizarBibliografico(anoDeclaracao, {
+            nome: 'bibliografico',
+            status: 'em análise',
+            hashArquivo: hashArquivo,
+        });
+      }
 
+      if (museologico) {
+        const hashArquivo = crypto.createHash('sha256').digest('hex');
+        await this.uploadService.sendToQueue(museologico[0], 'museologico', anoDeclaracao);
+        await this.declaracaoService.atualizarMuseologico(anoDeclaracao, {
+            nome: 'museologico',
+            status: 'em análise',
+             hashArquivo: hashArquivo,
+        });
+      }
+
+      // Enviar arquivos para a fila e atualizar as declarações separadamente para cada tipo
+
+      return res.status(200).json({ message: "Declaração enviada com sucesso!" });
     } catch (error) {
-      console.error("Erro ao verificar e atualizar declaração:", error);
-      return res.status(500).json({ message: "Erro ao verificar e atualizar declaração." });
+      console.error("Erro ao enviar arquivos para a declaração:", error);
+      return res.status(500).json({ message: "Erro ao enviar arquivos para a declaração." });
     }
   }
 }

@@ -44,6 +44,10 @@ const uploadMiddleware: RequestHandler = (req, res, next) => {
     if (err) {
       return res.status(400).json({ message: "Erro ao fazer upload dos arquivos." });
     }
+    // Verificar se os arquivos foram enviados corretamente
+    if (!req.files) {
+      return res.status(400).json({ message: "Nenhum arquivo enviado." });
+    }
     next();
   });
 };
