@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 class UploadService {
-  async sendToQueue(file: Express.Multer.File, tipoArquivo: string, anoDeclaracao: string, hashArquivo: string) {
+  async sendToQueue(file: Express.Multer.File, tipoArquivo: string, anoDeclaracao: string) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -26,7 +26,7 @@ class UploadService {
               path: file.path,
               ano: anoDeclaracao,
               tipoArquivo,
-              hashArquivo: hashArquivo, // Inclua o hash na mensagem
+              //hashArquivo: hashArquivo, // Inclua o hash na mensagem
               // Adicione mais campos conforme necessário
             };
             console.log("fila conectada!");

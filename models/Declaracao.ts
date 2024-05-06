@@ -9,16 +9,14 @@ const DeclaracaoSchema = new Schema({
   status: {
     type: String,
     enum: [
-      "solicitada",
       "em processamento",
       "processada",
       "com pendências",
+      "em análise por técnicos do IBRAM",
       "em análise",
-      "cancelada",
-      "tratamento manual",
       "finalizada",
     ],
-    default: "cancelada",
+    default: "em análise",
   },
 
   arquivistico: {
@@ -28,16 +26,11 @@ const DeclaracaoSchema = new Schema({
       type: String,
       enum: [
         "em processamento",
-        "inserido",
+        "em análise",
         "com pendências",
-        "inexistente"
+        "não enviado"
       ],
-      default: "inexistente",
-    },
-    dataCriacao: { type: Date},
-    hora: String,
-    situacao: {
-      type: String
+      default: "não enviado",
     },
     hashArquivo: String,
   },
@@ -49,16 +42,11 @@ const DeclaracaoSchema = new Schema({
       type: String,
       enum: [
         "em processamento",
-        "inserido",
+        "em análise",
         "com pendências",
-        "inexistente"
+        "não enviado"
       ],
-      default: "inexistente",
-    },
-    dataCriacao: { type: Date},
-    hora: String,
-    situacao: {
-      type: String
+      default: "não enviado",
     },
     hashArquivo: String,
   },
@@ -70,21 +58,16 @@ const DeclaracaoSchema = new Schema({
       type: String,
       enum: [
         "em processamento",
-        "inserido",
+        "em análise",
         "com pendências",
-        "inexistente"
+        "não enviado"
       ],
-      default: "inexistente",
-    },
-    dataCriacao: { type: Date },
-    hora: String,
-    situacao: {
-      type: String
+      default: "não enviado",
     },
     hashArquivo: String,
   },
 });
 
-const Declaracoes = mongoose.model("Registros_Envio_Declaracoes", DeclaracaoSchema);
+const Declaracoes = mongoose.model("Declaracoes", DeclaracaoSchema);
 
 export default Declaracoes;

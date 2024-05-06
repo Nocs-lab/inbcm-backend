@@ -15,7 +15,7 @@ class DeclaracaoService {
         recibo: false,
         hashDeclaracao,
         dataCriacao: new Date(),
-        status: "solicitada"
+        status: "em análise"
       });
 
       return novaDeclaracao;
@@ -29,6 +29,31 @@ class DeclaracaoService {
     const declaracaoExistente = await Declaracoes.findOne({ anoDeclaracao });
 
     return declaracaoExistente;
+  }
+
+  async atualizarArquivosDeclaracao(anoDeclaracao: string, dadosArquivos: any) {
+    try {
+      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
+      if (!declaracao) {
+        throw new Error("Declaração não encontrada para o ano especificado.");
+      }
+
+      // Atualizar os dados dos arquivos
+      if (dadosArquivos.arquivistico) {
+        declaracao.arquivistico = dadosArquivos.arquivistico;
+      }
+      if (dadosArquivos.bibliografico) {
+        declaracao.bibliografico = dadosArquivos.bibliografico;
+      }
+      if (dadosArquivos.museologico) {
+        declaracao.museologico = dadosArquivos.museologico;
+      }
+
+      await declaracao.save();
+      return declaracao;
+    } catch (error: any) {
+      throw new Error("Erro ao atualizar dados dos arquivos da declaração: " + error.message);
+    }
   }
 
 
@@ -92,6 +117,8 @@ class DeclaracaoService {
       throw new Error("Erro ao atualizar o status da declaração: " + error.message);
     }
   }
+
+  
 
 }
 
