@@ -3,7 +3,6 @@ import mongoose, { Schema } from "mongoose";
 const DeclaracaoSchema = new Schema({
   anoDeclaracao: String,
   responsavelEnvio: String,
-  recibo: Boolean,
   hashDeclaracao: String,
   dataCriacao: { type: Date, default: Date.now() },
   status: {
