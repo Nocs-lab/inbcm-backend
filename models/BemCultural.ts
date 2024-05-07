@@ -2,8 +2,8 @@ import mongoose from "mongoose";
 
 // Defina o modelo base genérico
 const BemCulturalSchema = new mongoose.Schema({
-  titulo: { type: String },
-  condicoesReproducao: { type: String },
+  titulo: { type: String,alias:"titulo" },
+  condicoesReproducao: { type: String,alias:"condicoesDeReproducao"},
   midiasRelacionadas: { type: [String] }, // Pode ser uma lista de URLs ou referências
 });
 
