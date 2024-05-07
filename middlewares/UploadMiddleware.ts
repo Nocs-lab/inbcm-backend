@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
         return;
     }
 
-    const IDENTIFICADORMUSEU = "81";
+    const IDENTIFICADORMUSEU = "11";
     const ANODECLARACAO = req.params.anoDeclaracao;
     const TIPODECLARACAO = file.fieldname;
     const TIPOACERVO = tipoAcervo;

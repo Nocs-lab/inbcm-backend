@@ -4,7 +4,7 @@ import uploadMiddleware from "../middlewares/UploadMiddleware";
 
 // Importar controladores
 import DeclaracaoController from "../controllers/DeclaracaoController";
-import UsuarioController from "../controllers/UsuarioController";
+//import UsuarioController from "../controllers/UsuarioController";
 import ReciboController from "../controllers/ReciboController";
 
 const routes = express.Router(); // Cria um roteador usando Express
