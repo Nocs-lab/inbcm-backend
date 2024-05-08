@@ -53,8 +53,6 @@ class DeclaracaoController {
       const arquivistico = req.files?.arquivistico;
       const bibliografico = req.files?.bibliografico;
       const museologico = req.files?.museologico;
-
-
       // Verificar se a declaração já existe para o ano especificado
       let declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(anoDeclaracao);
 

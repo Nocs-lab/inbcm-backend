@@ -1,4 +1,5 @@
 import fs from "fs";
+import { readFile } from "fs/promises"
 import mongoose from "mongoose";
 import path from "path";
 import PDFDocument from "pdfkit";
@@ -6,21 +7,13 @@ import Declaracoes from "../models/Declaracao";
 import { ReciboModel } from "../models/Recibo";
 import { enviarParaFilaRabbitMQ } from "../queue/ReciboProducer";
 
-const pastaUploadRecibos = path.join(__dirname, "../../upload_recibos");
+const pastaUploadRecibos = path.join(__dirname, "../upload_recibos");
 
 function lerConteudoPDF(caminhoPDF: string): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      fs.readFile(caminhoPDF, (err, data) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(data);
-        }
-      });
-    });
-  }
+  return readFile(caminhoPDF);
+}
 
-  async function emitirReciboDeclaracao(declaracaoId: mongoose.Types.ObjectId): Promise<string> {
+  async function emitirReciboDeclaracao(declaracaoId: mongoose.Types.ObjectId, dataCallback: (chunk: any) => {}, endCallback: () => {}): Promise<string> {
     try {
         const declaracao = await Declaracoes.findById(declaracaoId);
         if (!declaracao) {
@@ -29,10 +22,12 @@ function lerConteudoPDF(caminhoPDF: string): Promise<Buffer> {
 
         const nomeArquivo = `recibo_${declaracao.hashDeclaracao}.pdf`;
         const caminhoPDF = path.join(pastaUploadRecibos, nomeArquivo);
-        const doc = new PDFDocument();
+        const doc = new PDFDocument({ bufferPages: true });
 
-        doc.pipe(fs.createWriteStream(caminhoPDF));
-        const imagePath = path.join(__dirname, "../../templates/logo_ibram.png");
+        doc.on('data', dataCallback);
+        doc.on('end', endCallback);
+
+        const imagePath = path.join(__dirname, "../templates/logo_ibram.png");
         doc.image(imagePath, {
             fit: [150, 150],
             align: "center",
