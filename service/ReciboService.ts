@@ -45,11 +45,26 @@ function lerConteudoPDF(caminhoPDF: string): Promise<Buffer> {
 
         doc.fontSize(12).text(`Responsável pelo Envio: ${declaracao.responsavelEnvio}`).moveDown();
 
+        doc.fontSize(12).text(`Código identificador de  museu: 21`).moveDown();
+
         doc.fontSize(12).text("Confirmação de Recebimento: Recebido pelo INBCM").moveDown();
 
-        doc.end();
+        if ( declaracao.arquivistico && declaracao.arquivistico.status !== 'não enviado') {
+            doc.moveDown().fontSize(12).text(`Tipo de arquivo declarado: Arquivístico`);
 
-        // Verificar se já existe um recibo com o mesmo número de identificação
+        }
+
+        if (declaracao.bibliografico && declaracao.bibliografico.status !== 'não enviado') {
+            doc.moveDown().fontSize(12).text(`Tipo de arquivo declarado: Bibliográfico`);
+           
+        }
+
+        if (declaracao.museologico && declaracao.museologico.status !== "não enviado") {
+          doc.moveDown().fontSize(12).text(`Tipo de arquivo declarado: Museológico`);
+    
+        }
+
+        doc.end();
         const verificaRecibo = await ReciboModel.findOne({ numeroIdentificacao: declaracao.hashDeclaracao }).populate('arquivosInseridos');
 
         if (verificaRecibo) {
