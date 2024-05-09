@@ -11,7 +11,7 @@ class DeclaracaoService {
       // Criar a nova declaração apenas com os campos relacionados à declaração
       const novaDeclaracao = await Declaracoes.create({
         anoDeclaracao:anoDeclaracao,
-        responsavelEnvio: "Thiago Campos",
+        responsavelEnvio: "Vitor Daniel",
         recibo: false,
         hashDeclaracao,
         dataCriacao: new Date(),
