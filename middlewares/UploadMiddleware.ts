@@ -42,7 +42,9 @@ const uploadMiddleware: RequestHandler = (req, res, next) => {
     { name: "museologico", maxCount: 1 }
   ])(req, res, err => {
     if (err) {
+      console.log(err);
       return res.status(400).json({ message: "Erro ao fazer upload dos arquivos." });
+
     }
     // Verificar se os arquivos foram enviados corretamente
     if (!req.files) {

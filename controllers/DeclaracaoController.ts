@@ -36,9 +36,7 @@ class DeclaracaoController {
     try {
       const declaracoes = await Declaracoes.find();
 
-      if (declaracoes.length === 0) {
-        return res.status(404).json({ message: "Nenhuma declaração foi encontrada." });
-      }
+      
 
       return res.status(200).json(declaracoes);
     } catch (error) {
