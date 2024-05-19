@@ -11,27 +11,6 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${DB_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${DB_PASS}
 
-  rabbitmq:
-    image: rabbitmq:alpine
-    ports:
-      - 5672:5672
-      - 15672:15672
-    volumes:
-      - rabbitmq:/var/lib/rabbitmq
-
-  keycloak:
-    image: quay.io/keycloak/keycloak
-    restart: always
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-    ports:
-      - 8080:8080
-    command: start-dev --import-realm
-    volumes:
-      - ./realms:/opt/bitnami/keycloak/data/import
-
 volumes:
   mongo:
-  rabbitmq:
   mysql:
