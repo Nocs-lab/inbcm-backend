@@ -1,18 +1,30 @@
-import mongoose, { Schema } from "mongoose";
-import AutoIncrementFactory from 'mongoose-sequence';
+import mongoose, { Schema, Types, Document } from "mongoose";
 
-const AutoIncrement = AutoIncrementFactory(mongoose);
+interface IUsuario extends Document {
+  nome: string
+  email: string
+  museus: string[]
+  admin: boolean
+  senha: string
+}
 
-const UsuarioSchema = new Schema({
-  id_user: { type: Number },
+const UsuarioSchema = new Schema<IUsuario>({
   nome: { type: String, required: true },
-  acervo: { type: String, required: true },
-  museu: { type: String, required: true },
-  ano: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  museus: { type: [String], default: [] },
+  admin: { type: Boolean, default: false },
+  senha: { type: String, required: true }
 });
 
-UsuarioSchema.plugin(AutoIncrement, { inc_field: 'id_user' });
+interface IRefreshToken extends Document {
+  expiresAt: Date
+  user: Types.ObjectId
+}
 
-const Usuario = mongoose.model("usuarios", UsuarioSchema);
+const RefreshTokenSchema = new Schema<IRefreshToken>({
+  expiresAt: { type: Date, required: true },
+  user: { type: Schema.Types.ObjectId, requied: true, ref: "usuarios" }
+})
 
-export default Usuario;
+export const Usuario = mongoose.model("usuarios", UsuarioSchema);
+export const RefreshToken = mongoose.model("refreshToken", RefreshTokenSchema);

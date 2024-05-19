@@ -23,4 +23,5 @@ class ReciboController {
     }
   }
 }
+
 export default  ReciboController;
