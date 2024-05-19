@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 const DeclaracaoSchema = new Schema({
+  museu_id: { type: Schema.Types.ObjectId, ref: 'Museu', required: true },
   anoDeclaracao: String,
   responsavelEnvio: String,
   hashDeclaracao: String,
