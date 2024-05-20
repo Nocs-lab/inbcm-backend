@@ -18,7 +18,7 @@ const authService = new AuthService()
 
 //rota declarações
 routes.put(
-  "/uploads/:anoDeclaracao",
+  "/uploads/:museu/:anoDeclaracao",
   uploadMiddleware,
   // ValidacaoMiddleware,
   declaracaoController.uploadDeclaracao

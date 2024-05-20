@@ -27,6 +27,7 @@
     "mongoose": "^8.3.0",
     "mongoose-sequence": "^6.0.1",
     "morgan": "^1.10.0",
+    "msgpackr": "^1.10.2",
     "multer": "^1.4.5-lts.1",
     "pdfkit": "^0.15.0",
     "uuidv4": "^6.2.13",
@@ -61,6 +62,7 @@
     "nodemon": "^3.1.0",
     "prettier": "3.2.5",
     "sucrase": "^3.35.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },
   "lint-staged": {

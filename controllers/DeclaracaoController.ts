@@ -35,9 +35,6 @@ class DeclaracaoController {
   async getDeclaracao(req: Request, res: Response) {
     try {
       const declaracoes = await Declaracoes.find();
-
-      
-
       return res.status(200).json(declaracoes);
     } catch (error) {
       console.error("Erro ao buscar declarações:", error);
@@ -47,45 +44,47 @@ class DeclaracaoController {
 
   async uploadDeclaracao(req: Request, res: Response) {
     try {
-      const { anoDeclaracao } = req.params;
-      const arquivistico = req.files?.arquivistico;
-      const bibliografico = req.files?.bibliografico;
-      const museologico = req.files?.museologico;
+      const { anoDeclaracao, museu } = req.params;
+      const files = req.files as any
+      const arquivistico = files.arquivistico;
+      const bibliografico = files.bibliografico;
+      const museologico = files.museologico;
       // Verificar se a declaração já existe para o ano especificado
-      let declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(anoDeclaracao);
+      let declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(museu, anoDeclaracao);
 
       // Se não existir, criar uma nova declaração
       if (!declaracaoExistente) {
         declaracaoExistente = await this.declaracaoService.criarDeclaracao(anoDeclaracao);
         console.log("Declaração criada com sucesso.");
       }
+
       if (arquivistico) {
-        const hashArquivo = crypto.createHash('sha256').digest('hex');
+        const hashArquivo = crypto.createHash('sha256').update(arquivistico[0]).digest('hex');
         await this.uploadService.sendToQueue(arquivistico[0], 'arquivistico', anoDeclaracao);
         await this.declaracaoService.atualizarArquivistico(anoDeclaracao, {
-            nome: 'arquivistico',
-            status: 'em análise',
-            hashArquivo: hashArquivo,
+          nome: 'arquivistico',
+          status: 'em análise',
+          hashArquivo,
         });
       }
 
       if (bibliografico) {
-        const hashArquivo = crypto.createHash('sha256').digest('hex');
+        const hashArquivo = crypto.createHash('sha256').update(bibliografico[0]).digest('hex');
         await this.uploadService.sendToQueue(bibliografico[0], 'bibliografico', anoDeclaracao);
         await this.declaracaoService.atualizarBibliografico(anoDeclaracao, {
-            nome: 'bibliografico',
-            status: 'em análise',
-            hashArquivo: hashArquivo,
+          nome: 'bibliografico',
+          status: 'em análise',
+          hashArquivo,
         });
       }
 
       if (museologico) {
-        const hashArquivo = crypto.createHash('sha256').digest('hex');
+        const hashArquivo = crypto.createHash('sha256').update(museologico[0]).digest('hex');
         await this.uploadService.sendToQueue(museologico[0], 'museologico', anoDeclaracao);
         await this.declaracaoService.atualizarMuseologico(anoDeclaracao, {
-            nome: 'museologico',
-            status: 'em análise',
-             hashArquivo: hashArquivo,
+          nome: 'museologico',
+          status: 'em análise',
+          hashArquivo,
         });
       }
 

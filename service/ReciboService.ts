@@ -17,7 +17,7 @@ function lerConteudoPDF(caminhoPDF: string): Promise<Buffer> {
     try {
         const declaracao = await Declaracoes.findById(declaracaoId);
         if (!declaracao) {
-            throw new Error(`Declaração não encontrada para o ID especificado: ${declaracaoId}`);
+          throw new Error(`Declaração não encontrada para o ID especificado: ${declaracaoId}`);
         }
 
         const nomeArquivo = `recibo_${declaracao.hashDeclaracao}.pdf`;
@@ -56,12 +56,12 @@ function lerConteudoPDF(caminhoPDF: string): Promise<Buffer> {
 
         if (declaracao.bibliografico && declaracao.bibliografico.status !== 'não enviado') {
             doc.moveDown().fontSize(12).text(`Tipo de arquivo declarado: Bibliográfico`);
-           
+
         }
 
         if (declaracao.museologico && declaracao.museologico.status !== "não enviado") {
           doc.moveDown().fontSize(12).text(`Tipo de arquivo declarado: Museológico`);
-    
+
         }
 
         doc.end();
@@ -97,4 +97,3 @@ function lerConteudoPDF(caminhoPDF: string): Promise<Buffer> {
 
 
 export { emitirReciboDeclaracao, lerConteudoPDF };
-
