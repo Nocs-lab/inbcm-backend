@@ -3,7 +3,6 @@ import Declaracoes from "../models/Declaracao";
 import DeclaracaoService from "../service/DeclaracaoService";
 import UploadService from "../queue/ProducerDeclaracao";
 import crypto from "crypto";
-import mongoose from 'mongoose/types';
 
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;
@@ -36,10 +35,6 @@ class DeclaracaoController {
   async getDeclaracao(req: Request, res: Response) {
     try {
       const declaracoes = await Declaracoes.find();
-<<<<<<< HEAD
-=======
-
->>>>>>> 54ba3b505851b977646d569b95d7e4ed1f2dbbc2
       return res.status(200).json(declaracoes);
     } catch (error) {
       console.error("Erro ao buscar declarações:", error);
@@ -73,7 +68,7 @@ class DeclaracaoController {
       const bibliografico = files.bibliografico;
       const museologico = files.museologico;
       // Verificar se a declaração já existe para o ano especificado
-      let declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(museu, anoDeclaracao);
+      let declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
 
       // Se não existir, criar uma nova declaração
       if (!declaracaoExistente) {
