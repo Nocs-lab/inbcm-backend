@@ -82,7 +82,7 @@ class DeclaracaoService {
 
   async verificarDeclaracaoExistente(museu: string, anoDeclaracao: string) {
     // Verifique se existe uma declaração com o ano fornecido
-    const declaracaoExistente = await Declaracoes.findOne({ anoDeclaracao });
+    const declaracaoExistente = await Declaracoes.findOne({ anoDeclaracao, museu_id: museu });
 
     return declaracaoExistente;
   }

@@ -3,6 +3,7 @@ import Declaracoes from "../models/Declaracao";
 import DeclaracaoService from "../service/DeclaracaoService";
 import UploadService from "../queue/ProducerDeclaracao";
 import crypto from "crypto";
+import Museu from "../models/Museu";
 
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;
@@ -79,7 +80,7 @@ class DeclaracaoController {
         console.log("Declaração criada com sucesso.");
       } else {
         // Atualizar o museu na declaração existente se necessário
-        declaracaoExistente.museu_id = museu_id;
+        declaracaoExistente.museu_id = (await Museu.findById(museu_id))!;
         await declaracaoExistente.save();
       }
 

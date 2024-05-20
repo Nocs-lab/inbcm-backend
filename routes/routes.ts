@@ -10,9 +10,6 @@ import AuthService from "../service/AuthService";
 const routes = express.Router();
 const reciboController = new ReciboController();
 const declaracaoController = new DeclaracaoController();
-const museuController = new MuseuController();
-
-
 const authService = new AuthService()
 
 //Museu

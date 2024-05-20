@@ -11,7 +11,6 @@ interface IUsuario extends Document {
 const UsuarioSchema = new Schema<IUsuario>({
   nome: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  museus: { type: [String], default: [] },
   admin: { type: Boolean, default: false },
   senha: { type: String, required: true }
 });
