@@ -1,20 +1,23 @@
 import express from "express";
 import uploadMiddleware from "../middlewares/UploadMiddleware";
 //import ValidacaoMiddleware from "../middlewares/ValidacaoMiddleware";
-
-// Importar controladores
 import DeclaracaoController from "../controllers/DeclaracaoController";
+import MuseuController from "../controllers/MuseuController";
 //import UsuarioController from "../controllers/UsuarioController";
 import ReciboController from "../controllers/ReciboController";
 import AuthService from "../service/AuthService";
 
-const routes = express.Router(); // Cria um roteador usando Express
-
-// Instanciar controladores
+const routes = express.Router();
 const reciboController = new ReciboController();
 const declaracaoController = new DeclaracaoController();
+const museuController = new MuseuController();
+
 
 const authService = new AuthService()
+
+//Museu
+routes.post('/criarMuseu', MuseuController.criarMuseu);
+routes.get('/listarMuseus',MuseuController.listarMuseus);
 
 //rota declarações
 routes.put(
@@ -23,13 +26,14 @@ routes.put(
   // ValidacaoMiddleware,
   declaracaoController.uploadDeclaracao
 );
-
-
-routes.get("/recibo/:id", reciboController.gerarRecibo);
-
-// Rota para buscar todas as declarações
 routes.get("/declaracoes", declaracaoController.getDeclaracao);
 routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
+routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada);
+routes.get("/getStatusEnum", declaracaoController.getStatusEnum);
+
+
+//Recibo
+routes.get("/recibo/:id", reciboController.gerarRecibo); // Rota para buscar todas as declarações
 
 routes.post("/auth/login", async (req, res) => {
   const { email, password } = req.body
@@ -52,8 +56,9 @@ routes.post("/auth/refresh", async (req, res) => {
   res.status(200).send()
 })
 
-// Rota para criar usuários
+
+//Usuario
 //routes.post("/usuarios", UsuarioController.criarUsuario);
 
-// Exportar o roteador configurado
+
 export default routes;

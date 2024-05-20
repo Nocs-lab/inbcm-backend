@@ -3,6 +3,7 @@ import Declaracoes from "../models/Declaracao";
 import DeclaracaoService from "../service/DeclaracaoService";
 import UploadService from "../queue/ProducerDeclaracao";
 import crypto from "crypto";
+import mongoose from 'mongoose/types';
 
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;
@@ -11,9 +12,9 @@ class DeclaracaoController {
   constructor() {
     this.declaracaoService = new DeclaracaoService();
     this.uploadService = new UploadService();
-
     // Faz o bind do contexto atual para a função uploadDeclaracao
     this.uploadDeclaracao = this.uploadDeclaracao.bind(this);
+    this.getDeclaracaoFiltrada = this.getDeclaracaoFiltrada.bind(this);
   }
 
   async getDeclaracaoAno(req: Request, res: Response) {
@@ -35,6 +36,10 @@ class DeclaracaoController {
   async getDeclaracao(req: Request, res: Response) {
     try {
       const declaracoes = await Declaracoes.find();
+<<<<<<< HEAD
+=======
+
+>>>>>>> 54ba3b505851b977646d569b95d7e4ed1f2dbbc2
       return res.status(200).json(declaracoes);
     } catch (error) {
       console.error("Erro ao buscar declarações:", error);
@@ -42,9 +47,27 @@ class DeclaracaoController {
     }
   }
 
+  async getStatusEnum(req: Request, res: Response){
+    const statusEnum = Declaracoes.schema.path('status');
+    const status = Object.values(statusEnum)[0];
+    return res.status(200).json(status);
+  }
+
+  async getDeclaracaoFiltrada(req: Request, res: Response) {
+    try {
+      const { status } = req.body;
+      const { anoDeclaracao } = req.body; // Obter o status do corpo da requisição
+      const declaracoes = await this.declaracaoService.declaracaoComFiltros(req.body);
+      return res.status(200).json(declaracoes);
+    } catch (error) {
+      console.error("Erro ao buscar declarações com filtros:", error);
+      return res.status(500).json({ message: "Erro ao buscar declarações com filtros." });
+    }
+  }
+
   async uploadDeclaracao(req: Request, res: Response) {
     try {
-      const { anoDeclaracao, museu } = req.params;
+      const { anoDeclaracao, museu: museu_id } = req.params;
       const files = req.files as any
       const arquivistico = files.arquivistico;
       const bibliografico = files.bibliografico;
@@ -54,8 +77,15 @@ class DeclaracaoController {
 
       // Se não existir, criar uma nova declaração
       if (!declaracaoExistente) {
-        declaracaoExistente = await this.declaracaoService.criarDeclaracao(anoDeclaracao);
+        declaracaoExistente = await this.declaracaoService.criarDeclaracao({
+          anoDeclaracao,
+          museu_id, // Adicionar museu ao criar a declaração
+        });
         console.log("Declaração criada com sucesso.");
+      } else {
+        // Atualizar o museu na declaração existente se necessário
+        declaracaoExistente.museu_id = museu_id;
+        await declaracaoExistente.save();
       }
 
       if (arquivistico) {
