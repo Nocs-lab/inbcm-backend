@@ -82,7 +82,8 @@ class DeclaracaoController {
       if (!declaracaoExistente) {
         declaracaoExistente = await this.declaracaoService.criarDeclaracao({
           anoDeclaracao,
-          museu_id: museu.id
+          museu_id: museu.id,
+          user_id: req.body.user.sub,
         });
         console.log("Declaração criada com sucesso.");
       } else {
@@ -96,7 +97,7 @@ class DeclaracaoController {
 
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(arquivistico[0])).digest('hex');
         await this.declaracaoService.atualizarArquivistico(anoDeclaracao, {
-          nome: 'arquivistico',
+          nome: arquivistico[0].filename,
           status: 'em análise',
           hashArquivo,
         });
@@ -109,7 +110,7 @@ class DeclaracaoController {
 
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(bibliografico[0])).digest('hex');
         await this.declaracaoService.atualizarBibliografico(anoDeclaracao, {
-          nome: 'bibliografico',
+          nome: bibliografico[0].filename,
           status: 'em análise',
           hashArquivo,
         });
@@ -122,7 +123,7 @@ class DeclaracaoController {
 
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(museologico[0])).digest('hex');
         await this.declaracaoService.atualizarMuseologico(anoDeclaracao, {
-          nome: 'museologico',
+          nome: museologico[0].filename,
           status: 'em análise',
           hashArquivo,
         });
@@ -142,23 +143,37 @@ class DeclaracaoController {
 
   async downloadDeclaracao(req: Request, res: Response) {
     try {
-      const filename = req.params.filename;
-      const filePath = path.join(__dirname, '..', 'uploads', filename);
+      const { museu, anoDeclaracao, tipoArquivo } = req.params;
+      const user_id = req.body.user.sub;
+      const declaracao = await Declaracoes.findOne({ museu_id: museu, anoDeclaracao, responsavelEnvio: user_id});
 
-      // Verifica se o arquivo existe
-      if (fs.existsSync(filePath)) {
-        res.download(filePath, (err) => {
-          if (err) {
-            console.error("Erro ao fazer o download do arquivo:", err);
-            res.status(500).json({ message: "Erro ao fazer o download do arquivo." });
-          }
-        });
-      } else {
-        res.status(404).json({ message: "Arquivo não encontrado." });
+      if (!declaracao) {
+        return res.status(404).json({ message: "Declaração não encontrada para o ano especificado." });
       }
+
+      let arquivo = null;
+      if (tipoArquivo === 'arquivistico') {
+        arquivo = declaracao.arquivistico;
+      } else if (tipoArquivo === 'bibliografico') {
+        arquivo = declaracao.bibliografico;
+      } else if (tipoArquivo === 'museologico') {
+        arquivo = declaracao.museologico;
+      }
+
+      if (!arquivo) {
+        return res.status(404).json({ message: "Arquivo não encontrado para o tipo especificado." });
+      }
+
+      const filePath = path.join(__dirname, '..', 'uploads', arquivo.nome!);
+      const file = fs.createReadStream(filePath);
+
+      res.setHeader('Content-Disposition', `attachment; filename=${arquivo.nome}`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+
+      file.pipe(res);
     } catch (error) {
-      console.error("Erro ao processar o download do arquivo:", error);
-      res.status(500).json({ message: "Erro ao processar o download do arquivo." });
+      console.error("Erro ao baixar arquivo da declaração:", error);
+      return res.status(500).json({ message: "Erro ao baixar arquivo da declaração." });
     }
   }
 }

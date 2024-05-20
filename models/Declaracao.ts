@@ -3,7 +3,7 @@ import mongoose, { Schema } from "mongoose";
 const DeclaracaoSchema = new Schema({
   museu_id: { type: Schema.Types.ObjectId, ref: 'Museu', required: true },
   anoDeclaracao: String,
-  responsavelEnvio: String,
+  responsavelEnvio: { type: Schema.Types.ObjectId, ref: 'usuarios', required: true },
   hashDeclaracao: String,
   dataCriacao: { type: Date, default: Date.now() },
   status: {

@@ -25,7 +25,11 @@ routes.put(
   userMiddleware,
   declaracaoController.uploadDeclaracao
 );
-routes.get("/download/:filename", declaracaoController.downloadDeclaracao);
+routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
+  userMiddleware,
+  declaracaoController.downloadDeclaracao
+);
+
 routes.get("/declaracoes", declaracaoController.getDeclaracao);
 routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
 routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada);
