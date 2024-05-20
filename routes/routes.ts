@@ -7,6 +7,7 @@ import MuseuController from "../controllers/MuseuController";
 import ReciboController from "../controllers/ReciboController";
 import AuthService from "../service/AuthService";
 
+
 const routes = express.Router();
 const reciboController = new ReciboController();
 const declaracaoController = new DeclaracaoController();
@@ -23,6 +24,7 @@ routes.put(
   // ValidacaoMiddleware,
   declaracaoController.uploadDeclaracao
 );
+routes.get("/download/:filename", declaracaoController.downloadDeclaracao);
 routes.get("/declaracoes", declaracaoController.getDeclaracao);
 routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
 routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada);

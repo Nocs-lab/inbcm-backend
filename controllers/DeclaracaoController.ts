@@ -4,6 +4,8 @@ import DeclaracaoService from "../service/DeclaracaoService";
 import UploadService from "../queue/ProducerDeclaracao";
 import crypto from "crypto";
 import Museu from "../models/Museu";
+import path from "path";
+import fs from "fs";
 
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;
@@ -120,6 +122,29 @@ class DeclaracaoController {
     } catch (error) {
       console.error("Erro ao enviar arquivos para a declaração:", error);
       return res.status(500).json({ message: "Erro ao enviar arquivos para a declaração." });
+    }
+  }
+
+
+  async downloadDeclaracao(req: Request, res: Response) {
+    try {
+      const filename = req.params.filename;
+      const filePath = path.join(__dirname, '..', 'uploads', filename);
+
+      // Verifica se o arquivo existe
+      if (fs.existsSync(filePath)) {
+        res.download(filePath, (err) => {
+          if (err) {
+            console.error("Erro ao fazer o download do arquivo:", err);
+            res.status(500).json({ message: "Erro ao fazer o download do arquivo." });
+          }
+        });
+      } else {
+        res.status(404).json({ message: "Arquivo não encontrado." });
+      }
+    } catch (error) {
+      console.error("Erro ao processar o download do arquivo:", error);
+      res.status(500).json({ message: "Erro ao processar o download do arquivo." });
     }
   }
 }
