@@ -6,6 +6,7 @@ import MuseuController from "../controllers/MuseuController";
 //import UsuarioController from "../controllers/UsuarioController";
 import ReciboController from "../controllers/ReciboController";
 import AuthService from "../service/AuthService";
+import { userMiddleware } from "../middlewares/AuthMiddlewares";
 
 
 const routes = express.Router();
@@ -15,13 +16,13 @@ const authService = new AuthService()
 
 //Museu
 routes.post('/criarMuseu', MuseuController.criarMuseu);
-routes.get('/listarMuseus',MuseuController.listarMuseus);
+routes.get('/listarMuseus', MuseuController.listarMuseus);
 
 //rota declarações
 routes.put(
   "/uploads/:museu/:anoDeclaracao",
   uploadMiddleware,
-  // ValidacaoMiddleware,
+  userMiddleware,
   declaracaoController.uploadDeclaracao
 );
 routes.get("/download/:filename", declaracaoController.downloadDeclaracao);
@@ -38,8 +39,22 @@ routes.post("/auth/login", async (req, res) => {
   const { email, password } = req.body
   const { token, refreshToken, user } = await authService.login({ email, password })
 
-  res.cookie("token", token, { httpOnly: true, expires: new Date(Date.now() + 60 * 60 * 1000), maxAge: 60 * 60 * 1000 })
-  res.cookie("refreshToken", refreshToken, { httpOnly: true, expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), maxAge: 7 * 24 * 60 * 60 * 1000 })
+  res.cookie("token", token, {
+    httpOnly: true,
+    expires: new Date(Date.now() + 60 * 60 * 1000),
+    maxAge: 60 * 60 * 1000,
+    sameSite: "none",
+    secure: true,
+    signed: true
+  })
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    sameSite: "none",
+    secure: true,
+    signed: true
+  })
 
   res.json({
     name: user.nome,
@@ -50,7 +65,13 @@ routes.post("/auth/login", async (req, res) => {
 routes.post("/auth/refresh", async (req, res) => {
   const { refreshToken } = req.cookies
   const { token } = await authService.refreshToken({ refreshToken })
-  res.cookie("token", token, { httpOnly: true, expires: new Date(Date.now() + 60 * 60 * 1000), maxAge: 60 * 60 * 1000 })
+  res.cookie("token", token, {
+    httpOnly: true,
+    expires: new Date(Date.now() + 60 * 60 * 1000),
+    maxAge: 60 * 60 * 1000,
+    sameSite: "none",
+    signed: true
+  })
 
   res.status(200).send()
 })

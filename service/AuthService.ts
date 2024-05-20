@@ -7,8 +7,6 @@ export default class AuthService {
   async login({ email, password }: { email: string, password: string }) {
     const user = await Usuario.findOne({ email })
 
-    console.log(user?.senha, password)
-
     if (!user) {
       throw new Error("Usuário não encontrado")
     } else if (!(await argon.verify(user.senha, password))) {

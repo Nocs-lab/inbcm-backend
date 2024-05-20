@@ -1,3 +1,4 @@
+import "./config"
 import express from "express";
 import cors from "cors";
 import routes from "./routes/routes";
@@ -7,11 +8,11 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: "https://localhost:5174", credentials: true, allowedHeaders: ["Content-Type", "Accept"], methods: ["GET", "POST", "PUT", "DELETE"] }));
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
-app.use(cookieParser())
+app.use(cookieParser(process.env.JWT_SECRET!))
 app.use("/api", routes);
 
 export default app;

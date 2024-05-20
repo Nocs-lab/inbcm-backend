@@ -1,19 +1,19 @@
 import { Request, Response } from "express";
 import Declaracoes from "../models/Declaracao";
 import DeclaracaoService from "../service/DeclaracaoService";
-import UploadService from "../queue/ProducerDeclaracao";
 import crypto from "crypto";
 import Museu from "../models/Museu";
-import path from "path";
+import Bibliografico from "../models/Bibliografico";
+import Museologico from "../models/Museologico";
+import Arquivistico from "../models/Arquivistico";
 import fs from "fs";
+import path from "path";
 
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;
-  private uploadService: UploadService;
 
   constructor() {
     this.declaracaoService = new DeclaracaoService();
-    this.uploadService = new UploadService();
     // Faz o bind do contexto atual para a função uploadDeclaracao
     this.uploadDeclaracao = this.uploadDeclaracao.bind(this);
     this.getDeclaracaoFiltrada = this.getDeclaracaoFiltrada.bind(this);
@@ -53,8 +53,6 @@ class DeclaracaoController {
 
   async getDeclaracaoFiltrada(req: Request, res: Response) {
     try {
-      const { status } = req.body;
-      const { anoDeclaracao } = req.body; // Obter o status do corpo da requisição
       const declaracoes = await this.declaracaoService.declaracaoComFiltros(req.body);
       return res.status(200).json(declaracoes);
     } catch (error) {
@@ -66,10 +64,17 @@ class DeclaracaoController {
   async uploadDeclaracao(req: Request, res: Response) {
     try {
       const { anoDeclaracao, museu: museu_id } = req.params;
+
+      const museu = await Museu.findOne({ id: museu_id, usuario: req.body.user.id })
+
+      if (!museu) {
+        return res.status(400).json({ success: false, message: "Museu inválido" })
+      }
+
       const files = req.files as any
-      const arquivistico = files.arquivistico;
-      const bibliografico = files.bibliografico;
-      const museologico = files.museologico;
+      const arquivistico = files.arquivisticoArquivo;
+      const bibliografico = files.bibliograficoArquivo;
+      const museologico = files.museologicoArquivo;
       // Verificar se a declaração já existe para o ano especificado
       let declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
 
@@ -77,7 +82,7 @@ class DeclaracaoController {
       if (!declaracaoExistente) {
         declaracaoExistente = await this.declaracaoService.criarDeclaracao({
           anoDeclaracao,
-          museu_id, // Adicionar museu ao criar a declaração
+          museu_id: museu.id
         });
         console.log("Declaração criada com sucesso.");
       } else {
@@ -87,33 +92,42 @@ class DeclaracaoController {
       }
 
       if (arquivistico) {
-        const hashArquivo = crypto.createHash('sha256').update(arquivistico[0]).digest('hex');
-        await this.uploadService.sendToQueue(arquivistico[0], 'arquivistico', anoDeclaracao);
+        const arquivisticoData = JSON.parse(req.body.arquivistico);
+
+        const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(arquivistico[0])).digest('hex');
         await this.declaracaoService.atualizarArquivistico(anoDeclaracao, {
           nome: 'arquivistico',
           status: 'em análise',
           hashArquivo,
         });
+
+        await Arquivistico.insertMany(arquivisticoData)
       }
 
       if (bibliografico) {
-        const hashArquivo = crypto.createHash('sha256').update(bibliografico[0]).digest('hex');
-        await this.uploadService.sendToQueue(bibliografico[0], 'bibliografico', anoDeclaracao);
+        const bibliograficoData = JSON.parse(req.body.bibliografico);
+
+        const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(bibliografico[0])).digest('hex');
         await this.declaracaoService.atualizarBibliografico(anoDeclaracao, {
           nome: 'bibliografico',
           status: 'em análise',
           hashArquivo,
         });
+
+        await Bibliografico.insertMany(bibliograficoData)
       }
 
       if (museologico) {
-        const hashArquivo = crypto.createHash('sha256').update(museologico[0]).digest('hex');
-        await this.uploadService.sendToQueue(museologico[0], 'museologico', anoDeclaracao);
+        const museologicoData = JSON.parse(req.body.museologico);
+
+        const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(museologico[0])).digest('hex');
         await this.declaracaoService.atualizarMuseologico(anoDeclaracao, {
           nome: 'museologico',
           status: 'em análise',
           hashArquivo,
         });
+
+        await Museologico.insertMany(museologicoData)
       }
 
       // Enviar arquivos para a fila e atualizar as declarações separadamente para cada tipo

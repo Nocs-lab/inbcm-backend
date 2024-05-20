@@ -9,13 +9,13 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     let tipoAcervo = '';
     switch (file.fieldname) {
-      case 'museologico':
+      case 'museologicoArquivo':
         tipoAcervo = 'M'; // Museológico
         break;
-      case 'bibliografico':
+      case 'bibliograficoArquivo':
         tipoAcervo = 'B'; // Bibliográfico
         break;
-      case 'arquivistico':
+      case 'arquivisticoArquivo':
         tipoAcervo = 'A'; // Arquivístico
         break;
       default:
@@ -37,14 +37,13 @@ const storage = multer.diskStorage({
 // Crie o middleware de upload para lidar com vários arquivos
 const uploadMiddleware: RequestHandler = (req, res, next) => {
   multer({ storage }).fields([
-    { name: "arquivistico", maxCount: 1 },
-    { name: "bibliografico", maxCount: 1 },
-    { name: "museologico", maxCount: 1 }
+    { name: "arquivisticoArquivo", maxCount: 1 },
+    { name: "bibliograficoArquivo", maxCount: 1 },
+    { name: "museologicoArquivo", maxCount: 1 }
   ])(req, res, err => {
     if (err) {
       console.log(err);
       return res.status(400).json({ message: "Erro ao fazer upload dos arquivos." });
-
     }
     // Verificar se os arquivos foram enviados corretamente
     if (!req.files) {
