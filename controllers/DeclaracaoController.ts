@@ -50,8 +50,11 @@ class DeclaracaoController {
   async uploadDeclaracao(req: Request, res: Response) {
     try {
       const { anoDeclaracao } = req.params;
+      //@ts-ignore
       const arquivistico = req.files?.arquivistico;
+       // @ts-ignore
       const bibliografico = req.files?.bibliografico;
+       // @ts-ignore
       const museologico = req.files?.museologico;
       // Verificar se a declaração já existe para o ano especificado
       let declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(anoDeclaracao);
