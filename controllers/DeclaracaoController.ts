@@ -35,7 +35,7 @@ class DeclaracaoController {
 
   async getDeclaracao(req: Request, res: Response) {
     try {
-      const declaracoes = await Declaracoes.find();
+      const declaracoes = await Declaracoes.find({ responsavelEnvio: req.body.user.id });
       return res.status(200).json(declaracoes);
     } catch (error) {
       console.error("Erro ao buscar declarações:", error);

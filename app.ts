@@ -8,7 +8,7 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
-app.use(cors({ origin: "https://localhost:5174", credentials: true, allowedHeaders: ["Content-Type", "Accept"], methods: ["GET", "POST", "PUT", "DELETE"] }));
+app.use(cors({ origin: ["https://localhost:5173", "https://localhost:5174"], credentials: true, allowedHeaders: ["Content-Type", "Accept"], methods: ["GET", "POST", "PUT", "DELETE"] }));
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());

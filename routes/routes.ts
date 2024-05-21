@@ -24,7 +24,7 @@ routes.put(
   userMiddleware,
   declaracaoController.uploadDeclaracao
 );
-routes.get("/declaracoes", declaracaoController.getDeclaracao);
+routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracao);
 routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
 routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada);
 routes.get("/getStatusEnum", declaracaoController.getStatusEnum);
@@ -61,17 +61,22 @@ routes.post("/auth/login", async (req, res) => {
 })
 
 routes.post("/auth/refresh", async (req, res) => {
-  const { refreshToken } = req.cookies
-  const { token } = await authService.refreshToken({ refreshToken })
-  res.cookie("token", token, {
-    httpOnly: true,
-    expires: new Date(Date.now() + 60 * 60 * 1000),
-    maxAge: 60 * 60 * 1000,
-    sameSite: "none",
-    signed: true
-  })
+  const { refreshToken } = req.signedCookies
+  try {
+    const { token } = await authService.refreshToken({ refreshToken })
+    res.cookie("token", token, {
+      httpOnly: true,
+      expires: new Date(Date.now() + 60 * 60 * 1000),
+      maxAge: 60 * 60 * 1000,
+      sameSite: "none",
+      secure: true,
+      signed: true
+    })
 
-  res.status(200).send()
+    res.status(200).send()
+  } catch (error) {
+    res.status(401).send()
+  }
 })
 
 

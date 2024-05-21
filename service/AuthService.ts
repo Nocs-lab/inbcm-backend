@@ -24,11 +24,11 @@ export default class AuthService {
   }
 
   async refreshToken({ refreshToken }: { refreshToken: string }) {
-    const refreshTokenObj = await RefreshToken.findById(refreshToken).populate("usuarios")
+    const refreshTokenObj = await RefreshToken.findById(refreshToken)
 
     if (!refreshTokenObj) {
       throw new Error("RefreshToken inválido")
-    } else if (refreshTokenObj.expiresAt.getTime() > Date.now()) {
+    } else if (refreshTokenObj.expiresAt.getTime() < Date.now()) {
       throw new Error("RefreshToken expirado")
     }
 
