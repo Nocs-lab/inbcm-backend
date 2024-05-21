@@ -1,6 +1,7 @@
 import type { Handler } from "express"
 import jwt from "jsonwebtoken"
 import { Usuario } from "../models/Usuario"
+import { verify } from "@node-rs/argon2"
 
 export const userMiddleware: Handler = async (req, res, next) => {
   if (process.env.NODE_ENV !== "production") {
@@ -8,7 +9,7 @@ export const userMiddleware: Handler = async (req, res, next) => {
 
     const user = await Usuario.findOne({ email })
 
-    if (!user || password !== user.senha) {
+    if (!user || await verify(user.senha, password) === false) {
       return res.status(401).send()
     }
 
