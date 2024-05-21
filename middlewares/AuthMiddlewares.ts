@@ -1,16 +1,32 @@
 import type { Handler } from "express"
 import jwt from "jsonwebtoken"
+import { Usuario } from "../models/Usuario"
 
-export const userMiddleware: Handler = (req, res, next) => {
-  const { token } = req.signedCookies
+export const userMiddleware: Handler = async (req, res, next) => {
+  if (process.env.NODE_ENV !== "production") {
+    const [email, password] = Buffer.from(req.headers["authorization"]?.split(" ")[1] ?? " : ", "base64").toString().split(":")
 
-  if (!token) {
-    return res.status(401).send()
+    const user = await Usuario.findOne({ email })
+
+    if (!user || password !== user.senha) {
+      return res.status(401).send()
+    }
+
+    req.body.user = {
+      ...user,
+      sub: user.id
+    }
+  } else {
+    const { token } = req.signedCookies
+
+    if (!token) {
+      return res.status(401).send()
+    }
+
+    const payload = jwt.verify(token, process.env.JWT_SECRET!)
+
+    req.body.user = payload
   }
-
-  const payload = jwt.verify(token, process.env.JWT_SECRET!)
-
-  req.body.user = payload
 
   next()
 }

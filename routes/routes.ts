@@ -29,7 +29,6 @@ routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno)
 routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada);
 routes.get("/getStatusEnum", declaracaoController.getStatusEnum);
 
-
 //Recibo
 routes.get("/recibo/:id", reciboController.gerarRecibo); // Rota para buscar todas as declarações
 
@@ -79,9 +78,7 @@ routes.post("/auth/refresh", async (req, res) => {
   }
 })
 
-
 //Usuario
 //routes.post("/usuarios", UsuarioController.criarUsuario);
-
 
 export default routes;
