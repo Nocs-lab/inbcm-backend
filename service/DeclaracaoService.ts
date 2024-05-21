@@ -58,16 +58,16 @@ class DeclaracaoService {
     }
   }
 
-  async criarDeclaracao({ anoDeclaracao, museu_id }: { anoDeclaracao: string; museu_id: string }) {
+  async criarDeclaracao({ anoDeclaracao, museu_id, user_id }: { anoDeclaracao: string; museu_id: string; user_id: string;}) {
     try {
       // Gerar o hash da declaração
       const hashDeclaracao = crypto.createHash('sha256').digest('hex');
-
+      console.log(user_id);
       // Criar a nova declaração com os campos relacionados à declaração, incluindo museu
       const novaDeclaracao = await Declaracoes.create({
         anoDeclaracao,
         museu_id, // Adicionar museu
-        responsavelEnvio: "Vitor Daniel",
+        responsavelEnvio: user_id,
         recibo: false,
         hashDeclaracao,
         dataCriacao: new Date(),

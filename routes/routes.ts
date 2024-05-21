@@ -8,6 +8,7 @@ import ReciboController from "../controllers/ReciboController";
 import AuthService from "../service/AuthService";
 import { userMiddleware } from "../middlewares/AuthMiddlewares";
 
+
 const routes = express.Router();
 const reciboController = new ReciboController();
 const declaracaoController = new DeclaracaoController();
@@ -24,7 +25,12 @@ routes.put(
   userMiddleware,
   declaracaoController.uploadDeclaracao
 );
-routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracao);
+routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
+  userMiddleware,
+  declaracaoController.downloadDeclaracao
+);
+
+routes.get("/declaracoes", declaracaoController.getDeclaracao);
 routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
 routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada);
 routes.get("/getStatusEnum", declaracaoController.getStatusEnum);
