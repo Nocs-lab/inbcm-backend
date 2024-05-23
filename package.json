@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "nodemon server.ts",
     "start:docker:dev": "docker compose -f compose.yaml -f compose.dev.yaml up",
-    "prepare": "husky install",
     "start": "sucrase-node server.ts"
   },
   "keywords": [],
