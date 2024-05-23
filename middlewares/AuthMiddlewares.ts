@@ -9,25 +9,25 @@ export const userMiddleware: Handler = async (req, res, next) => {
 
     const user = await Usuario.findOne({ email })
 
-    if (!user || await verify(user.senha, password) === false) {
-      return res.status(401).send()
+    if (user && await verify(user.senha, password)) {
+      req.body.user = {
+        ...user,
+        sub: user.id
+      }
+
+      return next()
     }
-
-    req.body.user = {
-      ...user,
-      sub: user.id
-    }
-  } else {
-    const { token } = req.signedCookies
-
-    if (!token) {
-      return res.status(401).send()
-    }
-
-    const payload = jwt.verify(token, process.env.JWT_SECRET!)
-
-    req.body.user = payload
   }
+
+  const { token } = req.signedCookies
+
+  if (!token) {
+    return res.status(401).send()
+  }
+
+  const payload = jwt.verify(token, process.env.JWT_SECRET!)
+
+  req.body.user = payload
 
   next()
 }

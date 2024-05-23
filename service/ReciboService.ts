@@ -56,20 +56,15 @@ async function emitirReciboDeclaracao(declaracaoId: mongoose.Types.ObjectId, dat
       if (verificaRecibo) {
           // Atualizar o recibo existente com os novos detalhes
           verificaRecibo.dataHoraEnvio = new Date();
-          if (typeof declaracao.responsavelEnvio === 'string') {
-              verificaRecibo.responsavelEnvio = declaracao.responsavelEnvio;
-          } else {
-            // Trata o caso em que o valor não é uma string, por exemplo, atribua uma string vazia ou outro valor padrão
-            verificaRecibo.responsavelEnvio = '';
-          }
+          verificaRecibo.responsavelEnvio = declaracao.responsavelEnvio.toString();
           verificaRecibo.confirmacaoRecebimento = false; // Ou deixar como estava
           await verificaRecibo.save();
       } else {
         const recibo = new ReciboModel({
-            dataHoraEnvio: new Date(),
-            numeroIdentificacao: declaracao.hashDeclaracao,
-            responsavelEnvio: declaracao.responsavelEnvio,
-            confirmacaoRecebimento: true
+          dataHoraEnvio: new Date(),
+          numeroIdentificacao: declaracao.hashDeclaracao,
+          responsavelEnvio: declaracao.responsavelEnvio,
+          confirmacaoRecebimento: true
         });
         await recibo.save();
       }

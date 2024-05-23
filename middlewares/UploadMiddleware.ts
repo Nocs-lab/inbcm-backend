@@ -36,7 +36,7 @@ const storage = multer.diskStorage({
 
 // Crie o middleware de upload para lidar com vários arquivos
 const uploadMiddleware: RequestHandler = (req, res, next) => {
-  multer({ storage }).fields([
+  multer({ storage, limits: { fieldSize: 1024 * 1024 * 1024 } }).fields([
     { name: "arquivisticoArquivo", maxCount: 1 },
     { name: "bibliograficoArquivo", maxCount: 1 },
     { name: "museologicoArquivo", maxCount: 1 }
