@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 import path from "path";
 import PDFDocument from "pdfkit";
-import Declaracoes from "../models/Declaracao";
-import { ReciboModel } from "../models/Recibo";
+import { Declaracoes } from "../models";
+import { ReciboModel } from "../models";
 
 async function emitirReciboDeclaracao(declaracaoId: mongoose.Types.ObjectId, dataCallback: (chunk: any) => {}, endCallback: () => {}): Promise<typeof PDFDocument> {
   try {

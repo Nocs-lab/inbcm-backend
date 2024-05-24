@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import Museu from "../models/Museu";
+import { Museu } from "../models";
 
 class MuseuController {
 
@@ -33,7 +33,16 @@ class MuseuController {
     }
   }
 
-
+  static async userMuseus(req: Request, res: Response) {
+    try {
+      const user_id = req.body.user.sub;
+      const museus = await Museu.find({ usuario: user_id });
+      return res.status(200).json(museus);
+    } catch (erro) {
+      console.error("Erro ao listar museus do usuário:", erro);
+      return res.status(500).json({ mensagem: "Erro ao listar museus do usuário." });
+    }
+  }
 }
 
 

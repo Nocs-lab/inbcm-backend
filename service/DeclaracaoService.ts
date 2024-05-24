@@ -1,6 +1,6 @@
 import crypto from "crypto";
-import Declaracoes from "../models/Declaracao";
-import Museu from "../models/Museu";
+import { Declaracoes, Usuario } from "../models";
+import { Museu } from "../models";
 
 class DeclaracaoService {
 
@@ -41,24 +41,14 @@ class DeclaracaoService {
         const museuIds = museus.map(museu => museu._id);
         query = query.where('museu_id').in(museuIds);
       }
-      const declaracoes = await query.exec();
-
-      // Mapear as declarações para adicionar o campo "museu" com os dados do museu
-      const declaracoesComMuseu = await Promise.all(declaracoes.map(async (declaracao) => {
-        const museu = await Museu.findById(declaracao.museu_id);
-        return {
-          ...declaracao.toObject(),
-          museu: museu ? museu.toObject() : null // Aqui que adiciona tods os dados do museu
-        };
-      }));
-      return declaracoesComMuseu;
+      return await query.populate([{ path: 'museu_id', model: Museu, select: [""] }, { path: "responsavelEnvio", model: Usuario }]).exec();
     } catch (error) {
       console.error("Erro ao buscar declarações com filtros:", error);
       throw new Error("Erro ao buscar declarações com filtros.");
     }
   }
 
-  async criarDeclaracao({ anoDeclaracao, museu_id, user_id }: { anoDeclaracao: string; museu_id: string; user_id: string;}) {
+  async criarDeclaracao({ anoDeclaracao, museu_id, user_id, retificacao = false, retificacaoRef }: { anoDeclaracao: string; museu_id: string; user_id: string; retificacao?: boolean; retificacaoRef?: string }) {
     try {
       // Gerar o hash da declaração
       const hashDeclaracao = crypto.createHash('sha256').digest('hex');
@@ -71,7 +61,9 @@ class DeclaracaoService {
         recibo: false,
         hashDeclaracao,
         dataCriacao: new Date(),
-        status: "em análise"
+        status: "em análise",
+        retificacao,
+        retificacaoRef
       });
 
       return novaDeclaracao;

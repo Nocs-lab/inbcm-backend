@@ -19,5 +19,5 @@ const MuseologicoSchema = new mongoose.Schema({
 
 });
 
-// Use discriminadores para distinguir os modelos
-export default Bem.discriminator("Museologico", MuseologicoSchema);
+export const Museologico = Bem.discriminator("Museologico", MuseologicoSchema);
+

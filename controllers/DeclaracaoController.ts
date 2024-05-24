@@ -1,13 +1,14 @@
 import { Request, Response } from "express";
-import Declaracoes from "../models/Declaracao";
+import { Declaracoes } from "../models";
 import DeclaracaoService from "../service/DeclaracaoService";
 import crypto from "crypto";
-import Museu from "../models/Museu";
-import Bibliografico from "../models/Bibliografico";
-import Museologico from "../models/Museologico";
-import Arquivistico from "../models/Arquivistico";
+import { Museu } from "../models";
+import { Bibliografico } from "../models";
+import { Museologico } from "../models";
+import { Arquivistico } from "../models";
 import fs from "fs";
 import path from "path";
+import { unpack } from "msgpackr";
 
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;
@@ -65,7 +66,7 @@ class DeclaracaoController {
     try {
       const { anoDeclaracao, museu: museu_id } = req.params;
 
-      const museu = await Museu.findOne({ id: museu_id, usuario: req.body.user.id })
+      const museu = await Museu.findOne({ id: museu_id, usuario: req.body.user.sub })
 
       if (!museu) {
         return res.status(400).json({ success: false, message: "Museu inválido" })
@@ -76,60 +77,56 @@ class DeclaracaoController {
       const bibliografico = files.bibliograficoArquivo;
       const museologico = files.museologicoArquivo;
       // Verificar se a declaração já existe para o ano especificado
-      let declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
+      const declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
 
-      // Se não existir, criar uma nova declaração
-      if (!declaracaoExistente) {
-        declaracaoExistente = await this.declaracaoService.criarDeclaracao({
-          anoDeclaracao,
-          museu_id: museu.id,
-          user_id: req.body.user.sub,
-        });
-        console.log("Declaração criada com sucesso.");
-      } else {
-        // Atualizar o museu na declaração existente se necessário
-        declaracaoExistente.museu_id = (await Museu.findById(museu_id))!;
-        await declaracaoExistente.save();
-      }
+      const novaDeclaracao = await this.declaracaoService.criarDeclaracao({
+        anoDeclaracao,
+        museu_id: museu.id,
+        user_id: req.body.user.sub,
+        retificacao: declaracaoExistente ? true : false,
+        retificacaoRef: declaracaoExistente ? declaracaoExistente._id as unknown as string : undefined
+      });
 
       if (arquivistico) {
-        const arquivisticoData = JSON.parse(req.body.arquivistico);
+        const arquivisticoData = unpack(Buffer.from(req.body.arquivistico, "base64"));
 
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(arquivistico[0])).digest('hex');
-        await this.declaracaoService.atualizarArquivistico(anoDeclaracao, {
+        novaDeclaracao.arquivistico = {
           nome: arquivistico[0].filename,
           status: 'em análise',
           hashArquivo,
-        });
+        };
 
         await Arquivistico.insertMany(arquivisticoData)
       }
 
       if (bibliografico) {
-        const bibliograficoData = JSON.parse(req.body.bibliografico);
+        const bibliograficoData = unpack(Buffer.from(req.body.bibliografico, "base64"));
 
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(bibliografico[0])).digest('hex');
-        await this.declaracaoService.atualizarBibliografico(anoDeclaracao, {
+        novaDeclaracao.bibliografico = {
           nome: bibliografico[0].filename,
           status: 'em análise',
           hashArquivo,
-        });
+        };
 
         await Bibliografico.insertMany(bibliograficoData)
       }
 
       if (museologico) {
-        const museologicoData = JSON.parse(req.body.museologico);
+        const museologicoData = unpack(Buffer.from(req.body.museologico, "base64"));
 
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(museologico[0])).digest('hex');
-        await this.declaracaoService.atualizarMuseologico(anoDeclaracao, {
+        novaDeclaracao.museologico = {
           nome: museologico[0].filename,
           status: 'em análise',
           hashArquivo,
-        });
+        };
 
         await Museologico.insertMany(museologicoData)
       }
+
+      await novaDeclaracao.save();
 
       // Enviar arquivos para a fila e atualizar as declarações separadamente para cada tipo
 

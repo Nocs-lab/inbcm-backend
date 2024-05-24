@@ -6,6 +6,8 @@ const DeclaracaoSchema = new Schema({
   responsavelEnvio: { type: Schema.Types.ObjectId, ref: 'usuarios', required: true },
   hashDeclaracao: String,
   dataCriacao: { type: Date, default: Date.now() },
+  retificacao: { type: Boolean, default: false },
+  retificacaoRef: { type: Schema.Types.ObjectId, ref: 'Declaracoes' },
   status: {
     type: String,
     enum: [
@@ -68,6 +70,4 @@ const DeclaracaoSchema = new Schema({
   },
 });
 
-const Declaracoes = mongoose.model("Declaracoes", DeclaracaoSchema);
-
-export default Declaracoes;
+export const Declaracoes = mongoose.model("Declaracoes", DeclaracaoSchema);

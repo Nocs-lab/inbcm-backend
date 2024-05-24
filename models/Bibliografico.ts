@@ -24,6 +24,4 @@ const BibliograficoSchema = new mongoose.Schema({
 });
 
 // Use discriminadores para distinguir os modelos
-const Bibliografico = Bem.discriminator("Bibliografico", BibliograficoSchema);
-
-export default Bibliografico;
+export const Bibliografico = Bem.discriminator("Bibliografico", BibliograficoSchema);
