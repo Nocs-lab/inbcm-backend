@@ -36,7 +36,7 @@ routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada)
 routes.get("/getStatusEnum", declaracaoController.getStatusEnum);
 
 //Recibo
-routes.get("/recibo/:id", userMiddleware, reciboController.gerarRecibo);
+routes.get("/recibo/:idDeclaracao/anoCalendario", userMiddleware, reciboController.gerarRecibo);
 
 routes.post("/auth/login", async (req, res) => {
   const { email, password } = req.body
