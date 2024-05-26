@@ -6,6 +6,7 @@ class ReciboController {
   async gerarRecibo(req: Request, res: Response): Promise<void> {
     try {
       const declaracaoId = mongoose.Types.ObjectId.createFromHexString(req.params.id);
+      const anoCalendario = parseInt(req.params.anoCalendario);
 
       const stream = res.writeHead(200, {
         'Content-Type': 'application/pdf',
@@ -14,8 +15,9 @@ class ReciboController {
 
       emitirReciboDeclaracao(
         declaracaoId,
+        anoCalendario,
         chunk => stream.write(chunk),
-        () => stream.end()
+        () => stream.end() // Adiciona um callback vazio para endCallback
       );
     } catch (error) {
       console.error("Erro ao gerar recibo:", error);
@@ -23,5 +25,6 @@ class ReciboController {
     }
   }
 }
+
 
 export default  ReciboController;
