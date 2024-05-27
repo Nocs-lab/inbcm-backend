@@ -27,3 +27,4 @@ const RefreshTokenSchema = new Schema<IRefreshToken>({
 
 export const Usuario = mongoose.model("usuarios", UsuarioSchema);
 export const RefreshToken = mongoose.model("refreshToken", RefreshTokenSchema);
+export default Usuario;
