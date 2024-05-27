@@ -1,11 +1,57 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
-const DeclaracaoSchema = new Schema({
+interface Pendencia {
+  index?: number;
+  field?: string;
+}
+
+const PendenciaSchema = new Schema({
+  index: Number,
+  field: String
+}, { _id: false });
+
+interface Arquivo {
+  nome: string;
+  caminho: string;
+  status: string;
+  pendencias: Pendencia[];
+  quantidadeItens: number;
+  hashArquivo: string;
+}
+
+const ArquivoSchema = new Schema<Arquivo>({
+  nome: String,
+  caminho: String,
+  status: {
+    type: String,
+    enum: ["em processamento", "em análise", "com pendências", "não enviado"],
+    default: "não enviado",
+  },
+  pendencias: [PendenciaSchema],
+  quantidadeItens: { type: Number, default: 0 },
+  hashArquivo: String,
+}, { _id: false });
+
+interface DeclaracaoModel extends Document {
+  museu_id: mongoose.Types.ObjectId;
+  anoDeclaracao: string;
+  responsavelEnvio: mongoose.Types.ObjectId;
+  hashDeclaracao: string;
+  dataCriacao: Date;
+  totalItensDeclarados?: number;
+  status: string;
+  arquivistico: Arquivo;
+  bibliografico: Arquivo;
+  museologico: Arquivo;
+}
+
+const DeclaracaoSchema = new Schema<DeclaracaoModel>({
   museu_id: { type: Schema.Types.ObjectId, ref: 'Museu', required: true },
   anoDeclaracao: String,
   responsavelEnvio: { type: Schema.Types.ObjectId, ref: 'usuarios', required: true },
   hashDeclaracao: String,
   dataCriacao: { type: Date, default: Date.now() },
+  totalItensDeclarados: { type: Number },
   status: {
     type: String,
     enum: [
@@ -18,56 +64,11 @@ const DeclaracaoSchema = new Schema({
     ],
     default: "em análise",
   },
-
-  arquivistico: {
-    nome: String,
-    caminho: String,
-    status: {
-      type: String,
-      enum: [
-        "em processamento",
-        "em análise",
-        "com pendências",
-        "não enviado"
-      ],
-      default: "não enviado",
-    },
-    hashArquivo: String,
-  },
-
-  bibliografico: {
-    nome: String,
-    caminho: String,
-    status: {
-      type: String,
-      enum: [
-        "em processamento",
-        "em análise",
-        "com pendências",
-        "não enviado"
-      ],
-      default: "não enviado",
-    },
-    hashArquivo: String,
-  },
-
-  museologico: {
-    nome: String,
-    caminho: String,
-    status: {
-      type: String,
-      enum: [
-        "em processamento",
-        "em análise",
-        "com pendências",
-        "não enviado"
-      ],
-      default: "não enviado",
-    },
-    hashArquivo: String,
-  },
+  arquivistico: ArquivoSchema,
+  bibliografico: ArquivoSchema,
+  museologico: ArquivoSchema,
 });
 
-const Declaracoes = mongoose.model("Declaracoes", DeclaracaoSchema);
-
+const Declaracoes = mongoose.model<DeclaracaoModel>("Declaracoes", DeclaracaoSchema);
+export { DeclaracaoModel, Pendencia };
 export default Declaracoes;
