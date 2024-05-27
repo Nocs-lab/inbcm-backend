@@ -14,7 +14,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.inbcm-backend.rule=Host(`inbcm-backend.vitordaniel.com`)"
       - "traefik.http.routers.inbcm-backend.entrypoints=websecure"
-      - "traefik.http.services.tomcat.loadbalancer.server.port=3000"
+      - "traefik.http.services.inbcm-backend.loadbalancer.server.port=3000"
       - "traefik.http.routers.inbcm-backend.tls.certresolver=myresolver"
     networks:
       - traefik
