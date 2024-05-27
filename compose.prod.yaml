@@ -13,3 +13,12 @@ services:
     labels:
       caddy: inbcm-backend.vitordaniel.com
       caddy.reverse_proxy: "{{upstreams 3000}}"
+    networks:
+      - internal
+
+  mongo:
+    networks:
+      - internal
+
+networks:
+  internal:
