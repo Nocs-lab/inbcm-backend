@@ -2,7 +2,6 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile
     environment:
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
@@ -17,8 +16,8 @@ services:
       - "traefik.http.services.inbcm-backend.loadbalancer.server.port=3000"
       - "traefik.http.routers.inbcm-backend.tls.certresolver=myresolver"
     networks:
-      - traefik
       - internal
+      - traefik
 
   mongo:
     networks:
