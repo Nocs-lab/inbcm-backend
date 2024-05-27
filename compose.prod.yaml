@@ -11,10 +11,12 @@ services:
     depends_on:
       - mongo
     labels:
-      caddy: inbcm-api.vitordaniel.com
-      caddy.reverse_proxy: "{{upstreams 3000}}"
+      - "traefik.enable=true"
+      - "traefik.http.routers.inbcm-backend.rule=Host(`inbcm-backend.vitordaniel.com`)"
+      - "traefik.http.routers.inbcm-backend.entrypoints=websecure"
+      - "traefik.http.routers.inbcm-backend.tls.certresolver=myresolver"
     networks:
-      - caddy
+      - traefik
       - internal
 
   mongo:
@@ -23,5 +25,5 @@ services:
 
 networks:
   internal:
-  caddy:
+  traefik:
     external: true
