@@ -88,7 +88,7 @@ class DeclaracaoController {
       });
 
       if (arquivistico) {
-        const arquivisticoData = unpack(Buffer.from(req.body.arquivistico, "base64"));
+        const arquivisticoData = JSON.parse(req.body.arquivistico)
 
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(arquivistico[0])).digest('hex');
         novaDeclaracao.arquivistico = {
@@ -101,7 +101,7 @@ class DeclaracaoController {
       }
 
       if (bibliografico) {
-        const bibliograficoData = unpack(Buffer.from(req.body.bibliografico, "base64"));
+        const bibliograficoData = JSON.parse(req.body.bibliografico);
 
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(bibliografico[0])).digest('hex');
         novaDeclaracao.bibliografico = {
@@ -114,7 +114,7 @@ class DeclaracaoController {
       }
 
       if (museologico) {
-        const museologicoData = unpack(Buffer.from(req.body.museologico, "base64"));
+        const museologicoData = JSON.parse(req.body.museologico)
 
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(museologico[0])).digest('hex');
         novaDeclaracao.museologico = {
