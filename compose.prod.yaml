@@ -11,7 +11,7 @@ services:
     depends_on:
       - mongo
     labels:
-      caddy: inbcm-backend.vitordaniel.com
+      caddy: inbcm-api.vitordaniel.com
       caddy.reverse_proxy: "{{upstreams 3000}}"
     networks:
       - caddy
