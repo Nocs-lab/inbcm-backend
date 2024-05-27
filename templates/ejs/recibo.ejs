@@ -26,14 +26,20 @@
     }
 
     header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
       border: 1px solid black;
       padding: 20px;
       margin-bottom: 100px;
       font-weight: bold;
-      text-align: center;
+      width: 100%;
+
+    }
+
+    .titulos {
+      display: flex;
+      justify-content: space-between;
+
+      gap: 50%;
+
     }
 
     section {
@@ -50,6 +56,7 @@
       border-collapse: collapse;
       width: 100%;
       margin-bottom: 20px;
+      padding: 10%;
     }
 
     th,
@@ -89,6 +96,7 @@
       z-index: -1;
       max-width: 800px;
       opacity: 0.1;
+      filter: grayscale(100%);
     }
 
     .tabela-total-bens {
@@ -151,8 +159,8 @@
 <body>
   <div class="container">
     <header>
-      <p>INSTITUTO BRASILEIRO DE MUSEUS</p>
-      <p>ANO-CALENDÁRIO <%= anoCalendario %></p>
+        <span class="titulos">INSTITUTO BRASILEIRO DE MUSEUS</span>
+        <span class="titulos">ANO-CALENDÁRIO <%= anoCalendario %></span>
     </header>
 
     <section>
@@ -168,8 +176,12 @@
             <th colspan="3">Nome do museu</th>
           </tr>
           <tr>
-            <td><%= codigoIdentificador %></td>
-            <td colspan="3"><%= nomeMuseu %></td>
+            <td>
+              <%= codigoIdentificador %>
+            </td>
+            <td colspan="3">
+              <%= nomeMuseu %>
+            </td>
           </tr>
           <tr>
             <th colspan="2">Logradouro</th>
@@ -177,9 +189,15 @@
             <th>Complemento</th>
           </tr>
           <tr>
-            <td colspan="2"><%= logradouro %></td>
-            <td><%= numero %></td>
-            <td><%= complemento %></td>
+            <td colspan="2">
+              <%= logradouro %>
+            </td>
+            <td>
+              <%= numero %>
+            </td>
+            <td>
+              <%= complemento %>
+            </td>
           </tr>
           <tr>
             <th>Bairro</th>
@@ -187,37 +205,52 @@
             <th colspan="2">Município/UF</th>
           </tr>
           <tr>
-            <td><%= bairro %></td>
-            <td><%= cep %></td>
-            <td colspan="2"><%= municipioUF %></td>
+            <td>
+              <%= bairro %>
+            </td>
+            <td>
+              <%= cep %>
+            </td>
+            <td colspan="2">
+              <%= municipio%>
+                <%=uf%>
+            </td>
           </tr>
         </tbody>
       </table>
     </section>
 
     <section class="image-container">
-      <img src="https://antigo.museus.gov.br/wp-content/uploads/2018/08/LOGO-CINZA-E-PRETO.png;" alt="">
+      <img src="https://antigo.museus.gov.br/wp-content/uploads/2018/08/LOGO-COLORIDA-E-PRETO.png" alt="">
       <table class="tabela-total-bens">
         <tbody>
           <tr>
-            <th style="border: 1px solid black; border-right: 1px solid transparent;border-left: 1px solid transparent;">
+            <th
+              style="border: 1px solid black; border-right: 1px solid transparent;border-left: 1px solid transparent;">
               TOTAL DE BENS DECLARADOS</th>
-            <td style="border: 1px solid black; border-right: 1px solid transparent; border-left: 1px solid transparent; position: relative; font-weight: bold;">
+            <td
+              style="border: 1px solid black; border-right: 1px solid transparent; border-left: 1px solid transparent; position: relative; font-weight: bold;">
               <%=totalBensDeclarados%>
-              <span style="position: absolute; top: 0; bottom: 0; left: 0; border-left: 1px solid black;"></span>
+                <span style="position: absolute; top: 0; bottom: 0; left: 0; border-left: 1px solid black;"></span>
             </td>
           </tr>
           <tr>
             <th>Bens museológicos</th>
-            <td><%= bensMuseologicos %></td>
+            <td  style="text-align: left;">
+              <%= bensMuseologicos === 0 ? '--' : bensMuseologicos %>
+            </td>
           </tr>
           <tr>
             <th>Bens bibliográficos</th>
-            <td><%= bensBibliograficos %></td>
+            <td style="text-align: left;">
+              <%= bensBibliograficos === 0 ? '--' : bensBibliograficos %>
+            </td>
           </tr>
           <tr>
             <th>Bens arquivísticos</th>
-            <td><%= bensArquivisticos %></td>
+            <td  style="text-align: left;">
+              <%= bensArquivisticos === 0 ? '--' : bensArquivisticos %>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -226,7 +259,9 @@
     <footer>
       <p> Sr(a) <%= nomeDeclarante %>, </p>
       <p>O NÚMERO DE RECIBO DE SUA DECLARAÇÃO APRESENTADO EM HORA E DATA <%= horaData %>, é </p>
-      <p class="info-footer"><%=numeroRecibo %></p>
+      <p class="info-footer">
+        <%=numeroRecibo %>
+      </p>
     </footer>
   </div>
 </body>
