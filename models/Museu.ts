@@ -5,7 +5,6 @@ interface IMuseu extends Document {
   nome: string;
   esferaAdministraiva: string;
   endereco: {
-    cidade: string;
     logradouro: string;
     numero: string;
     complemento?: string;
@@ -21,7 +20,6 @@ const MuseuSchema: Schema = new Schema({
   nome: { type: String, required: true },
   esferaAdministraiva:{ type: String, required: true },
   endereco: {
-    cidade: { type: String, required: true },
     logradouro: { type: String, required: true },
     numero:{ type: String, required: true },
     complemento:{type: String, required: false},
@@ -30,7 +28,7 @@ const MuseuSchema: Schema = new Schema({
     municipio:{type: String, required: true},
     uf:{type: String, required: true},
   },
-  usuario: { type: Schema.Types.ObjectId, requied: true, ref: "usuarios" }
+  usuario: { type: Schema.Types.ObjectId, required: true, ref: "usuarios" }
 });
 
 const Museu = mongoose.model<IMuseu>('museus', MuseuSchema);

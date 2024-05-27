@@ -8,7 +8,7 @@ import Museologico from "../models/Museologico";
 import Arquivistico from "../models/Arquivistico";
 import fs from "fs";
 import path from "path";
-
+import mongoose from "mongoose";
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;
 
@@ -18,6 +18,35 @@ class DeclaracaoController {
     this.uploadDeclaracao = this.uploadDeclaracao.bind(this);
     this.getDeclaracaoFiltrada = this.getDeclaracaoFiltrada.bind(this);
   }
+
+  async listarPendencias(req: Request, res: Response) {
+    try {
+      const { declaracaoId, tipoArquivo } = req.params;
+      const userId = req.body.user.sub;
+      console.log(userId)
+      console.log(declaracaoId)
+      // Verifica se os parâmetros são válidos
+      if (!mongoose.Types.ObjectId.isValid(declaracaoId)) {
+        return res.status(400).json({ success: false, message: "ID da declaração inválido." });
+      }
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ success: false, message: "ID do usuário inválido." });
+      }
+
+      // Chama o método do service para recuperar as pendências
+      const pendencias = await this.declaracaoService.recuperarPendencias(
+        new mongoose.Types.ObjectId(declaracaoId),
+        new mongoose.Types.ObjectId(userId),
+        tipoArquivo
+      );
+
+      return res.status(200).json({ success: true, pendencias });
+    } catch (error: any) {
+      console.error("Erro ao recuperar pendências:", error);
+      return res.status(500).json({ success: false, message: "Erro ao recuperar pendências." });
+    }
+  }
+
 
   async getDeclaracaoAno(req: Request, res: Response) {
     try {
@@ -61,20 +90,26 @@ class DeclaracaoController {
     }
   }
 
+ 
   async uploadDeclaracao(req: Request, res: Response) {
     try {
       const { anoDeclaracao, museu: museu_id } = req.params;
-
-      const museu = await Museu.findOne({ id: museu_id, usuario: req.body.user.id })
-
+      
+      const museu = await Museu.findOne({ id: museu_id, usuario: req.body.user.sub });
+      console.log(museu)
       if (!museu) {
-        return res.status(400).json({ success: false, message: "Museu inválido" })
+        return res.status(400).json({ success: false, message: "Museu inválido" });
       }
 
-      const files = req.files as any
+      const files = req.files as any;
       const arquivistico = files.arquivisticoArquivo;
       const bibliografico = files.bibliograficoArquivo;
       const museologico = files.museologicoArquivo;
+       // Log dos arquivos recebidos
+       console.log('Arquivos recebidos:', files);
+
+       // Log dos dados do corpo da requisição
+       console.log('Dados do corpo da requisição:', req.body);
       // Verificar se a declaração já existe para o ano especificado
       let declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
 
@@ -94,7 +129,7 @@ class DeclaracaoController {
 
       if (arquivistico) {
         const arquivisticoData = JSON.parse(req.body.arquivistico);
-
+        const pendenciasArquivistico = JSON.parse(req.body.arquivisticoErros)
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(arquivistico[0])).digest('hex');
         await this.declaracaoService.atualizarArquivistico(anoDeclaracao, {
           nome: arquivistico[0].filename,
@@ -102,12 +137,17 @@ class DeclaracaoController {
           hashArquivo,
         });
 
-        await Arquivistico.insertMany(arquivisticoData)
+        await Arquivistico.insertMany(arquivisticoData);
+          // Aqui acontece a magica de capturar as pendencias,invocando o metodo adicoinarPendencias do declaracaoService
+        if (pendenciasArquivistico.length > 0) {
+          await this.declaracaoService.adicionarPendencias(anoDeclaracao, 'arquivistico', pendenciasArquivistico);
+        }
+        declaracaoExistente.arquivistico.quantidadeItens = arquivisticoData.length;
       }
 
       if (bibliografico) {
         const bibliograficoData = JSON.parse(req.body.bibliografico);
-
+        const pendenciasBibliografico = JSON.parse(req.body.bibliograficoErros);
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(bibliografico[0])).digest('hex');
         await this.declaracaoService.atualizarBibliografico(anoDeclaracao, {
           nome: bibliografico[0].filename,
@@ -115,12 +155,19 @@ class DeclaracaoController {
           hashArquivo,
         });
 
-        await Bibliografico.insertMany(bibliograficoData)
+        await Bibliografico.insertMany(bibliograficoData);
+        // Aqui acontece a magica de capturar as pendencias,invocando o metodo adicoinarPendencias do declaracaoService
+        if (pendenciasBibliografico.length > 0) {
+          await this.declaracaoService.adicionarPendencias(anoDeclaracao, 'bibliografico', pendenciasBibliografico);
+        }
+        //Adiciona quantidade de itens
+        declaracaoExistente.bibliografico.quantidadeItens = bibliograficoData.length;
       }
 
       if (museologico) {
         const museologicoData = JSON.parse(req.body.museologico);
-
+        console.log(`Itens museologicos ${museologicoData}`)
+        const pendenciasMuseologico = JSON.parse(req.body.museologicoErros);
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(museologico[0])).digest('hex');
         await this.declaracaoService.atualizarMuseologico(anoDeclaracao, {
           nome: museologico[0].filename,
@@ -128,7 +175,12 @@ class DeclaracaoController {
           hashArquivo,
         });
 
-        await Museologico.insertMany(museologicoData)
+        await Museologico.insertMany(museologicoData);
+        // Aqui acontece a magica de capturar as pendencias,invocando o metodo adicoinarPendencias do declaracaoService
+        if (pendenciasMuseologico.length > 0) {
+          await this.declaracaoService.adicionarPendencias(anoDeclaracao, 'museologico', pendenciasMuseologico);
+        }
+        declaracaoExistente.museologico.quantidadeItens = museologicoData.length;
       }
 
       // Enviar arquivos para a fila e atualizar as declarações separadamente para cada tipo
@@ -139,8 +191,7 @@ class DeclaracaoController {
       return res.status(500).json({ message: "Erro ao enviar arquivos para a declaração." });
     }
   }
-
-
+  
   async downloadDeclaracao(req: Request, res: Response) {
     try {
       const { museu, anoDeclaracao, tipoArquivo } = req.params;
