@@ -1,0 +1,15 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_URL: ${DB_URL}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - mongo
+    labels:
+      caddy: inbcm-backend.vitordaniel.com
+      caddy.reverse_proxy: "{{upstreams 3000}}"
