@@ -5,29 +5,29 @@ import { verify } from "@node-rs/argon2"
 
 export const userMiddleware: Handler = async (req, res, next) => {
   if (process.env.NODE_ENV !== "production") {
-    console.log("Verificando credenciais de autenticação básica...");
+    //console.log("Verificando credenciais de autenticação básica...");
     const [email, password] = Buffer.from(req.headers["authorization"]?.split(" ")[1] ?? " : ", "base64").toString().split(":")
 
     const user = await Usuario.findOne({ email })
-    console.log("Usuário encontrado:", user);
+    //console.log("Usuário encontrado:", user);
 
     if (user && await verify(user.senha, password)) {
-      console.log("Usuário autenticado com sucesso:", user);
+      //console.log("Usuário autenticado com sucesso:", user);
       req.body.user = {
         ...user,
         sub: user.id
       }
-      console.log(req.body.user.sub);
-      console.log("Usuário definido na requisição:", req.body.user);
+      //console.log(req.body.user.sub);
+      //console.log("Usuário definido na requisição:", req.body.user);
       return next()
     }
 
   }
-  console.log("Verificando token JWT...");
+  //console.log("Verificando token JWT...");
   const { token } = req.signedCookies
 
   if (!token) {
-    console.log("Token JWT não encontrado na requisição.");
+    //console.log("Token JWT não encontrado na requisição.");
     return res.status(401).send()
   }
 
@@ -40,21 +40,21 @@ export const userMiddleware: Handler = async (req, res, next) => {
 
 export const adminMiddleware: Handler = async (req, res, next) => {
   if (process.env.NODE_ENV !== "production") {
-    console.log("Verificando credenciais de autenticação básica...");
+    //console.log("Verificando credenciais de autenticação básica...");
     const [email, password] = Buffer.from(req.headers["authorization"]?.split(" ")[1] ?? " : ", "base64").toString().split(":")
 
     const user = await Usuario.findOne({ email })
-    console.log("Usuário encontrado:", user);
+    //console.log("Usuário encontrado:", user);
 
     if (user && await verify(user.senha, password)) {
-      console.log("Usuário autenticado com sucesso:", user);
+      //console.log("Usuário autenticado com sucesso:", user);
       req.body.user = {
         ...user,
         sub: user.id,
         admin: user.admin
       }
-      console.log(req.body.user.sub);
-      console.log("Usuário definido na requisição:", req.body.user);
+      // console.log(req.body.user.sub);
+      // console.log("Usuário definido na requisição:", req.body.user);
       return next()
     }
   }
