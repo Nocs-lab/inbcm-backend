@@ -20,33 +20,33 @@ class DeclaracaoController {
     this.getDeclaracaoFiltrada = this.getDeclaracaoFiltrada.bind(this);
   }
 
-  async listarPendencias(req: Request, res: Response) {
-    try {
-      const { declaracaoId, tipoArquivo } = req.params;
-      const userId = req.body.user.sub;
-      console.log(userId)
-      console.log(declaracaoId)
-      // Verifica se os parâmetros são válidos
-      if (!mongoose.Types.ObjectId.isValid(declaracaoId)) {
-        return res.status(400).json({ success: false, message: "ID da declaração inválido." });
-      }
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        return res.status(400).json({ success: false, message: "ID do usuário inválido." });
-      }
+  // async listarPendencias(req: Request, res: Response) {
+  //   try {
+  //     const { declaracaoId, tipoArquivo } = req.params;
+  //     const userId = req.body.user.sub;
+  //     console.log(userId)
+  //     console.log(declaracaoId)
+  //     // Verifica se os parâmetros são válidos
+  //     if (!mongoose.Types.ObjectId.isValid(declaracaoId)) {
+  //       return res.status(400).json({ success: false, message: "ID da declaração inválido." });
+  //     }
+  //     if (!mongoose.Types.ObjectId.isValid(userId)) {
+  //       return res.status(400).json({ success: false, message: "ID do usuário inválido." });
+  //     }
 
-      // Chama o método do service para recuperar as pendências
-      const pendencias = await this.declaracaoService.recuperarPendencias(
-        new mongoose.Types.ObjectId(declaracaoId),
-        new mongoose.Types.ObjectId(userId),
-        tipoArquivo
-      );
+  //     // Chama o método do service para recuperar as pendências
+  //     const pendencias = await this.declaracaoService.recuperarPendencias(
+  //       new mongoose.Types.ObjectId(declaracaoId),
+  //       new mongoose.Types.ObjectId(userId),
+  //       tipoArquivo
+  //     );
 
-      return res.status(200).json({ success: true, pendencias });
-    } catch (error: any) {
-      console.error("Erro ao recuperar pendências:", error);
-      return res.status(500).json({ success: false, message: "Erro ao recuperar pendências." });
-    }
-  }
+  //     return res.status(200).json({ success: true, pendencias });
+  //   } catch (error: any) {
+  //     console.error("Erro ao recuperar pendências:", error);
+  //     return res.status(500).json({ success: false, message: "Erro ao recuperar pendências." });
+  //   }
+  // }
 
 
   async getDeclaracaoAno(req: Request, res: Response) {
@@ -88,6 +88,16 @@ class DeclaracaoController {
     } catch (error) {
       console.error("Erro ao buscar declarações com filtros:", error);
       return res.status(500).json({ message: "Erro ao buscar declarações com filtros." });
+    }
+  }
+
+  async getDeclaracaoPendente(req: Request, res: Response) {
+    try {
+      const declaracoes = await Declaracoes.find({ pendente: true });
+      return res.status(200).json(declaracoes);
+    } catch (error) {
+      console.error("Erro ao buscar declarações pendentes:", error);
+      return res.status(500).json({ message: "Erro ao buscar declarações pendentes." });
     }
   }
 
