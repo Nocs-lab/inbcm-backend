@@ -19,7 +19,5 @@ const ArquivisticoSchema = new mongoose.Schema({
 });
 
 // Use discriminadores para distinguir os modelos
-const Arquivistico = Bem.discriminator("Arquivistico", ArquivisticoSchema);
+export const Arquivistico = Bem.discriminator("Arquivistico", ArquivisticoSchema);
 
-// Exporte o modelo Arquivistico
-export default Arquivistico;

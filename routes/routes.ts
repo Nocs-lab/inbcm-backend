@@ -6,7 +6,7 @@ import MuseuController from "../controllers/MuseuController";
 //import UsuarioController from "../controllers/UsuarioController";
 import ReciboController from "../controllers/ReciboController";
 import AuthService from "../service/AuthService";
-import { userMiddleware } from "../middlewares/AuthMiddlewares";
+import { adminMiddleware, userMiddleware } from "../middlewares/AuthMiddlewares";
 
 
 const routes = express.Router();
@@ -15,8 +15,10 @@ const declaracaoController = new DeclaracaoController();
 const authService = new AuthService()
 
 //Museu
-routes.post('/criarMuseu', MuseuController.criarMuseu);
-routes.get('/listarMuseus', MuseuController.listarMuseus);
+routes.post('/criarMuseu', adminMiddleware, MuseuController.criarMuseu);
+routes.get('/listarMuseus', adminMiddleware, MuseuController.listarMuseus);
+
+routes.get("/museus", userMiddleware, MuseuController.userMuseus);
 
 //rota declarações
 routes.put(

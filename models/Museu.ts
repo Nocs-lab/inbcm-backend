@@ -5,6 +5,9 @@ interface IMuseu extends Document {
   nome: string;
   esferaAdministraiva: string;
   endereco: {
+    cidade: string;
+    rua: string;
+    UF: { type: string, enum: ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'] };
     logradouro: string;
     numero: string;
     complemento?: string;
@@ -31,6 +34,4 @@ const MuseuSchema: Schema = new Schema({
   usuario: { type: Schema.Types.ObjectId, required: true, ref: "usuarios" }
 });
 
-const Museu = mongoose.model<IMuseu>('museus', MuseuSchema);
-
-export default Museu;
+export const Museu = mongoose.model<IMuseu>('museus', MuseuSchema);

@@ -51,6 +51,8 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>({
   responsavelEnvio: { type: Schema.Types.ObjectId, ref: 'usuarios', required: true },
   hashDeclaracao: String,
   dataCriacao: { type: Date, default: Date.now() },
+  retificacao: { type: Boolean, default: false },
+  retificacaoRef: { type: Schema.Types.ObjectId, ref: 'Declaracoes' },
   totalItensDeclarados: { type: Number },
   status: {
     type: String,
@@ -68,6 +70,7 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>({
   bibliografico: ArquivoSchema,
   museologico: ArquivoSchema,
 });
+
 
 const Declaracoes = mongoose.model<DeclaracaoModel>("Declaracoes", DeclaracaoSchema);
 export { DeclaracaoModel, Pendencia };

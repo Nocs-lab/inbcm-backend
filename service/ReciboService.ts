@@ -1,11 +1,9 @@
 import mongoose from "mongoose";
 import path from "path";
+import PDFDocument from "pdfkit";
+import { Declaracoes, Museu, ReciboModel, Usuario } from "../models";
 import ejs from "ejs";
 import htmlToPdf from "html-pdf";
-
-import Declaracoes from "../models/Declaracao";
-import Museu from "../models/Museu";
-import Usuario from "../models/Usuario";
 
 async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Buffer> {
   try {

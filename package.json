@@ -6,14 +6,18 @@
   "scripts": {
     "dev": "nodemon server.ts",
     "start:docker:dev": "docker compose -f compose.yaml -f compose.dev.yaml up",
-    "start": "sucrase-node server.ts"
+    "start": "sucrase-node server.ts",
+    "create:admin-user": "sucrase-node scripts/createAdminUser.ts",
+    "create:data": "sucrase-node scripts/generateMockData.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@faker-js/faker": "^8.4.1",
     "@node-rs/argon2": "^1.8.3",
     "amqplib": "^0.10.4",
+    "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
@@ -22,8 +26,10 @@
     "dotenv-expand": "^11.0.6",
     "ejs": "^3.1.10",
     "express": "^4.19.2",
+    "express-async-errors": "^3.1.1",
     "fastest-validator": "^1.18.0",
     "helmet": "^7.1.0",
+    "inquirer": "^9.2.22",
     "html-pdf": "^3.0.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.0",
@@ -41,6 +47,7 @@
     "@eslint/eslintrc": "^3.0.2",
     "@eslint/js": "^9.1.1",
     "@types/amqplib": "^0.10.5",
+    "@types/compression": "^1.7.5",
     "@types/cookie-parser": "^1.4.7",
     "@types/cors": "^2.8.17",
     "@types/ejs": "^3.1.5",
