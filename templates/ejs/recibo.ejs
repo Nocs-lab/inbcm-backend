@@ -236,20 +236,32 @@
           </tr>
           <tr>
             <th>Bens museológicos</th>
-            <td  style="text-align: left;">
-              <%= bensMuseologicos === 0 ? '--' : bensMuseologicos %>
+            <td style="text-align: left;">
+              <% if (bensMuseolgicos === 0) { %>
+                ---
+              <% } else { %>
+                <%= bensMuseologicos %>
+              <% } %>
             </td>
           </tr>
           <tr>
             <th>Bens bibliográficos</th>
             <td style="text-align: left;">
-              <%= bensBibliograficos === 0 ? '--' : bensBibliograficos %>
+              <% if (bensBibliograficos === 0) { %>
+                ---
+              <% } else { %>
+                <%= bensBibliograficos %>
+              <% } %>
             </td>
           </tr>
           <tr>
             <th>Bens arquivísticos</th>
-            <td  style="text-align: left;">
-              <%= bensArquivisticos === 0 ? '--' : bensArquivisticos %>
+            <td style="text-align: left;">
+              <% if (bensArquivisticos === 0) { %>
+                ---
+              <% } else { %>
+                <%= bensArquivisticos %>
+              <% } %>
             </td>
           </tr>
         </tbody>
