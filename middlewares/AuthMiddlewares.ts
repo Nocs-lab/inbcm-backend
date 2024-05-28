@@ -15,8 +15,7 @@ export const userMiddleware: Handler = async (req, res, next) => {
       console.log("Usuário autenticado com sucesso:", user);
       req.body.user = {
         ...user,
-        sub: user.id,
-        admin: user.admin
+        sub: user.id
       }
       console.log(req.body.user.sub);
       console.log("Usuário definido na requisição:", req.body.user);
@@ -39,7 +38,27 @@ export const userMiddleware: Handler = async (req, res, next) => {
   next()
 }
 
-export const adminMiddleware: Handler = (req, res, next) => {
+export const adminMiddleware: Handler = async (req, res, next) => {
+  if (process.env.NODE_ENV !== "production") {
+    console.log("Verificando credenciais de autenticação básica...");
+    const [email, password] = Buffer.from(req.headers["authorization"]?.split(" ")[1] ?? " : ", "base64").toString().split(":")
+
+    const user = await Usuario.findOne({ email })
+    console.log("Usuário encontrado:", user);
+
+    if (user && await verify(user.senha, password)) {
+      console.log("Usuário autenticado com sucesso:", user);
+      req.body.user = {
+        ...user,
+        sub: user.id,
+        admin: user.admin
+      }
+      console.log(req.body.user.sub);
+      console.log("Usuário definido na requisição:", req.body.user);
+      return next()
+    }
+  }
+
   const { token } = req.signedCookies
 
   if (!token) {
