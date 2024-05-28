@@ -196,46 +196,6 @@ class DeclaracaoService {
       throw new Error("Erro ao recuperar pendências: " + error.message);
     }
   }
-  async adicionarPendencias(anoDeclaracao: string, tipoArquivo: string, novasPendencias: Pendencia[]): Promise<DeclaracaoModel> {
-  try {
-    const declaracao = await Declaracoes.findOne({ anoDeclaracao });
-    
-    if (!declaracao) {
-      throw new Error("Declaração não encontrada para o ano especificado.");
-    }
-
-    // Determinar o caminho correto com base no tipo de arquivo
-    let caminho: keyof DeclaracaoModel;
-    switch (tipoArquivo) {
-      case "arquivistico":
-        caminho = "arquivistico";
-        break;
-      case "bibliografico":
-        caminho = "bibliografico";
-        break;
-      case "museologico":
-        caminho = "museologico";
-        break;
-      default:
-        throw new Error("Tipo de arquivo inválido.");
-    }
-
-    // Adicionar as novas pendências ao tipo de arquivo especificado
-    if (declaracao[caminho]) {
-      declaracao[caminho].pendencias.push(...novasPendencias);
-    } else {
-      throw new Error(`Arquivo ${tipoArquivo} não encontrado na declaração.`);
-    }
-
-    // Salvar a declaração atualizada no banco de dados
-    await declaracao.save();
-
-    return declaracao;
-  } catch (error: any) {
-    throw new Error("Erro ao adicionar pendências: " + error.message);
-  }
-
 }
 
-}
 export default DeclaracaoService;

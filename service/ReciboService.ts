@@ -21,7 +21,7 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
     if (!usuario) {
       throw new Error(`Usuário não encontrado para o ID especificado: ${museu.usuario}`);
     }
-    const totalBensDeclarados = 
+    const totalBensDeclarados =
       (declaracao.arquivistico.quantidadeItens || 0) +
       (declaracao.bibliografico.quantidadeItens || 0) +
       (declaracao.museologico.quantidadeItens || 0);

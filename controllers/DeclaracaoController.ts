@@ -91,7 +91,7 @@ class DeclaracaoController {
     }
   }
 
- 
+
   async uploadDeclaracao(req: Request, res: Response) {
     try {
       const { anoDeclaracao, museu: museu_id } = req.params;
@@ -125,17 +125,21 @@ class DeclaracaoController {
         const pendenciasArquivistico = JSON.parse(req.body.arquivisticoErros)
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(arquivistico[0])).digest('hex');
         novaDeclaracao.arquivistico = {
+          caminho: arquivistico[0].path,
           nome: arquivistico[0].filename,
           status: 'em análise',
           hashArquivo,
+          pendencias: pendenciasArquivistico,
+          quantidadeItens: arquivisticoData.length,
         };
 
         await Arquivistico.insertMany(arquivisticoData);
-          // Aqui acontece a magica de capturar as pendencias,invocando o metodo adicoinarPendencias do declaracaoService
-        if (pendenciasArquivistico.length > 0) {
-          await this.declaracaoService.adicionarPendencias(anoDeclaracao, 'arquivistico', pendenciasArquivistico);
+      } else {
+        novaDeclaracao.arquivistico = {
+          status: 'não enviado',
+          pendencias: [],
+          quantidadeItens: 0
         }
-        declaracaoExistente.arquivistico.quantidadeItens = arquivisticoData.length;
       }
 
       if (bibliografico) {
@@ -143,18 +147,21 @@ class DeclaracaoController {
         const pendenciasBibliografico = JSON.parse(req.body.bibliograficoErros);
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(bibliografico[0])).digest('hex');
         novaDeclaracao.bibliografico = {
+          caminho: bibliografico[0].path,
           nome: bibliografico[0].filename,
           status: 'em análise',
           hashArquivo,
+          pendencias: pendenciasBibliografico,
+          quantidadeItens: bibliograficoData.length,
         };
 
         await Bibliografico.insertMany(bibliograficoData);
-        // Aqui acontece a magica de capturar as pendencias,invocando o metodo adicoinarPendencias do declaracaoService
-        if (pendenciasBibliografico.length > 0) {
-          await this.declaracaoService.adicionarPendencias(anoDeclaracao, 'bibliografico', pendenciasBibliografico);
+      } else {
+        novaDeclaracao.bibliografico = {
+          status: 'não enviado',
+          pendencias: [],
+          quantidadeItens: 0
         }
-        //Adiciona quantidade de itens
-        declaracaoExistente.bibliografico.quantidadeItens = bibliograficoData.length;
       }
 
       if (museologico) {
@@ -162,17 +169,21 @@ class DeclaracaoController {
         const pendenciasMuseologico = JSON.parse(req.body.museologicoErros);
         const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(museologico[0])).digest('hex');
         novaDeclaracao.museologico = {
+          caminho: museologico[0].path,
           nome: museologico[0].filename,
           status: 'em análise',
           hashArquivo,
+          pendencias: pendenciasMuseologico,
+          quantidadeItens: museologicoData.length,
         };
 
         await Museologico.insertMany(museologicoData);
-        // Aqui acontece a magica de capturar as pendencias,invocando o metodo adicoinarPendencias do declaracaoService
-        if (pendenciasMuseologico.length > 0) {
-          await this.declaracaoService.adicionarPendencias(anoDeclaracao, 'museologico', pendenciasMuseologico);
+      } else {
+        novaDeclaracao.museologico = {
+          status: 'não enviado',
+          pendencias: [],
+          quantidadeItens: 0
         }
-        declaracaoExistente.museologico.quantidadeItens = museologicoData.length;
       }
 
       await novaDeclaracao.save();
@@ -185,7 +196,7 @@ class DeclaracaoController {
       return res.status(500).json({ message: "Erro ao enviar arquivos para a declaração." });
     }
   }
-  
+
   async downloadDeclaracao(req: Request, res: Response) {
     try {
       const { museu, anoDeclaracao, tipoArquivo } = req.params;

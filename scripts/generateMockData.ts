@@ -2,6 +2,7 @@ import { fakerPT_BR } from "@faker-js/faker"
 import { Museu, Usuario } from "../models";
 import { hash } from "@node-rs/argon2";
 import connect from "../db/conn";
+import { randomUUID } from "crypto"
 
 ;(async () => {
   await connect()
@@ -24,10 +25,18 @@ import connect from "../db/conn";
   await Museu.insertMany(Array.from({ length: 4 }).map((_, index) => ({
     nome: `Museu Prof(a). ${fakerPT_BR.person.fullName()}`,
     endereco: {
-      cidade: fakerPT_BR.location.city(),
+      municipio: fakerPT_BR.location.city(),
       rua: fakerPT_BR.location.street(),
-      UF: fakerPT_BR.location.state()
+      UF: fakerPT_BR.location.state(),
+      logradouro: fakerPT_BR.location.street(),
+      numero: fakerPT_BR.location.buildingNumber(),
+      complemento: fakerPT_BR.location.secondaryAddress(),
+      bairro: fakerPT_BR.location.city(),
+      cep: fakerPT_BR.location.zipCode(),
+      uf: fakerPT_BR.location.state()
     },
+    esferaAdministraiva: "Privado",
+    codIbram: randomUUID(),
     usuario: users[index % 2]._id
   })))
 

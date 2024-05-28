@@ -11,12 +11,12 @@ const PendenciaSchema = new Schema({
 }, { _id: false });
 
 interface Arquivo {
-  nome: string;
-  caminho: string;
+  nome?: string;
+  caminho?: string;
   status: string;
   pendencias: Pendencia[];
   quantidadeItens: number;
-  hashArquivo: string;
+  hashArquivo?: string;
 }
 
 const ArquivoSchema = new Schema<Arquivo>({
@@ -43,6 +43,8 @@ interface DeclaracaoModel extends Document {
   arquivistico: Arquivo;
   bibliografico: Arquivo;
   museologico: Arquivo;
+  retificacao: boolean;
+  retificacaoRef: mongoose.Types.ObjectId;
 }
 
 const DeclaracaoSchema = new Schema<DeclaracaoModel>({
@@ -72,6 +74,6 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>({
 });
 
 
-const Declaracoes = mongoose.model<DeclaracaoModel>("Declaracoes", DeclaracaoSchema);
+export const Declaracoes = mongoose.model<DeclaracaoModel>("Declaracoes", DeclaracaoSchema);
 export { DeclaracaoModel, Pendencia };
 export default Declaracoes;
