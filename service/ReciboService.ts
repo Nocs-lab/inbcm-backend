@@ -1,80 +1,81 @@
 import mongoose from "mongoose";
 import path from "path";
 import PDFDocument from "pdfkit";
-import { Declaracoes } from "../models";
-import { ReciboModel } from "../models";
+import { Declaracoes, Museu, ReciboModel, Usuario } from "../models";
+import ejs from "ejs";
+import htmlToPdf from "html-pdf";
 
-async function emitirReciboDeclaracao(declaracaoId: mongoose.Types.ObjectId, dataCallback: (chunk: any) => {}, endCallback: () => {}): Promise<typeof PDFDocument> {
+async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Buffer> {
   try {
-      const declaracao = await Declaracoes.findById(declaracaoId);
-      if (!declaracao) {
-        throw new Error(`Declaração não encontrada para o ID especificado: ${declaracaoId}`);
-      }
-
-      const doc = new PDFDocument({ bufferPages: true });
-
-      doc.on('data', dataCallback);
-      doc.on('end', endCallback);
-
-      const imagePath = path.join(__dirname, "../templates/logo_ibram.png");
-      doc.image(imagePath, {
-        fit: [150, 150],
-        align: "center",
-        valign: "center"
-      });
-      doc.moveDown(10)
-      // Cabeçalho
-      doc.fontSize(18).text("Recibo de Envio de Declaração de Inventário", { align: "center" }).moveDown(0.5);
-      doc.fontSize(14).text("Instituto Brasileiro de Museus (IBRAM)", { align: "center" }).moveDown(1);
-
-      const dataEnvio = new Date().toLocaleString("pt-BR");
-      doc.fontSize(12).text(`Data de Envio: ${dataEnvio}`, { underline: true }).moveDown();
-
-      doc.fontSize(12).text(`Número de Identificação: ${declaracao.hashDeclaracao}`).moveDown();
-
-      doc.fontSize(12).text(`Responsável pelo Envio: ${declaracao.responsavelEnvio}`).moveDown();
-
-      doc.fontSize(12).text(`Código identificador de  museu: 21`).moveDown();
-
-      doc.fontSize(12).text("Confirmação de Recebimento: Recebido pelo INBCM").moveDown();
-
-      if ( declaracao.arquivistico && declaracao.arquivistico.status !== 'não enviado') {
-        doc.moveDown().fontSize(12).text(`Tipo de arquivo declarado: Arquivístico`);
-
-      }
-      if (declaracao.bibliografico && declaracao.bibliografico.status !== 'não enviado') {
-        doc.moveDown().fontSize(12).text(`Tipo de arquivo declarado: Bibliográfico`);
-      }
-
-      if (declaracao.museologico && declaracao.museologico.status !== "não enviado") {
-        doc.moveDown().fontSize(12).text(`Tipo de arquivo declarado: Museológico`);
-      }
-
-      doc.end();
-      const verificaRecibo = await ReciboModel.findOne({ numeroIdentificacao: declaracao.hashDeclaracao }).populate('arquivosInseridos');
-
-      if (verificaRecibo) {
-          // Atualizar o recibo existente com os novos detalhes
-          verificaRecibo.dataHoraEnvio = new Date();
-          verificaRecibo.responsavelEnvio = declaracao.responsavelEnvio.toString();
-          verificaRecibo.confirmacaoRecebimento = false; // Ou deixar como estava
-          await verificaRecibo.save();
-      } else {
-        const recibo = new ReciboModel({
-          dataHoraEnvio: new Date(),
-          numeroIdentificacao: declaracao.hashDeclaracao,
-          responsavelEnvio: declaracao.responsavelEnvio,
-          confirmacaoRecebimento: true
-        });
-        await recibo.save();
-      }
-
-      return doc;
-  } catch (error) {
-      console.error("Erro ao emitir recibo de declaração:", error);
-      throw error;
+    const declaracao = await Declaracoes.findById(declaracaoId);
+    if (!declaracao) {
+      throw new Error(`Declaração não encontrada para o ID especificado: ${declaracaoId}`);
     }
+
+    const museu = await Museu.findById(declaracao.museu_id);
+    if (!museu) {
+      throw new Error(`Museu não encontrado para o ID especificado: ${declaracao.museu_id}`);
+    }
+
+    const usuario = await Usuario.findById(museu.usuario);
+    if (!usuario) {
+      throw new Error(`Usuário não encontrado para o ID especificado: ${museu.usuario}`);
+    }
+    const totalBensDeclarados = 
+      (declaracao.arquivistico.quantidadeItens || 0) +
+      (declaracao.bibliografico.quantidadeItens || 0) +
+      (declaracao.museologico.quantidadeItens || 0);
+
+    // Compile o template EJS com os dados
+    const templatePath = path.join(__dirname, "../templates/ejs/recibo.ejs");
+    const htmlContent = await ejs.renderFile(templatePath, {
+      anoCalendario: declaracao.anoDeclaracao,
+      codigoIdentificador: museu.codIbram,
+      nomeMuseu: museu.nome,
+      logradouro: museu.endereco.logradouro,
+      numero: museu.endereco.numero,
+      complemento: museu.endereco.complemento,
+      bairro: museu.endereco.bairro,
+      cep: museu.endereco.cep,
+      municipio: museu.endereco.municipio,
+      uf: museu.endereco.uf,
+      nomeDeclarante: usuario.nome,
+      horaData: new Date().toLocaleString("pt-BR"),
+      numeroRecibo: declaracao.hashDeclaracao,
+      totalBensDeclarados: totalBensDeclarados.toString(),
+      bensMuseologicos: declaracao.museologico.quantidadeItens.toString(),
+      bensBibliograficos: declaracao.bibliografico.quantidadeItens.toString(),
+      bensArquivisticos:  declaracao.arquivistico.quantidadeItens.toString(),
+    });
+
+    // Configuração para a conversão de HTML para PDF
+    const pdfOptions = {
+      format: "A4", // ou qualquer outro formato suportado que desejar
+      border: {
+        top: "1cm",
+        right: "1cm",
+        bottom: "1cm",
+        left: "1cm"
+      },
+      timeout: 30000,
+    };
+
+    // Converte o HTML para PDF
+    return new Promise((resolve, reject) => {
+      htmlToPdf.create(htmlContent, pdfOptions).toBuffer((err, buffer) => {
+        if (err) {
+          console.error("Erro ao gerar o PDF:", err);
+          reject(err);
+        } else {
+          resolve(buffer);
+        }
+      });
+    });
+
+  } catch (error) {
+    console.error("Erro ao gerar o recibo:", error);
+    throw new Error("Erro ao gerar o recibo.");
+  }
 }
 
-
-export { emitirReciboDeclaracao };
+export { gerarPDFRecibo };

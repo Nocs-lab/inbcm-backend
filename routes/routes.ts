@@ -31,6 +31,7 @@ routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
   userMiddleware,
   declaracaoController.downloadDeclaracao
 );
+routes.get("/declaracoes/:declaracaoId/:tipoArquivo/pendencias",userMiddleware,declaracaoController.listarPendencias);
 
 routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracao);
 routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
@@ -38,7 +39,7 @@ routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada)
 routes.get("/getStatusEnum", declaracaoController.getStatusEnum);
 
 //Recibo
-routes.get("/recibo/:id", userMiddleware, reciboController.gerarRecibo);
+routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
 
 routes.post("/auth/login", async (req, res) => {
   const { email, password } = req.body

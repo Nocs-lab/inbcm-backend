@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recibo envio de inventário</title>
+  <link href="style.css" rel="stylesheet" type="text/css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Trebuchet MS', sans-serif;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1800px;
+    }
+
+    header {
+      border: 1px solid black;
+      padding: 20px;
+      margin-bottom: 100px;
+      font-weight: bold;
+      width: 100%;
+
+    }
+
+    .titulos {
+      display: flex;
+      justify-content: space-between;
+
+      gap: 50%;
+
+    }
+
+    section {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h3 {
+      font-weight: bold;
+      margin-bottom: 100px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 20px;
+      padding: 10%;
+    }
+
+    th,
+    td {
+      border: 1px solid black;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      border-bottom: 1px solid transparent;
+    }
+
+    table+table {
+      border-top: 0;
+    }
+
+    caption {
+      caption-side: top;
+      text-align: left;
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-bottom: 5px;
+      padding-left: 15px;
+    }
+
+    .image-container {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .image-container img {
+      width: 100%;
+      position: absolute;
+      top: -40px;
+      left: 0;
+      z-index: -1;
+      max-width: 800px;
+      opacity: 0.1;
+      filter: grayscale(100%);
+    }
+
+    .tabela-total-bens {
+      position: relative;
+      z-index: 3;
+      margin-top: 50px;
+    }
+
+    .tabela-total-bens th,
+    .tabela-total-bens td {
+      border: 1px solid transparent;
+      padding: 10px;
+      text-align: left;
+    }
+
+    .tabela-total-bens tr:first-child th,
+    .tabela-total-bens tr:first-child td {
+      border-top: 1px solid black;
+    }
+
+    .tabela-total-bens tr:nth-child(2) th,
+    .tabela-total-bens tr:nth-child(2) td {
+      border-top: 1px solid black;
+    }
+
+    .tabela-total-bens tr:last-child th,
+    .tabela-total-bens tr:last-child td {
+      border-bottom: 1px solid black;
+    }
+
+    .tabela-total-bens th:first-child,
+    .tabela-total-bens td:first-child {
+      border-left: 1px solid transparent;
+    }
+
+    .tabela-total-bens th:last-child,
+    .tabela-total-bens td:last-child {
+      border-right: 1px solid transparent;
+    }
+
+    footer {
+      width: 100%;
+      max-width: 1800px;
+      display: flex;
+      gap: 10px;
+      margin-top: 90px;
+      flex-direction: column;
+    }
+
+    .info-footer {
+      margin-top: 10px;
+      border: 1px solid black;
+      padding: 20px;
+      font-weight: bold;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+        <span class="titulos">INSTITUTO BRASILEIRO DE MUSEUS</span>
+        <span class="titulos">ANO-CALENDÁRIO <%= anoCalendario %></span>
+    </header>
+
+    <section>
+      <h3>RECIBO DE ENTREGA DE DECLARAÇÃO DE AJUSTE ANUAL</h3>
+    </section>
+
+    <section>
+      <table>
+        <caption>IDENTIFICAÇÃO DO DECLARANTE</caption>
+        <tbody>
+          <tr>
+            <th>Código identificador IBRAM</th>
+            <th colspan="3">Nome do museu</th>
+          </tr>
+          <tr>
+            <td>
+              <%= codigoIdentificador %>
+            </td>
+            <td colspan="3">
+              <%= nomeMuseu %>
+            </td>
+          </tr>
+          <tr>
+            <th colspan="2">Logradouro</th>
+            <th>Número</th>
+            <th>Complemento</th>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <%= logradouro %>
+            </td>
+            <td>
+              <%= numero %>
+            </td>
+            <td>
+              <%= complemento %>
+            </td>
+          </tr>
+          <tr>
+            <th>Bairro</th>
+            <th>CEP</th>
+            <th colspan="2">Município/UF</th>
+          </tr>
+          <tr>
+            <td>
+              <%= bairro %>
+            </td>
+            <td>
+              <%= cep %>
+            </td>
+            <td colspan="2">
+              <%= municipio%>
+                <%=uf%>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="image-container">
+      <img src="https://antigo.museus.gov.br/wp-content/uploads/2018/08/LOGO-COLORIDA-E-PRETO.png" alt="">
+      <table class="tabela-total-bens">
+        <tbody>
+          <tr>
+            <th
+              style="border: 1px solid black; border-right: 1px solid transparent;border-left: 1px solid transparent;">
+              TOTAL DE BENS DECLARADOS</th>
+            <td
+              style="border: 1px solid black; border-right: 1px solid transparent; border-left: 1px solid transparent; position: relative; font-weight: bold;">
+              <%=totalBensDeclarados%>
+                <span style="position: absolute; top: 0; bottom: 0; left: 0; border-left: 1px solid black;"></span>
+            </td>
+          </tr>
+          <tr>
+            <th>Bens museológicos</th>
+            <td  style="text-align: left;">
+              <%= bensMuseologicos === 0 ? '--' : bensMuseologicos %>
+            </td>
+          </tr>
+          <tr>
+            <th>Bens bibliográficos</th>
+            <td style="text-align: left;">
+              <%= bensBibliograficos === 0 ? '--' : bensBibliograficos %>
+            </td>
+          </tr>
+          <tr>
+            <th>Bens arquivísticos</th>
+            <td  style="text-align: left;">
+              <%= bensArquivisticos === 0 ? '--' : bensArquivisticos %>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer>
+      <p> Sr(a) <%= nomeDeclarante %>, </p>
+      <p>O NÚMERO DE RECIBO DE SUA DECLARAÇÃO APRESENTADO EM HORA E DATA <%= horaData %>, é </p>
+      <p class="info-footer">
+        <%=numeroRecibo %>
+      </p>
+    </footer>
+  </div>
+</body>
+
+</html>

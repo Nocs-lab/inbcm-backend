@@ -1,10 +1,8 @@
 import crypto from "crypto";
-import { Declaracoes, Usuario } from "../models";
-import { Museu } from "../models";
+import { Declaracoes, Usuario, DeclaracaoModel, Pendencia, Museu } from "../models";
+import mongoose from "mongoose";
 
 class DeclaracaoService {
-
-
   async declaracaoComFiltros(
     { anoReferencia, status, nomeMuseu, dataInicio, dataFim}:
     { anoReferencia: string, status:string, nomeMuseu:string,dataInicio:any, dataFim:any}
@@ -23,7 +21,7 @@ class DeclaracaoService {
 
       //Filtro para ano da declaração
       if (anoReferencia){
-      query = query.where('anoDeclaracao').equals(anoReferencia);
+        query = query.where('anoDeclaracao').equals(anoReferencia);
       }
 
       //Filtro por data
@@ -58,7 +56,6 @@ class DeclaracaoService {
         anoDeclaracao,
         museu_id, // Adicionar museu
         responsavelEnvio: user_id,
-        recibo: false,
         hashDeclaracao,
         dataCriacao: new Date(),
         status: "em análise",
@@ -165,10 +162,80 @@ class DeclaracaoService {
       throw new Error("Erro ao atualizar o status da declaração: " + error.message);
     }
   }
+  async recuperarPendencias(declaracaoId: mongoose.Types.ObjectId, userId: mongoose.Types.ObjectId, tipoArquivo: string): Promise<Pendencia[]> {
+    try {
+      const declaracao = await Declaracoes.findOne({ _id: declaracaoId });
+      if (!declaracao) {
+        throw new Error("Declaração não encontrada.");
+      }
 
+      // Verificar se o museu da declaração pertence ao usuário
+      const museu = await Museu.findOne({ _id: declaracao.museu_id, usuario: userId });
+      if (!museu) {
+        throw new Error("Museu não encontrado ou não pertence ao usuário.");
+      }
+      console.log(museu)
+      let pendencias: Pendencia[] = [];
 
+      switch (tipoArquivo) {
+        case "arquivistico":
+          pendencias = declaracao.arquivistico.pendencias;
+          break;
+        case "bibliografico":
+          pendencias = declaracao.bibliografico.pendencias;
+          break;
+        case "museologico":
+          pendencias = declaracao.museologico.pendencias;
+          break;
+        default:
+          throw new Error("Tipo de arquivo inválido.");
+      }
+      console.log(pendencias)
+      return pendencias;
+    } catch (error: any) {
+      throw new Error("Erro ao recuperar pendências: " + error.message);
+    }
+  }
+  async adicionarPendencias(anoDeclaracao: string, tipoArquivo: string, novasPendencias: Pendencia[]): Promise<DeclaracaoModel> {
+  try {
+    const declaracao = await Declaracoes.findOne({ anoDeclaracao });
+    
+    if (!declaracao) {
+      throw new Error("Declaração não encontrada para o ano especificado.");
+    }
+
+    // Determinar o caminho correto com base no tipo de arquivo
+    let caminho: keyof DeclaracaoModel;
+    switch (tipoArquivo) {
+      case "arquivistico":
+        caminho = "arquivistico";
+        break;
+      case "bibliografico":
+        caminho = "bibliografico";
+        break;
+      case "museologico":
+        caminho = "museologico";
+        break;
+      default:
+        throw new Error("Tipo de arquivo inválido.");
+    }
+
+    // Adicionar as novas pendências ao tipo de arquivo especificado
+    if (declaracao[caminho]) {
+      declaracao[caminho].pendencias.push(...novasPendencias);
+    } else {
+      throw new Error(`Arquivo ${tipoArquivo} não encontrado na declaração.`);
+    }
+
+    // Salvar a declaração atualizada no banco de dados
+    await declaracao.save();
+
+    return declaracao;
+  } catch (error: any) {
+    throw new Error("Erro ao adicionar pendências: " + error.message);
+  }
 
 }
 
-
+}
 export default DeclaracaoService;
