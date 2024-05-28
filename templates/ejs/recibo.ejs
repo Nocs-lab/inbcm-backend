@@ -7,6 +7,19 @@
   <title>Recibo envio de inventário</title>
   <link href="style.css" rel="stylesheet" type="text/css" />
   <style>
+    @page {
+      size: A4;
+      margin: 10mm;
+    }
+
+    /* @media print {
+      body {
+        width: 210mm;
+        height: 297mm;
+        margin: 0;
+      }
+    } */
+
     * {
       margin: 0;
       padding: 0;
@@ -27,19 +40,18 @@
 
     header {
       border: 1px solid black;
-      padding: 20px;
       margin-bottom: 100px;
       font-weight: bold;
-      width: 100%;
-
+      overflow: hidden;
+      padding: 20px;
     }
 
-    .titulos {
-      display: flex;
-      justify-content: space-between;
+    #p1 {
+      float: left;
+    }
 
-      gap: 50%;
-
+    #p2 {
+      float: right;
     }
 
     section {
@@ -55,8 +67,9 @@
     table {
       border-collapse: collapse;
       width: 100%;
-      margin-bottom: 20px;
+      margin-bottom: 60px;
       padding: 10%;
+      page-break-inside: avoid;
     }
 
     th,
@@ -96,13 +109,13 @@
       z-index: -1;
       max-width: 800px;
       opacity: 0.1;
-      filter: grayscale(100%);
+      page-break-inside: avoid;
     }
 
     .tabela-total-bens {
       position: relative;
       z-index: 3;
-      margin-top: 50px;
+      margin-top: 80px;
     }
 
     .tabela-total-bens th,
@@ -159,8 +172,8 @@
 <body>
   <div class="container">
     <header>
-        <span class="titulos">INSTITUTO BRASILEIRO DE MUSEUS</span>
-        <span class="titulos">ANO-CALENDÁRIO <%= anoCalendario %></span>
+        <span id="p1">INSTITUTO BRASILEIRO DE MUSEUS</span>
+        <span id="p2">ANO-CALENDÁRIO <%= anoCalendario %></span>
     </header>
 
     <section>
@@ -236,32 +249,20 @@
           </tr>
           <tr>
             <th>Bens museológicos</th>
-            <td style="text-align: left;">
-              <% if (bensMuseolgicos === 0) { %>
-                ---
-              <% } else { %>
-                <%= bensMuseologicos %>
-              <% } %>
+            <td>
+              <%= bensMuseologicos %>
             </td>
           </tr>
           <tr>
             <th>Bens bibliográficos</th>
-            <td style="text-align: left;">
-              <% if (bensBibliograficos === 0) { %>
-                ---
-              <% } else { %>
-                <%= bensBibliograficos %>
-              <% } %>
+            <td>
+              <%= bensBibliograficos %>
             </td>
           </tr>
           <tr>
             <th>Bens arquivísticos</th>
-            <td style="text-align: left;">
-              <% if (bensArquivisticos === 0) { %>
-                ---
-              <% } else { %>
-                <%= bensArquivisticos %>
-              <% } %>
+            <td>
+              <%= bensArquivisticos %>
             </td>
           </tr>
         </tbody>
@@ -269,8 +270,8 @@
     </section>
 
     <footer>
-      <p> Sr(a) <%= nomeDeclarante %>, </p>
-      <p>O NÚMERO DE RECIBO DE SUA DECLARAÇÃO APRESENTADO EM HORA E DATA <%= horaData %>, é </p>
+      <p> Sr(a) ,<span style="background-color: yellow;"><%= nomeDeclarante %></span>.</p>
+      <p>O NÚMERO DE RECIBO DE SUA DECLARAÇÃO APRESENTADO EM DATA E HORA <span style="background-color: yellow;"><%= horaData %></span>, é </p>
       <p class="info-footer">
         <%=numeroRecibo %>
       </p>

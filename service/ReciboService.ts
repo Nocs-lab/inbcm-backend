@@ -27,6 +27,7 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
       (declaracao.museologico.quantidadeItens || 0);
 
     // Compile o template EJS com os dados
+    const formatValue = (value: number): string => value === 0 ? '---' : value.toString();
     const templatePath = path.join(__dirname, "../templates/ejs/recibo.ejs");
     const htmlContent = await ejs.renderFile(templatePath, {
       anoCalendario: declaracao.anoDeclaracao,
@@ -42,10 +43,10 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
       nomeDeclarante: usuario.nome,
       horaData: new Date().toLocaleString("pt-BR"),
       numeroRecibo: declaracao.hashDeclaracao,
-      totalBensDeclarados: totalBensDeclarados.toString(),
-      bensMuseologicos: declaracao.museologico.quantidadeItens.toString(),
-      bensBibliograficos: declaracao.bibliografico.quantidadeItens.toString(),
-      bensArquivisticos:  declaracao.arquivistico.quantidadeItens.toString(),
+      totalBensDeclarados: formatValue(totalBensDeclarados),
+      bensMuseologicos: formatValue(declaracao.museologico.quantidadeItens),
+      bensBibliograficos: formatValue(declaracao.bibliografico.quantidadeItens),
+      bensArquivisticos: formatValue(declaracao.arquivistico.quantidadeItens)
     });
 
     // Configuração para a conversão de HTML para PDF

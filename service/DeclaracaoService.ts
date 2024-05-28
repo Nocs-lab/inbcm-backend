@@ -162,40 +162,7 @@ class DeclaracaoService {
       throw new Error("Erro ao atualizar o status da declaração: " + error.message);
     }
   }
-  async recuperarPendencias(declaracaoId: mongoose.Types.ObjectId, userId: mongoose.Types.ObjectId, tipoArquivo: string): Promise<Pendencia[]> {
-    try {
-      const declaracao = await Declaracoes.findOne({ _id: declaracaoId });
-      if (!declaracao) {
-        throw new Error("Declaração não encontrada.");
-      }
 
-      // Verificar se o museu da declaração pertence ao usuário
-      const museu = await Museu.findOne({ _id: declaracao.museu_id, usuario: userId });
-      if (!museu) {
-        throw new Error("Museu não encontrado ou não pertence ao usuário.");
-      }
-      console.log(museu)
-      let pendencias: Pendencia[] = [];
-
-      switch (tipoArquivo) {
-        case "arquivistico":
-          pendencias = declaracao.arquivistico.pendencias;
-          break;
-        case "bibliografico":
-          pendencias = declaracao.bibliografico.pendencias;
-          break;
-        case "museologico":
-          pendencias = declaracao.museologico.pendencias;
-          break;
-        default:
-          throw new Error("Tipo de arquivo inválido.");
-      }
-      console.log(pendencias)
-      return pendencias;
-    } catch (error: any) {
-      throw new Error("Erro ao recuperar pendências: " + error.message);
-    }
-  }
 }
 
 export default DeclaracaoService;

@@ -35,8 +35,11 @@ routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
 
 routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracao);
 //routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
+
 routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada);
+
 routes.get("/declaracoes/pendentes", userMiddleware, declaracaoController.getDeclaracaoPendente);
+
 routes.get("/getStatusEnum", declaracaoController.getStatusEnum);
 
 //Recibo
