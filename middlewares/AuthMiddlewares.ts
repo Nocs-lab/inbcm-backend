@@ -15,7 +15,8 @@ export const userMiddleware: Handler = async (req, res, next) => {
       console.log("Usuário autenticado com sucesso:", user);
       req.body.user = {
         ...user,
-        sub: user.id
+        sub: user.id,
+        admin: user.admin
       }
       console.log(req.body.user.sub);
       console.log("Usuário definido na requisição:", req.body.user);
