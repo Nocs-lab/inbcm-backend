@@ -50,7 +50,7 @@ routes.post("/auth/login", async (req, res) => {
     httpOnly: true,
     expires: new Date(Date.now() + 60 * 60 * 1000),
     maxAge: 60 * 60 * 1000,
-    sameSite: "none",
+    sameSite: "strict",
     secure: true,
     signed: true
   })
@@ -58,7 +58,7 @@ routes.post("/auth/login", async (req, res) => {
     httpOnly: true,
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: "none",
+    sameSite: "strict",
     secure: true,
     signed: true
   })
@@ -77,7 +77,7 @@ routes.post("/auth/refresh", async (req, res) => {
       httpOnly: true,
       expires: new Date(Date.now() + 60 * 60 * 1000),
       maxAge: 60 * 60 * 1000,
-      sameSite: "none",
+      sameSite: "strict",
       secure: true,
       signed: true
     })
