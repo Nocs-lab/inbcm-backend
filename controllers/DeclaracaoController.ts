@@ -10,14 +10,61 @@ import fs from "fs";
 import path from "path";
 import mongoose from "mongoose";
 
+
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;
 
   constructor() {
     this.declaracaoService = new DeclaracaoService();
-    // Faz o bind do contexto atual para a função uploadDeclaracao
+    // Faz o bind do contexto atual para as funções
     this.uploadDeclaracao = this.uploadDeclaracao.bind(this);
     this.getDeclaracaoFiltrada = this.getDeclaracaoFiltrada.bind(this);
+    this.getDeclaracoesPorAnoDashboard = this.getDeclaracoesPorAnoDashboard.bind(this);
+    this.getDeclaracoesPorRegiao = this.getDeclaracoesPorRegiao.bind(this);
+    this.getDeclaracoesPorUF = this.getDeclaracoesPorUF.bind(this);
+    this.getDeclaracoesPorStatus = this.getDeclaracoesPorStatus.bind(this);
+  }
+
+
+
+  async getDeclaracoesPorStatus(req: Request, res: Response) {
+    try {
+      const declaracoes = await this.declaracaoService.declaracoesPorStatus();
+      return res.status(200).json(declaracoes);
+    } catch (error) {
+      console.error("Erro organizar declarações por status:", error);
+      return res.status(500).json({ message: "Erro ao organizar declarações por status para o dashboard." });
+    }
+  }
+
+  async getDeclaracoesPorUF(req: Request, res: Response) {
+    try {
+      const declaracoes = await this.declaracaoService.declaracoesPorUF();
+      return res.status(200).json(declaracoes);
+    } catch (error) {
+      console.error("Erro organizar declarações por UF:", error);
+      return res.status(500).json({ message: "Erro ao organizar declarações por UF para o dashboard." });
+    }
+  }
+
+  async getDeclaracoesPorRegiao(req: Request, res: Response) {
+    try {
+      const declaracoes = await this.declaracaoService.declaracoesPorRegiao();
+      return res.status(200).json(declaracoes);
+    } catch (error) {
+      console.error("Erro organizar declarações por região:", error);
+      return res.status(500).json({ message: "Erro ao organizar declarações por região para o dashboard." });
+    }
+  }
+
+  async getDeclaracoesPorAnoDashboard(req: Request, res: Response) {
+    try {
+      const declaracoes = await this.declaracaoService.declaracoesPorAnoDashboard();
+      return res.status(200).json(declaracoes);
+    } catch (error) {
+      console.error("Erro organizar declarações por ano:", error);
+      return res.status(500).json({ message: "Erro ao organizar declarações por ano para o dashboard." });
+    }
   }
 
   async getDeclaracaoAno(req: Request, res: Response) {

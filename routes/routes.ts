@@ -17,7 +17,6 @@ const authService = new AuthService()
 //Museu
 routes.post('/criarMuseu', adminMiddleware, MuseuController.criarMuseu);
 routes.get('/listarMuseus', adminMiddleware, MuseuController.listarMuseus);
-
 routes.get("/museus", userMiddleware, MuseuController.userMuseus);
 
 //rota declarações
@@ -32,15 +31,17 @@ routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
   declaracaoController.downloadDeclaracao
 );
 //routes.get("/declaracoes/:declaracaoId/:tipoArquivo/pendencias",userMiddleware,declaracaoController.listarPendencias);
-
 routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracao);
 //routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
-
 routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada);
-
 routes.get("/declaracoes/pendentes", userMiddleware, declaracaoController.getDeclaracaoPendente);
-
 routes.get("/getStatusEnum", declaracaoController.getStatusEnum);
+routes.get("/dashboard/anoDeclaracao", declaracaoController.getDeclaracoesPorAnoDashboard);
+routes.get("/dashboard/regiao", declaracaoController.getDeclaracoesPorRegiao);
+routes.get("/dashboard/UF", declaracaoController.getDeclaracoesPorUF);
+routes.get("/dashboard/status", declaracaoController.getDeclaracoesPorStatus);
+
+
 
 //Recibo
 routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);

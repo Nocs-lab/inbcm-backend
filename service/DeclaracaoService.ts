@@ -2,7 +2,163 @@ import crypto from "crypto";
 import { Declaracoes, Usuario, DeclaracaoModel, Pendencia, Museu } from "../models";
 import mongoose from "mongoose";
 
+
 class DeclaracaoService {
+
+
+  async declaracoesPorStatus() {
+    try {
+      const result = await Declaracoes.aggregate([
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            status: "$_id",
+            count: "$count"
+          }
+        }
+      ]);
+
+      const statusCounts = result.reduce((acc, item) => {
+        acc[item.status] = item.count;
+        return acc;
+      }, {});
+
+      return statusCounts;
+    } catch (error) {
+      console.error("Erro ao realizar busca de declarações por status para o dashboard:", error);
+      throw new Error("Erro ao realizar busca de declarações por status para o dashboard.");
+    }
+  }
+
+  async declaracoesPorUF() {
+    try {
+      const result = await Declaracoes.aggregate([
+        {
+          $lookup: {
+            from: "museus",
+            localField: "museu_id",
+            foreignField: "_id",
+            as: "museu"
+          }
+        },
+        {
+          $unwind: "$museu"
+        },
+        {
+          $group: {
+            _id: "$museu.endereco.uf",
+            count: { $sum: 1 }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            uf: "$_id",
+            count: "$count"
+          }
+        }
+      ]);
+
+      const ufs = result.reduce((acc, item) => {
+        acc[item.uf] = item.count;
+        return acc;
+      }, {});
+
+      return ufs;
+    } catch (error) {
+      console.error("Erro ao realizar busca de declarações por UF para o dashboard:", error);
+      throw new Error("Erro ao realizar busca de declarações por UF para o dashboard.");
+    }
+  }
+
+  async declaracoesPorRegiao() {
+    try {
+      const result = await Declaracoes.aggregate([
+        {
+          $lookup: {
+            from: "museus",
+            localField: "museu_id",
+            foreignField: "_id",
+            as: "museu"
+          }
+        },
+        {
+          $unwind: "$museu"
+        },
+        {
+          $group: {
+            _id: {
+              regiao: {
+                $switch: {
+                  branches: [
+                    { case: { $in: ["$museu.endereco.uf", ["AC", "AP", "AM", "PA", "RO", "RR", "TO"]] }, then: "Norte" },
+                    { case: { $in: ["$museu.endereco.uf", ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"]] }, then: "Nordeste" },
+                    { case: { $in: ["$museu.endereco.uf", ["DF", "GO", "MT", "MS"]] }, then: "Centro-Oeste" },
+                    { case: { $in: ["$museu.endereco.uf", ["ES", "MG", "RJ", "SP"]] }, then: "Sudeste" },
+                    { case: { $in: ["$museu.endereco.uf", ["PR", "RS", "SC"]] }, then: "Sul" }
+                  ],
+                  default: "Desconhecida"
+                }
+              }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            regiao: "$_id.regiao",
+            count: "$count"
+          }
+        }
+      ]);
+
+      const regioes = result.reduce((acc, item) => {
+        acc[item.regiao] = item.count;
+        return acc;
+      }, {});
+
+      return regioes;
+    } catch (error) {
+      console.error("Erro ao realizar busca de declarações por região para o dashboard:", error);
+      throw new Error("Erro ao realizar busca de declarações por região para o dashboard.");
+    }
+  }
+
+  async declaracoesPorAnoDashboard() {
+    try {
+      const result = await Declaracoes.aggregate([
+        {
+          $group: {
+            _id: "$anoDeclaracao",
+            count: { $sum: 1 }
+          }
+        },
+        {
+          $sort: { _id: 1 } // Ordenar por ano, se necessário
+        }
+      ]);
+
+      // Transformar o resultado em um objeto com anos como chaves
+      const formattedResult = result.reduce((acc, item) => {
+        acc[item._id] = item.count;
+        return acc;
+      }, {});
+
+      return formattedResult;
+    } catch (error) {
+      console.error("Erro ao buscar declarações por ano para o dashboard:", error);
+      throw new Error("Erro ao buscar declarações por ano para o dashboard.");
+    }
+  }
+
+
   async declaracaoComFiltros(
     { anoReferencia, status, nomeMuseu, dataInicio, dataFim, regiao, uf}:
     { anoReferencia: string, status:string, nomeMuseu:string,dataInicio:any, dataFim:any, regiao:string, uf:string}
