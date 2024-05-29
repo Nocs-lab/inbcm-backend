@@ -9,7 +9,8 @@
     "build": "sucrase --transforms typescript,imports -d dist .",
     "start": "sucrase-node server.ts",
     "create:admin-user": "sucrase-node scripts/createAdminUser.ts",
-    "create:data": "sucrase-node scripts/generateMockData.ts"
+    "create:data": "sucrase-node scripts/generateMockData.ts",
+    "list:users": "sucrase-node scripts/listUsers.ts"
   },
   "keywords": [],
   "author": "",
