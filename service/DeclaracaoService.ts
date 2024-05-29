@@ -4,8 +4,8 @@ import mongoose from "mongoose";
 
 class DeclaracaoService {
   async declaracaoComFiltros(
-    { anoReferencia, status, nomeMuseu, dataInicio, dataFim}:
-    { anoReferencia: string, status:string, nomeMuseu:string,dataInicio:any, dataFim:any}
+    { anoReferencia, status, nomeMuseu, dataInicio, dataFim, regiao, uf}:
+    { anoReferencia: string, status:string, nomeMuseu:string,dataInicio:any, dataFim:any, regiao:string, uf:string}
     ) {
 
     try {
@@ -17,6 +17,32 @@ class DeclaracaoService {
       const statusExistente = statusArray.includes(status);
       if (statusExistente === true){
         query = query.where('status').equals(status);
+      }
+
+      // Filtro para UF
+      if (uf) {
+        const museus = await Museu.find({ "endereco.uf": uf });
+        const museuIds = museus.map(museu => museu._id);
+        query = query.where('museu_id').in(museuIds);
+      }
+
+      // Definindo o mapeamento de regiões para UFs
+      const regioesMap: { [key: string]: string[] } = {
+        'norte': ['AC', 'AP', 'AM', 'PA', 'RO', 'RR', 'TO'],
+        'nordeste': ['AL', 'BA', 'CE', 'MA', 'PB', 'PE', 'PI', 'RN', 'SE'],
+        'centro-oeste': ['GO', 'MT', 'MS', 'DF'],
+        'sudeste': ['ES', 'MG', 'RJ', 'SP'],
+        'sul': ['PR', 'RS', 'SC']
+      };
+      // Filtro por cada região
+      if (regiao) {
+        const lowerCaseRegiao = regiao.toLowerCase();
+        if (lowerCaseRegiao in regioesMap) {
+          const ufs = regioesMap[lowerCaseRegiao];
+          const museus = await Museu.find({ "endereco.uf": { $in: ufs } });
+          const museuIds = museus.map(museu => museu._id);
+          query = query.where('museu_id').in(museuIds);
+        }
       }
 
       //Filtro para ano da declaração
