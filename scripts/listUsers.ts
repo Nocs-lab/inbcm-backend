@@ -1,6 +1,9 @@
 import { Usuario } from "../models";
+import connect from "../db/conn";
 
 const listUsers = async () => {
+  await connect()
+
   const users = await Usuario.find()
 
   console.log(users)
