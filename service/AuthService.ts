@@ -1,11 +1,11 @@
 import argon from "@node-rs/argon2"
 import jwt from "jsonwebtoken"
 import { RefreshToken, Usuario } from "../models/Usuario"
-import "../config"
+import "../config"  
 
 export default class AuthService {
-  async login({ email, password }: { email: string, password: string }) {
-    const user = await Usuario.findOne({ email })
+  async login({ email, password, admin }: { email: string, password: string, admin: boolean }) {
+    const user = await Usuario.findOne({ email, admin })
 
     if (!user) {
       throw new Error("Usuário não encontrado")

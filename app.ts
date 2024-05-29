@@ -1,6 +1,6 @@
 import "./config"
 import "express-async-errors"
-import express, { ErrorRequestHandler } from "express";
+import express, { type ErrorRequestHandler } from "express";
 import cors from "cors";
 import routes from "./routes/routes";
 import helmet from "helmet";
@@ -24,8 +24,8 @@ app.use(morgan("dev"));
 app.use(express.json());
 app.use(cookieParser(process.env.JWT_SECRET!));
 app.use(msgpack());
-app.use(compression());
-app.use(errorHandling);
+app.use(compression())
 app.use("/api", routes);
+app.use(errorHandling);
 
 export default app;

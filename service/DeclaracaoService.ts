@@ -1,6 +1,36 @@
 import crypto from "crypto";
-import { Declaracoes, Usuario, DeclaracaoModel, Pendencia, Museu } from "../models";
+import { Declaracoes, Pendencia, Museu } from "../models";
 import mongoose from "mongoose";
+
+const regioesMap = {
+  SP: "Sudeste",
+  MG: "Sudeste",
+  RJ: "Sudeste",
+  ES: "Sudeste",
+  PR: "Sul",
+  SC: "Sul",
+  RS: "Sul",
+  MS: "Centro-Oeste",
+  MT: "Centro-Oeste",
+  GO: "Centro-Oeste",
+  DF: "Centro-Oeste",
+  TO: "Norte",
+  PA: "Norte",
+  AP: "Norte",
+  AM: "Norte",
+  RR: "Norte",
+  RO: "Norte",
+  AC: "Norte",
+  MA: "Nordeste",
+  PI: "Nordeste",
+  CE: "Nordeste",
+  PB: "Nordeste",
+  PE: "Nordeste",
+  AL: "Nordeste",
+  SE: "Nordeste",
+  BA: "Nordeste",
+  RN: "Nordeste",
+};
 
 class DeclaracaoService {
   async declaracaoComFiltros(
@@ -39,7 +69,14 @@ class DeclaracaoService {
         const museuIds = museus.map(museu => museu._id);
         query = query.where('museu_id').in(museuIds);
       }
-      return await query.populate([{ path: 'museu_id', model: Museu, select: [""] }, { path: "responsavelEnvio", model: Usuario }]).exec();
+      const result = await query.populate([{ path: 'museu_id', model: Museu, select: [""] }]).sort('-dataCriacao').exec();
+
+      return result.map(d => {
+        const data = d.toJSON();
+        // @ts-ignore
+        data.museu_id.endereco.regiao = regioesMap[data.museu_id.endereco.uf as keyof typeof regioesMap];
+        return data;
+      });
     } catch (error) {
       console.error("Erro ao buscar declarações com filtros:", error);
       throw new Error("Erro ao buscar declarações com filtros.");

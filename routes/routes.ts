@@ -34,16 +34,17 @@ routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
 routes.get("/declaracoes/:declaracaoId/:tipoArquivo/pendencias",userMiddleware,declaracaoController.listarPendencias);
 
 routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracao);
-routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
-routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada);
-routes.get("/getStatusEnum", declaracaoController.getStatusEnum);
+routes.get("/declaracoes/:anoDeclaracao", userMiddleware, declaracaoController.getDeclaracaoAno);
+routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
+routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum);
 
 //Recibo
 routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
 
 routes.post("/auth/login", async (req, res) => {
   const { email, password } = req.body
-  const { token, refreshToken, user } = await authService.login({ email, password })
+  const { admin } = req.query
+  const { token, refreshToken, user } = await authService.login({ email, password, admin: admin === "true" })
 
   res.cookie("token", token, {
     httpOnly: true,
