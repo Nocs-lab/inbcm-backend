@@ -19,7 +19,11 @@ const errorHandling: ErrorRequestHandler = (err, _req, res, _next) => {
 
 const app = express();
 
-app.use(cors({ origin: ["https://localhost:5173", "https://localhost:5174"], credentials: true, allowedHeaders: ["Content-Type", "Accept"], methods: ["GET", "POST", "PUT", "DELETE"] }));
+app.use(cors({
+  origin: [config.PUBLIC_SITE_URL, config.ADMIN_SITE_URL],
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Accept"], methods: ["GET", "POST", "PUT", "DELETE"]
+}));
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
