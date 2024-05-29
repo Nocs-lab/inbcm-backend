@@ -2,9 +2,10 @@ import type { Handler } from "express"
 import jwt from "jsonwebtoken"
 import { Usuario } from "../models/Usuario"
 import { verify } from "@node-rs/argon2"
+import config from "../config"
 
 export const userMiddleware: Handler = async (req, res, next) => {
-  if (process.env.NODE_ENV !== "production") {
+  if (config.NODE_ENV !== "PRODUCTION") {
     const [email, password] = Buffer.from(req.headers["authorization"]?.split(" ")[1] ?? " : ", "base64").toString().split(":")
 
     const user = await Usuario.findOne({ email, admin: false })
@@ -29,7 +30,7 @@ export const userMiddleware: Handler = async (req, res, next) => {
     return res.status(401).send()
   }
 
-  const payload = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload
+  const payload = jwt.verify(token, config.JWT_SECRET) as jwt.JwtPayload
 
   if (payload.admin) {
     return res.status(404).send()
@@ -41,7 +42,7 @@ export const userMiddleware: Handler = async (req, res, next) => {
 }
 
 export const adminMiddleware: Handler = async (req, res, next) => {
-  if (process.env.NODE_ENV !== "production") {
+  if (config.NODE_ENV !== "PRODUCTION") {
     const [email, password] = Buffer.from(req.headers["authorization"]?.split(" ")[1] ?? " : ", "base64").toString().split(":")
 
     const user = await Usuario.findOne({ email, admin: true })
@@ -66,7 +67,7 @@ export const adminMiddleware: Handler = async (req, res, next) => {
     return res.status(401).send()
   }
 
-  const payload = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload
+  const payload = jwt.verify(token, config.JWT_SECRET) as jwt.JwtPayload
 
   if (!payload.admin) {
     return res.status(404).send()

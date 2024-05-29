@@ -8,6 +8,7 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import msgpack from "./msgpack";
 import compression from "compression"
+import config from "./config"
 
 const errorHandling: ErrorRequestHandler = (err, _req, res, _next) => {
   res.status(500).json({
@@ -22,7 +23,7 @@ app.use(cors({ origin: ["https://localhost:5173", "https://localhost:5174"], cre
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
-app.use(cookieParser(process.env.JWT_SECRET!));
+app.use(cookieParser(config.JWT_SECRET));
 app.use(msgpack());
 app.use(compression())
 app.use("/api", routes);

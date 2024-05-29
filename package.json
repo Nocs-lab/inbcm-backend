@@ -41,7 +41,8 @@
     "puppeteer": "^22.10.0",
     "sucrase": "^3.35.0",
     "uuidv4": "^6.2.13",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
