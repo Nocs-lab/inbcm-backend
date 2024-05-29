@@ -7,6 +7,8 @@ services:
       DB_PASS: ${DB_PASS}
       DB_URL: ${DB_URL}
       JWT_SECRET: ${JWT_SECRET}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL}
+      ADMIN_SITE_URL: ${ADMIN_SITE_URL}
     depends_on:
       - mongo
     labels:
