@@ -1,7 +1,6 @@
 import "./config"
 import "express-async-errors"
 import express, { type ErrorRequestHandler } from "express";
-import cors from "cors";
 import routes from "./routes/routes";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -19,11 +18,6 @@ const errorHandling: ErrorRequestHandler = (err, _req, res, _next) => {
 
 const app = express();
 
-app.use(cors({
-  origin: [config.PUBLIC_SITE_URL, config.ADMIN_SITE_URL],
-  credentials: true,
-  allowedHeaders: ["Content-Type", "Accept"], methods: ["GET", "POST", "PUT", "DELETE"]
-}));
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
