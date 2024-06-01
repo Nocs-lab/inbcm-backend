@@ -45,6 +45,7 @@ interface DeclaracaoModel extends Document {
   museologico: Arquivo;
   retificacao: boolean;
   retificacaoRef: mongoose.Types.ObjectId;
+  pendente: boolean;
 }
 
 const DeclaracaoSchema = new Schema<DeclaracaoModel>({
@@ -56,6 +57,7 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>({
   retificacao: { type: Boolean, default: false },
   retificacaoRef: { type: Schema.Types.ObjectId, ref: 'Declaracoes' },
   totalItensDeclarados: { type: Number },
+  pendente: { type: Boolean, default: false },
   status: {
     type: String,
     enum: [

@@ -10,44 +10,62 @@ import fs from "fs";
 import path from "path";
 import mongoose from "mongoose";
 
+
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;
 
   constructor() {
     this.declaracaoService = new DeclaracaoService();
-    // Faz o bind do contexto atual para a função uploadDeclaracao
+    // Faz o bind do contexto atual para as funções
     this.uploadDeclaracao = this.uploadDeclaracao.bind(this);
     this.getDeclaracaoFiltrada = this.getDeclaracaoFiltrada.bind(this);
+    this.getDeclaracoesPorAnoDashboard = this.getDeclaracoesPorAnoDashboard.bind(this);
+    this.getDeclaracoesPorRegiao = this.getDeclaracoesPorRegiao.bind(this);
+    this.getDeclaracoesPorUF = this.getDeclaracoesPorUF.bind(this);
+    this.getDeclaracoesPorStatus = this.getDeclaracoesPorStatus.bind(this);
   }
 
-  async listarPendencias(req: Request, res: Response) {
+
+
+  async getDeclaracoesPorStatus(req: Request, res: Response) {
     try {
-      const { declaracaoId, tipoArquivo } = req.params;
-      const userId = req.body.user.sub;
-      console.log(userId)
-      console.log(declaracaoId)
-      // Verifica se os parâmetros são válidos
-      if (!mongoose.Types.ObjectId.isValid(declaracaoId)) {
-        return res.status(400).json({ success: false, message: "ID da declaração inválido." });
-      }
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        return res.status(400).json({ success: false, message: "ID do usuário inválido." });
-      }
-
-      // Chama o método do service para recuperar as pendências
-      const pendencias = await this.declaracaoService.recuperarPendencias(
-        new mongoose.Types.ObjectId(declaracaoId),
-        new mongoose.Types.ObjectId(userId),
-        tipoArquivo
-      );
-
-      return res.status(200).json({ success: true, pendencias });
-    } catch (error: any) {
-      console.error("Erro ao recuperar pendências:", error);
-      return res.status(500).json({ success: false, message: "Erro ao recuperar pendências." });
+      const declaracoes = await this.declaracaoService.declaracoesPorStatus();
+      return res.status(200).json(declaracoes);
+    } catch (error) {
+      console.error("Erro organizar declarações por status:", error);
+      return res.status(500).json({ message: "Erro ao organizar declarações por status para o dashboard." });
     }
   }
 
+  async getDeclaracoesPorUF(req: Request, res: Response) {
+    try {
+      const declaracoes = await this.declaracaoService.declaracoesPorUF();
+      return res.status(200).json(declaracoes);
+    } catch (error) {
+      console.error("Erro organizar declarações por UF:", error);
+      return res.status(500).json({ message: "Erro ao organizar declarações por UF para o dashboard." });
+    }
+  }
+
+  async getDeclaracoesPorRegiao(req: Request, res: Response) {
+    try {
+      const declaracoes = await this.declaracaoService.declaracoesPorRegiao();
+      return res.status(200).json(declaracoes);
+    } catch (error) {
+      console.error("Erro organizar declarações por região:", error);
+      return res.status(500).json({ message: "Erro ao organizar declarações por região para o dashboard." });
+    }
+  }
+
+  async getDeclaracoesPorAnoDashboard(req: Request, res: Response) {
+    try {
+      const declaracoes = await this.declaracaoService.declaracoesPorAnoDashboard();
+      return res.status(200).json(declaracoes);
+    } catch (error) {
+      console.error("Erro organizar declarações por ano:", error);
+      return res.status(500).json({ message: "Erro ao organizar declarações por ano para o dashboard." });
+    }
+  }
 
   async getDeclaracaoAno(req: Request, res: Response) {
     try {
@@ -88,6 +106,16 @@ class DeclaracaoController {
     } catch (error) {
       console.error("Erro ao buscar declarações com filtros:", error);
       return res.status(500).json({ message: "Erro ao buscar declarações com filtros." });
+    }
+  }
+
+  async getDeclaracaoPendente(req: Request, res: Response) {
+    try {
+      const declaracoes = await Declaracoes.find({ pendente: true });
+      return res.status(200).json(declaracoes);
+    } catch (error) {
+      console.error("Erro ao buscar declarações pendentes:", error);
+      return res.status(500).json({ message: "Erro ao buscar declarações pendentes." });
     }
   }
 

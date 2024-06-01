@@ -1,9 +1,7 @@
 import express from "express";
 import uploadMiddleware from "../middlewares/UploadMiddleware";
-//import ValidacaoMiddleware from "../middlewares/ValidacaoMiddleware";
 import DeclaracaoController from "../controllers/DeclaracaoController";
 import MuseuController from "../controllers/MuseuController";
-//import UsuarioController from "../controllers/UsuarioController";
 import ReciboController from "../controllers/ReciboController";
 import AuthService from "../service/AuthService";
 import { adminMiddleware, userMiddleware } from "../middlewares/AuthMiddlewares";
@@ -17,7 +15,6 @@ const authService = new AuthService()
 //Museu
 routes.post('/criarMuseu', adminMiddleware, MuseuController.criarMuseu);
 routes.get('/listarMuseus', adminMiddleware, MuseuController.listarMuseus);
-
 routes.get("/museus", userMiddleware, MuseuController.userMuseus);
 
 //rota declarações
@@ -31,12 +28,18 @@ routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
   userMiddleware,
   declaracaoController.downloadDeclaracao
 );
-routes.get("/declaracoes/:declaracaoId/:tipoArquivo/pendencias",userMiddleware,declaracaoController.listarPendencias);
-
+//routes.get("/declaracoes/:declaracaoId/:tipoArquivo/pendencias",userMiddleware,declaracaoController.listarPendencias);
 routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracao);
 routes.get("/declaracoes/:anoDeclaracao", userMiddleware, declaracaoController.getDeclaracaoAno);
 routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
 routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum);
+routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
+routes.get("/declaracoes/pendentes", adminMiddleware, declaracaoController.getDeclaracaoPendente);
+routes.get("/getStatusEnum", declaracaoController.getStatusEnum);
+routes.get("/dashboard/anoDeclaracao", declaracaoController.getDeclaracoesPorAnoDashboard);
+routes.get("/dashboard/regiao", declaracaoController.getDeclaracoesPorRegiao);
+routes.get("/dashboard/UF", declaracaoController.getDeclaracoesPorUF);
+routes.get("/dashboard/status", declaracaoController.getDeclaracoesPorStatus);
 
 //Recibo
 routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
@@ -87,8 +90,5 @@ routes.post("/auth/refresh", async (req, res) => {
     res.status(401).send()
   }
 })
-
-//Usuario
-//routes.post("/usuarios", UsuarioController.criarUsuario);
 
 export default routes;
