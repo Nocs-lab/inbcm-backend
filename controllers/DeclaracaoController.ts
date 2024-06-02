@@ -85,7 +85,7 @@ class DeclaracaoController {
 
   async getDeclaracao(req: Request, res: Response) {
     try {
-      const declaracoes = await Declaracoes.find({ responsavelEnvio: req.body.user.sub }).populate('responsavelEnvio')
+      const declaracoes = await Declaracoes.find({ responsavelEnvio: req.body.user.sub }).populate({ path: 'museu_id', model: Museu }).sort('-createdAt')
       return res.status(200).json(declaracoes);
     } catch (error) {
       console.error("Erro ao buscar declarações:", error);

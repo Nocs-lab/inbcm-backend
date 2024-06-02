@@ -1,9 +1,7 @@
 import express from "express";
 import uploadMiddleware from "../middlewares/UploadMiddleware";
-//import ValidacaoMiddleware from "../middlewares/ValidacaoMiddleware";
 import DeclaracaoController from "../controllers/DeclaracaoController";
 import MuseuController from "../controllers/MuseuController";
-//import UsuarioController from "../controllers/UsuarioController";
 import ReciboController from "../controllers/ReciboController";
 import AuthService from "../service/AuthService";
 import { adminMiddleware, userMiddleware } from "../middlewares/AuthMiddlewares";
@@ -32,29 +30,30 @@ routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
 );
 //routes.get("/declaracoes/:declaracaoId/:tipoArquivo/pendencias",userMiddleware,declaracaoController.listarPendencias);
 routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracao);
-//routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
-routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada);
-routes.get("/declaracoes/pendentes", userMiddleware, declaracaoController.getDeclaracaoPendente);
+routes.get("/declaracoes/:anoDeclaracao", userMiddleware, declaracaoController.getDeclaracaoAno);
+routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
+routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum);
+routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
+routes.get("/declaracoes/pendentes", adminMiddleware, declaracaoController.getDeclaracaoPendente);
 routes.get("/getStatusEnum", declaracaoController.getStatusEnum);
 routes.get("/dashboard/anoDeclaracao", declaracaoController.getDeclaracoesPorAnoDashboard);
 routes.get("/dashboard/regiao", declaracaoController.getDeclaracoesPorRegiao);
 routes.get("/dashboard/UF", declaracaoController.getDeclaracoesPorUF);
 routes.get("/dashboard/status", declaracaoController.getDeclaracoesPorStatus);
 
-
-
 //Recibo
 routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
 
 routes.post("/auth/login", async (req, res) => {
   const { email, password } = req.body
-  const { token, refreshToken, user } = await authService.login({ email, password })
+  const { admin } = req.query
+  const { token, refreshToken, user } = await authService.login({ email, password, admin: admin === "true" })
 
   res.cookie("token", token, {
     httpOnly: true,
     expires: new Date(Date.now() + 60 * 60 * 1000),
     maxAge: 60 * 60 * 1000,
-    sameSite: "none",
+    sameSite: "strict",
     secure: true,
     signed: true
   })
@@ -62,7 +61,7 @@ routes.post("/auth/login", async (req, res) => {
     httpOnly: true,
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: "none",
+    sameSite: "strict",
     secure: true,
     signed: true
   })
@@ -81,7 +80,7 @@ routes.post("/auth/refresh", async (req, res) => {
       httpOnly: true,
       expires: new Date(Date.now() + 60 * 60 * 1000),
       maxAge: 60 * 60 * 1000,
-      sameSite: "none",
+      sameSite: "strict",
       secure: true,
       signed: true
     })
@@ -91,8 +90,5 @@ routes.post("/auth/refresh", async (req, res) => {
     res.status(401).send()
   }
 })
-
-//Usuario
-//routes.post("/usuarios", UsuarioController.criarUsuario);
 
 export default routes;

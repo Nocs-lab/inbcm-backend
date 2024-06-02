@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
-import "../config";
+import config from "../config"
 
 async function main() {
   try {
     mongoose.set("strictQuery", true);
 
     await mongoose.connect(
-      process.env.DB_URL!
+      config.DB_URL!
     );
     console.log("Conectado ao MongoDB!");
   } catch (error) {
