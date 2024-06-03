@@ -33,7 +33,7 @@ import { randomUUID } from "crypto"
       complemento: fakerPT_BR.location.secondaryAddress(),
       bairro: fakerPT_BR.location.city(),
       cep: fakerPT_BR.location.zipCode(),
-      uf: fakerPT_BR.location.state()
+      uf: fakerPT_BR.location.state({ abbreviated: true })
     },
     esferaAdministraiva: "Privado",
     codIbram: randomUUID(),

@@ -7,7 +7,7 @@ type ReadBodyCallback = (err: Error, body: Buffer) => void;
 const msgpack = (): RequestHandler => {
   const r = new RegExp("^application/x-msgpack", "i")
 
-  const packr = new Packr();
+  const packr = new Packr({ useRecords: false });
 
   const bodyHandler = (req: Request, next: NextFunction): ReadBodyCallback => (err, body) => {
     if (err) {

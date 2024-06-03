@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "nodemon server.ts",
     "start:docker:dev": "docker compose -f compose.yaml -f compose.dev.yaml up",
+    "build": "sucrase --transforms typescript,imports -d dist .",
     "start": "sucrase-node server.ts",
     "create:admin-user": "sucrase-node scripts/createAdminUser.ts",
-    "create:data": "sucrase-node scripts/generateMockData.ts"
+    "create:data": "sucrase-node scripts/generateMockData.ts",
+    "list:users": "sucrase-node scripts/listUsers.ts"
   },
   "keywords": [],
   "author": "",
@@ -19,7 +21,6 @@
     "amqplib": "^0.10.4",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",
-    "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "date-fns": "^3.6.0",
     "dotenv": "^16.4.5",
@@ -41,7 +42,8 @@
     "puppeteer": "^22.10.0",
     "sucrase": "^3.35.0",
     "uuidv4": "^6.2.13",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
