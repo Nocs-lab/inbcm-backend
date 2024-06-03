@@ -17,6 +17,7 @@
     "responsavel",
     "situacao",
     "TIPOACERVO",
-    "TIPODECLARACAO"
+    "TIPODECLARACAO",
+    "usuario"
   ]
 }

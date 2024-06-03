@@ -76,7 +76,7 @@ class DeclaracaoController {
   async uploadDeclaracao(req: Request, res: Response) {
     try {
       const { anoDeclaracao, museu: museu_id } = req.params;
-      const museu = await Museu.findOne({ id: museu_id, usuario: req.body.user.sub })
+      const museu = await Museu.findOne({ id: museu_id, usuario: req.body.user.sub  })
       if (!museu) {
         return res.status(400).json({ success: false, message: "Museu inválido" });
       }
@@ -114,6 +114,8 @@ class DeclaracaoController {
           quantidadeItens: arquivisticoData.length,
         };
 
+        arquivisticoData.forEach((item: { declaracao: any; }) => item.declaracao = novaDeclaracao._id);
+
         await Arquivistico.insertMany(arquivisticoData);
       } else {
         novaDeclaracao.arquivistico = {
@@ -136,6 +138,8 @@ class DeclaracaoController {
           quantidadeItens: bibliograficoData.length,
         };
 
+        bibliograficoData.forEach((item: { declaracao: any; }) => item.declaracao = novaDeclaracao._id);
+
         await Bibliografico.insertMany(bibliograficoData);
       } else {
         novaDeclaracao.bibliografico = {
@@ -157,6 +161,8 @@ class DeclaracaoController {
           pendencias: pendenciasMuseologico,
           quantidadeItens: museologicoData.length,
         };
+
+        museologicoData.forEach((item: { declaracao: any; }) => item.declaracao = novaDeclaracao._id);
 
         await Museologico.insertMany(museologicoData);
       } else {

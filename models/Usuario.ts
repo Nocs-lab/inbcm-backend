@@ -6,13 +6,15 @@ interface IUsuario extends Document {
   museus: string[]
   admin: boolean
   senha: string
+  papel_usuario: string
 }
 
 const UsuarioSchema = new Schema<IUsuario>({
   nome: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   admin: { type: Boolean, default: false },
-  senha: { type: String, required: true }
+  senha: { type: String, required: true },
+  papel_usuario: { type: String, enum: ["administrador", "analista", "tecnico"], default: "tecnico" },
 });
 
 interface IRefreshToken extends Document {
