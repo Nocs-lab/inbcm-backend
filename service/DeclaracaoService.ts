@@ -105,11 +105,14 @@ class DeclaracaoService {
         { new: true }
       );
 
+      console.log('Declaracao atualizada: ', declaracaoRetificada);
+
       return declaracaoRetificada;
     } catch (error: any) {
       throw new Error("Erro ao retificar declaração: " + error.message);
     }
   }
+
 
 }
 

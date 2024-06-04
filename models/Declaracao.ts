@@ -39,7 +39,7 @@ interface Arquivo {
     pendencias: [PendenciaSchema],
     quantidadeItens: { type: Number, default: 0 },
     hashArquivo: String,
-    versao: { type: Number, default: 1 },
+    versao: { type: Number, default: 0 },
     tipoEnvio: { type: String, enum: ["enviado", "reenviado"], default: "enviado" },
     dataEnvio: { type: Date, default: Date.now },
     historicoVersoes: [{
@@ -73,7 +73,7 @@ interface Arquivo {
   const DeclaracaoSchema = new Schema<DeclaracaoModel>({
     museu_id: { type: Schema.Types.ObjectId, ref: 'Museu', required: true },
     museu_nome: String,
-    versao: { type: Number, default: 1 },
+    versao: { type: Number, default: 0 },
     anoDeclaracao: String,
     responsavelEnvio: { type: Schema.Types.ObjectId, ref: 'usuarios', required: true },
     hashDeclaracao: String,
