@@ -4,8 +4,7 @@
   "description": "",
   "main": "server.ts",
   "scripts": {
-    "dev": "nodemon server.ts",
-    "start:docker:dev": "docker compose -f compose.yaml -f compose.dev.yaml up",
+    "dev": "concurrently \"docker compose -f compose.yaml -f compose.dev.yaml up\" \"nodemon server.ts\"",
     "build": "sucrase --transforms typescript,imports -d dist .",
     "start": "sucrase-node server.ts",
     "create:admin-user": "sucrase-node scripts/createAdminUser.ts",
