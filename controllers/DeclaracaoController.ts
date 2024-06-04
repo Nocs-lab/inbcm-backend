@@ -72,7 +72,6 @@ class DeclaracaoController {
     }
   }
 
-
   async uploadDeclaracao(req: Request, res: Response) {
     try {
       const { anoDeclaracao, museu: museu_id } = req.params;
@@ -93,9 +92,11 @@ class DeclaracaoController {
       // Verificar se a declaração já existe para o ano especificado
       const declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
 
+
       const novaDeclaracao = await this.declaracaoService.criarDeclaracao({
         anoDeclaracao,
         museu_id: museu.id,
+        museu_nome: museu.nome,
         user_id: req.body.user.sub,
         retificacao: declaracaoExistente ? true : false,
         retificacaoRef: declaracaoExistente ? declaracaoExistente._id as unknown as string : undefined
@@ -181,6 +182,33 @@ class DeclaracaoController {
     } catch (error) {
       console.error("Erro ao enviar arquivos para a declaração:", error);
       return res.status(500).json({ message: "Erro ao enviar arquivos para a declaração." });
+    }
+  }
+
+  async retificarDeclaracao(req: Request, res: Response) {
+    try {
+      const { anoDeclaracao, museu, idDeclaracao } = req.params;
+      const user_id = req.body.user.sub;
+
+      const declaracao = await Declaracoes.findOne({
+        _id: idDeclaracao,
+        responsavelEnvio: user_id,
+        anoDeclaracao: anoDeclaracao,
+        museu_id: museu
+      });
+
+      if (!declaracao) {
+        return res.status(404).json({ message: "Declaração não encontrada para o ano especificado." });
+      }
+
+      const retificacao = await this.declaracaoService.updateDeclaracao({ idDeclaracao });
+
+      console.log(retificacao);
+
+      return res.status(200).json(retificacao);
+    } catch (error) {
+      console.error("Erro ao retificar declaração:", error);
+      return res.status(500).json({ message: "Erro ao retificar declaração." });
     }
   }
 
