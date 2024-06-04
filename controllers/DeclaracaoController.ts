@@ -114,7 +114,7 @@ class DeclaracaoController {
           quantidadeItens: arquivisticoData.length,
         };
 
-        arquivisticoData.forEach((item: { declaracao: any; }) => item.declaracao = novaDeclaracao._id);
+        arquivisticoData.forEach((item: { declaracao_ref: any; }) => item.declaracao_ref = novaDeclaracao._id);
 
         await Arquivistico.insertMany(arquivisticoData);
       } else {
@@ -138,7 +138,7 @@ class DeclaracaoController {
           quantidadeItens: bibliograficoData.length,
         };
 
-        bibliograficoData.forEach((item: { declaracao: any; }) => item.declaracao = novaDeclaracao._id);
+        bibliograficoData.forEach((item: { declaracao_ref: any; }) => item.declaracao_ref = novaDeclaracao._id);
 
         await Bibliografico.insertMany(bibliograficoData);
       } else {
@@ -162,7 +162,7 @@ class DeclaracaoController {
           quantidadeItens: museologicoData.length,
         };
 
-        museologicoData.forEach((item: { declaracao: any; }) => item.declaracao = novaDeclaracao._id);
+        museologicoData.forEach((item: { declaracao_ref: any; }) => item.declaracao_ref = novaDeclaracao._id);
 
         await Museologico.insertMany(museologicoData);
       } else {
