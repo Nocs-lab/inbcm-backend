@@ -187,12 +187,14 @@ class DeclaracaoController {
 
   async retificarDeclaracao(req: Request, res: Response) {
     try {
-      const { idDeclaracao } = req.params;
+      const { anoDeclaracao, museu, idDeclaracao } = req.params;
       const user_id = req.body.user.sub;
 
       let declaracao = await Declaracoes.findOne({
         _id: idDeclaracao,
-        responsavelEnvio: user_id
+        responsavelEnvio: user_id,
+        anoDeclaracao: anoDeclaracao,
+        museu_id: museu
       });
 
       if (!declaracao) {

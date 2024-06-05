@@ -29,7 +29,7 @@ routes.post(
 );
 
 routes.put(
-  "/retificar/:idDeclaracao",
+  "/retificar/:museu/:anoDeclaracao/:idDeclaracao",
   uploadMiddleware,
   userMiddleware,
   declaracaoController.retificarDeclaracao.bind(declaracaoController)
