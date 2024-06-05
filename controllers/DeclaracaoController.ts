@@ -22,8 +22,8 @@ class DeclaracaoController {
 
   async getDeclaracaoAno(req: Request, res: Response) {
     try {
-      const { anoDeclaracao } = req.params;
-      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
+      const { anoDeclaracao, museu } = req.params;
+      const declaracao = await Declaracoes.findOne({ anoDeclaracao, museu_id: museu});
 
       if (!declaracao) {
         return res.status(404).json({ message: "Declaração não encontrada para o ano especificado." });
@@ -187,14 +187,12 @@ class DeclaracaoController {
 
   async retificarDeclaracao(req: Request, res: Response) {
     try {
-      const { anoDeclaracao, museu, idDeclaracao } = req.params;
+      const { idDeclaracao } = req.params;
       const user_id = req.body.user.sub;
 
       let declaracao = await Declaracoes.findOne({
         _id: idDeclaracao,
-        responsavelEnvio: user_id,
-        anoDeclaracao: anoDeclaracao,
-        museu_id: museu
+        responsavelEnvio: user_id
       });
 
       if (!declaracao) {
@@ -235,7 +233,7 @@ class DeclaracaoController {
           ],
         };
 
-        arquivisticoData.forEach((item: { declaracao_ref: any; }) => item.declaracao_ref = declaracao._id);
+        arquivisticoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = declaracao._id);
         await Arquivistico.insertMany(arquivisticoData);
       }
 
@@ -262,7 +260,7 @@ class DeclaracaoController {
           ],
         };
 
-        bibliograficoData.forEach((item: { declaracao_ref: any; }) => item.declaracao_ref = declaracao._id);
+        bibliograficoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = declaracao._id);
         await Bibliografico.insertMany(bibliograficoData);
       }
 
@@ -289,7 +287,7 @@ class DeclaracaoController {
           ],
         };
 
-        museologicoData.forEach((item: { declaracao_ref: any; }) => item.declaracao_ref = declaracao._id);
+        museologicoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = declaracao._id);
         await Museologico.insertMany(museologicoData);
       }
 
@@ -302,9 +300,6 @@ class DeclaracaoController {
       return res.status(500).json({ message: "Erro ao retificar declaração." });
     }
   }
-
-
-
 
   async downloadDeclaracao(req: Request, res: Response) {
     try {

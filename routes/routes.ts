@@ -29,7 +29,7 @@ routes.post(
 );
 
 routes.put(
-  "/retificar/:museu/:anoDeclaracao/:idDeclaracao",
+  "/retificar/:idDeclaracao",
   uploadMiddleware,
   userMiddleware,
   declaracaoController.retificarDeclaracao.bind(declaracaoController)
@@ -42,7 +42,8 @@ routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
 //routes.get("/declaracoes/:declaracaoId/:tipoArquivo/pendencias",userMiddleware,declaracaoController.listarPendencias);
 
 routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracao);
-//routes.get("/declaracoes/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
+
+routes.get("/declaracoes/:museu/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
 
 routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada);
 
