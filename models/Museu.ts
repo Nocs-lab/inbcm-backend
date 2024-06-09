@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
-interface IMuseu extends Document {
+export interface IMuseu extends Document {
   codIbram: string;
   nome: string;
   esferaAdministraiva: string;
