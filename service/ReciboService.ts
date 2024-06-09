@@ -1,10 +1,14 @@
 import mongoose from "mongoose";
 import path from "path";
-import PDFDocument from "pdfkit";
-import { Declaracoes, Museu, ReciboModel, Usuario } from "../models";
+import { Declaracoes, Museu,Usuario } from "../models";
 import ejs from "ejs";
 import htmlToPdf from "html-pdf";
 
+
+// Funcao responsável por gerar o pdf de recibo,segue o fluxo:
+// Encontrar declaracao;
+// Encontrar usuario vinculado a essa declaracao
+// Compilar os dados necessários para preenchimento do recibo usando a bibliteca html-pdf
 async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Buffer> {
   try {
     const declaracao = await Declaracoes.findById(declaracaoId);
@@ -26,7 +30,7 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
       (declaracao.bibliografico.quantidadeItens || 0) +
       (declaracao.museologico.quantidadeItens || 0);
 
-    // Compile o template EJS com os dados
+    // Compila o template EJS com os dados necessários para preenchimento  do pdf 
     const formatValue = (value: number): string => value === 0 ? '---' : value.toString();
     const templatePath = path.join(__dirname, "../templates/ejs/recibo.ejs");
     const htmlContent = await ejs.renderFile(templatePath, {
@@ -51,7 +55,7 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
 
     // Configuração para a conversão de HTML para PDF
     const pdfOptions = {
-      format: "A4" as "A4", // ou qualquer outro formato suportado que desejar
+      format: "A4" as "A4",
       border: {
         top: "1cm",
         right: "1cm",
