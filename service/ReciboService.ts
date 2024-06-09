@@ -51,7 +51,7 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
 
     // Configuração para a conversão de HTML para PDF
     const pdfOptions = {
-      format: "A4", // ou qualquer outro formato suportado que desejar
+      format: "A4" as "A4", // ou qualquer outro formato suportado que desejar
       border: {
         top: "1cm",
         right: "1cm",
