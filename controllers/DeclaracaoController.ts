@@ -69,8 +69,8 @@ class DeclaracaoController {
 
   async getDeclaracaoAno(req: Request, res: Response) {
     try {
-      const { anoDeclaracao } = req.params;
-      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
+      const { anoDeclaracao, museu } = req.params;
+      const declaracao = await Declaracoes.findOne({ anoDeclaracao, museu_id: museu });
 
       if (!declaracao) {
         return res.status(404).json({ message: "Declaração não encontrada para o ano especificado." });
@@ -84,6 +84,22 @@ class DeclaracaoController {
   }
 
   async getDeclaracao(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const declaracao = await Declaracoes.findById(id).populate({ path: 'museu_id', model: Museu });
+
+      if (!declaracao) {
+        return res.status(404).json({ message: "Declaração não encontrada." });
+      }
+
+      return res.status(200).json(declaracao);
+    } catch (error) {
+      console.error("Erro ao buscar declaração:", error);
+      return res.status(500).json({ message: "Erro ao buscar declaração." });
+    }
+  }
+
+  async getDeclaracoes(req: Request, res: Response) {
     try {
       const declaracoes = await Declaracoes.find({ responsavelEnvio: req.body.user.sub }).populate({ path: 'museu_id', model: Museu }).sort('-createdAt')
       return res.status(200).json(declaracoes);

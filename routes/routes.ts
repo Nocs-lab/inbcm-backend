@@ -29,8 +29,9 @@ routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
   declaracaoController.downloadDeclaracao
 );
 //routes.get("/declaracoes/:declaracaoId/:tipoArquivo/pendencias",userMiddleware,declaracaoController.listarPendencias);
-routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracao);
-routes.get("/declaracoes/:anoDeclaracao", userMiddleware, declaracaoController.getDeclaracaoAno);
+routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracoes);
+routes.get("/declaracoes/:id", userMiddleware, declaracaoController.getDeclaracao);
+routes.get("/declaracoes/:museu/:anoDeclaracao", userMiddleware, declaracaoController.getDeclaracaoAno);
 routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
 routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum);
 routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
