@@ -6,14 +6,19 @@ class MuseuController {
   // Método para criar um novo museu
   static async criarMuseu(req: Request, res: Response) {
     try {
-      const { nome, endereco } = req.body;
-      if (!nome || !endereco || !endereco.cidade || !endereco.rua) {
+      const { nome, endereco, codIbram, esferaAdministraiva, usuario } = req.body;
+
+      if (!nome || !endereco || !endereco.cidade || !endereco.logradouro || !endereco.numero) {
         return res.status(400).json({ mensagem: "Todos os campos obrigatórios devem ser preenchidos." });
       }
       const novoMuseu = new Museu({
         nome,
-        endereco
+        endereco,
+        codIbram,
+        esferaAdministraiva,
+        usuario
       });
+
       await novoMuseu.save();
 
       return res.status(201).json({ mensagem: "Museu criado com sucesso!", museu: novoMuseu });

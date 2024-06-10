@@ -7,11 +7,13 @@ services:
       DB_PASS: ${DB_PASS}
       DB_URL: ${DB_URL}
       JWT_SECRET: ${JWT_SECRET}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL}
+      ADMIN_SITE_URL: ${ADMIN_SITE_URL}
     depends_on:
       - mongo
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.inbcm-backend.rule=Host(`inbcm-backend.vitordaniel.com`)"
+      - "traefik.http.routers.inbcm-backend.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`) || Host(`admin.${DOMAIN}`) && PathPrefix(`/api`)"
       - "traefik.http.routers.inbcm-backend.entrypoints=websecure"
       - "traefik.http.services.inbcm-backend.loadbalancer.server.port=3000"
       - "traefik.http.routers.inbcm-backend.tls.certresolver=myresolver"
