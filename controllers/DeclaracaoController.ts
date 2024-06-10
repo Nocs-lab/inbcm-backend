@@ -9,6 +9,7 @@ import { Arquivistico } from "../models";
 import fs from "fs";
 import path from "path";
 import mongoose from "mongoose";
+import type { Express } from "express";
 
 
 class DeclaracaoController {
@@ -143,7 +144,7 @@ class DeclaracaoController {
         return res.status(400).json({ success: false, message: "Museu inválido" });
       }
 
-      const files = req.files as any;
+      const files = req.files as unknown as { [fieldname: string]: Express.Multer.File[] };
       const arquivistico = files.arquivisticoArquivo;
       const bibliografico = files.bibliograficoArquivo;
       const museologico = files.museologicoArquivo;
@@ -176,16 +177,20 @@ class DeclaracaoController {
           hashArquivo,
           pendencias: pendenciasArquivistico,
           quantidadeItens: arquivisticoData.length,
+          dataEnvio: new Date(),
+          versao: 0
         };
 
-        arquivisticoData.forEach((item: { declaracao_ref: any; }) => item.declaracao_ref = novaDeclaracao._id);
+        arquivisticoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = novaDeclaracao._id  as string);
 
         await Arquivistico.insertMany(arquivisticoData);
       } else {
         novaDeclaracao.arquivistico = {
           status: 'não enviado',
           pendencias: [],
-          quantidadeItens: 0
+          quantidadeItens: 0,
+          dataEnvio: new Date(),
+          versao: 0
         }
       }
 
@@ -200,16 +205,20 @@ class DeclaracaoController {
           hashArquivo,
           pendencias: pendenciasBibliografico,
           quantidadeItens: bibliograficoData.length,
+          dataEnvio: new Date(),
+          versao: 0
         };
 
-        bibliograficoData.forEach((item: { declaracao_ref: any; }) => item.declaracao_ref = novaDeclaracao._id);
+        bibliograficoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = novaDeclaracao._id  as string);
 
         await Bibliografico.insertMany(bibliograficoData);
       } else {
         novaDeclaracao.bibliografico = {
           status: 'não enviado',
           pendencias: [],
-          quantidadeItens: 0
+          quantidadeItens: 0,
+          dataEnvio: new Date(),
+          versao: 0
         }
       }
 
@@ -224,16 +233,20 @@ class DeclaracaoController {
           hashArquivo,
           pendencias: pendenciasMuseologico,
           quantidadeItens: museologicoData.length,
+          dataEnvio: new Date(),
+          versao: 0
         };
 
-        museologicoData.forEach((item: { declaracao_ref: any; }) => item.declaracao_ref = novaDeclaracao._id);
+        museologicoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = novaDeclaracao._id  as string);
 
         await Museologico.insertMany(museologicoData);
       } else {
         novaDeclaracao.museologico = {
           status: 'não enviado',
           pendencias: [],
-          quantidadeItens: 0
+          quantidadeItens: 0,
+          dataEnvio: new Date(),
+          versao: 0
         }
       }
 
@@ -270,7 +283,7 @@ class DeclaracaoController {
       declaracao.dataAtualizacao = new Date();
       declaracao.status = "em análise";
 
-      const files = req.files as any;
+      const files = req.files as unknown as { [fieldname: string]: Express.Multer.File[] };
       const arquivistico = files?.arquivisticoArquivo;
       const bibliografico = files?.bibliograficoArquivo;
       const museologico = files?.museologicoArquivo;
@@ -298,7 +311,7 @@ class DeclaracaoController {
           ],
         };
 
-        arquivisticoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = declaracao._id);
+        arquivisticoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = declaracao._id  as string);
         await Arquivistico.insertMany(arquivisticoData);
       }
 
@@ -325,7 +338,7 @@ class DeclaracaoController {
           ],
         };
 
-        bibliograficoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = declaracao._id);
+        bibliograficoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = declaracao._id as string);
         await Bibliografico.insertMany(bibliograficoData);
       }
 
@@ -352,7 +365,7 @@ class DeclaracaoController {
           ],
         };
 
-        museologicoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = declaracao._id);
+        museologicoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = declaracao._id  as string);
         await Museologico.insertMany(museologicoData);
       }
 
