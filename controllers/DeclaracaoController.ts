@@ -8,8 +8,6 @@ import { Museologico } from "../models";
 import { Arquivistico } from "../models";
 import fs from "fs";
 import path from "path";
-import mongoose from "mongoose";
-
 
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;
@@ -24,8 +22,6 @@ class DeclaracaoController {
     this.getDeclaracoesPorUF = this.getDeclaracoesPorUF.bind(this);
     this.getDeclaracoesPorStatus = this.getDeclaracoesPorStatus.bind(this);
   }
-
-
 
   async getDeclaracoesPorStatus(req: Request, res: Response) {
     try {
@@ -67,6 +63,7 @@ class DeclaracaoController {
     }
   }
 
+  // Retorna uma declaração com base no ano e museu
   async getDeclaracaoAno(req: Request, res: Response) {
     try {
       const { anoDeclaracao, museu } = req.params;
@@ -83,6 +80,7 @@ class DeclaracaoController {
     }
   }
 
+  // Retorna uma declaração com base no id
   async getDeclaracao(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -99,6 +97,7 @@ class DeclaracaoController {
     }
   }
 
+  // Retorna todas as declarações do usuário logado
   async getDeclaracoes(req: Request, res: Response) {
     try {
       const declaracoes = await Declaracoes.find({ responsavelEnvio: req.body.user.sub }).populate({ path: 'museu_id', model: Museu }).sort('-createdAt')
@@ -134,7 +133,6 @@ class DeclaracaoController {
       return res.status(500).json({ message: "Erro ao buscar declarações pendentes." });
     }
   }
-
 
   async uploadDeclaracao(req: Request, res: Response) {
     try {
