@@ -36,20 +36,19 @@ routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
   userMiddleware,
   declaracaoController.downloadDeclaracao
 );
-
-routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracao);
-
-routes.get("/declaracoes/:museu/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
-
-routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada);
-
-routes.get("/declaracoes/pendentes", userMiddleware, declaracaoController.getDeclaracaoPendente);
-
-routes.get("/getStatusEnum", declaracaoController.getStatusEnum);
-routes.get("/dashboard/anoDeclaracao", declaracaoController.getDeclaracoesPorAnoDashboard);
-routes.get("/dashboard/regiao", declaracaoController.getDeclaracoesPorRegiao);
-routes.get("/dashboard/UF", declaracaoController.getDeclaracoesPorUF);
-routes.get("/dashboard/status", declaracaoController.getDeclaracoesPorStatus);
+//routes.get("/declaracoes/:declaracaoId/:tipoArquivo/pendencias",userMiddleware,declaracaoController.listarPendencias);
+routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracoes);
+routes.get("/declaracoes/:id", userMiddleware, declaracaoController.getDeclaracao);
+routes.get("/declaracoes/:museu/:anoDeclaracao", userMiddleware, declaracaoController.getDeclaracaoAno);
+routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
+routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum);
+routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
+routes.get("/declaracoes/pendentes", adminMiddleware, declaracaoController.getDeclaracaoPendente);
+routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum);
+routes.get("/dashboard/anoDeclaracao", adminMiddleware, declaracaoController.getDeclaracoesPorAnoDashboard);
+routes.get("/dashboard/regiao", adminMiddleware, declaracaoController.getDeclaracoesPorRegiao);
+routes.get("/dashboard/UF", adminMiddleware, declaracaoController.getDeclaracoesPorUF);
+routes.get("/dashboard/status", adminMiddleware, declaracaoController.getDeclaracoesPorStatus);
 
 //Recibo
 routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
