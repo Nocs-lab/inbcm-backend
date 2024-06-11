@@ -18,12 +18,20 @@ routes.get('/listarMuseus', adminMiddleware, MuseuController.listarMuseus);
 routes.get("/museus", userMiddleware, MuseuController.userMuseus);
 
 //rota declarações
-routes.put(
+routes.post(
   "/uploads/:museu/:anoDeclaracao",
   uploadMiddleware,
   userMiddleware,
   declaracaoController.uploadDeclaracao
 );
+
+routes.put(
+  "/retificar/:museu/:anoDeclaracao/:idDeclaracao",
+  uploadMiddleware,
+  userMiddleware,
+  declaracaoController.retificarDeclaracao.bind(declaracaoController)
+);
+
 routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
   userMiddleware,
   declaracaoController.downloadDeclaracao

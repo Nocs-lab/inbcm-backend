@@ -1,40 +1,7 @@
 import crypto from "crypto";
-import { Declaracoes, Pendencia, Museu } from "../models";
-import mongoose from "mongoose";
-
-const regioesMap = {
-  SP: "Sudeste",
-  MG: "Sudeste",
-  RJ: "Sudeste",
-  ES: "Sudeste",
-  PR: "Sul",
-  SC: "Sul",
-  RS: "Sul",
-  MS: "Centro-Oeste",
-  MT: "Centro-Oeste",
-  GO: "Centro-Oeste",
-  DF: "Centro-Oeste",
-  TO: "Norte",
-  PA: "Norte",
-  AP: "Norte",
-  AM: "Norte",
-  RR: "Norte",
-  RO: "Norte",
-  AC: "Norte",
-  MA: "Nordeste",
-  PI: "Nordeste",
-  CE: "Nordeste",
-  PB: "Nordeste",
-  PE: "Nordeste",
-  AL: "Nordeste",
-  SE: "Nordeste",
-  BA: "Nordeste",
-  RN: "Nordeste",
-};
+import { Declaracoes, Museu } from "../models";
 
 class DeclaracaoService {
-
-
   async declaracoesPorStatus() {
     try {
       const result = await Declaracoes.aggregate([
@@ -264,28 +231,39 @@ class DeclaracaoService {
     }
   }
 
-  async criarDeclaracao({ anoDeclaracao, museu_id, user_id, retificacao = false, retificacaoRef }: { anoDeclaracao: string; museu_id: string; user_id: string; retificacao?: boolean; retificacaoRef?: string }) {
+  async criarDeclaracao({ anoDeclaracao, museu_id, user_id, retificacao = false, retificacaoRef, museu_nome }:
+    { anoDeclaracao: string; museu_id: string; user_id: string; retificacao?: boolean; retificacaoRef?: string;
+       museu_nome: string}) {
     try {
-      // Gerar o hash da declaração
-      const hashDeclaracao = crypto.createHash('sha256').digest('hex');
-      console.log(user_id);
-      // Criar a nova declaração com os campos relacionados à declaração, incluindo museu
-      const novaDeclaracao = await Declaracoes.create({
-        anoDeclaracao,
-        museu_id, // Adicionar museu
-        responsavelEnvio: user_id,
-        hashDeclaracao,
-        dataCriacao: new Date(),
-        status: "em análise",
-        retificacao,
-        retificacaoRef
-      });
+        // Verificar se já existe uma declaração para o ano e museu especificados
+        const declaracaoExistente = await this.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
+        if (declaracaoExistente) {
+            throw new Error("Você já enviou uma declaração para este museu e ano especificados. Se você deseja retificar a declaração, utilize a opção de retificação.");
+        }
 
-      return novaDeclaracao;
+        // Gerar o hash da declaração
+        const hashDeclaracao = crypto.createHash('sha256').digest('hex');
+        console.log(user_id);
+        // Criar a nova declaração com os campos relacionados à declaração, incluindo museu
+        const novaDeclaracao = await Declaracoes.create({
+            anoDeclaracao,
+            museu_id, // Adicionar museu
+            museu_nome,
+            responsavelEnvio: user_id,
+            hashDeclaracao,
+            dataCriacao: new Date(),
+            status: "em análise",
+            retificacao,
+            retificacaoRef
+        });
+
+        return novaDeclaracao;
     } catch (error: any) {
-      throw new Error("Erro ao criar declaração: " + error.message);
+        throw new Error("Erro ao criar declaração: " + error.message);
     }
-  }
+}
+
+
 
   async verificarDeclaracaoExistente(museu: string, anoDeclaracao: string) {
     // Verifique se existe uma declaração com o ano fornecido
@@ -294,92 +272,32 @@ class DeclaracaoService {
     return declaracaoExistente;
   }
 
-  async atualizarArquivosDeclaracao(anoDeclaracao: string, dadosArquivos: any) {
+  async updateDeclaracao({ idDeclaracao }: { idDeclaracao: string }) {
     try {
-      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
-      if (!declaracao) {
-        throw new Error("Declaração não encontrada para o ano especificado.");
+      const declaracaoExistente = await Declaracoes.findById(idDeclaracao);
+      if (!declaracaoExistente) {
+        throw new Error("Declaração não encontrada.");
       }
 
-      // Atualizar os dados dos arquivos
-      if (dadosArquivos.arquivistico) {
-        declaracao.arquivistico = dadosArquivos.arquivistico;
-      }
-      if (dadosArquivos.bibliografico) {
-        declaracao.bibliografico = dadosArquivos.bibliografico;
-      }
-      if (dadosArquivos.museologico) {
-        declaracao.museologico = dadosArquivos.museologico;
-      }
+      const declaracaoRetificada = await Declaracoes.findByIdAndUpdate(
+        idDeclaracao,
+        {
+          retificacao: true,
+          dataAtualizacao: new Date(),
+          versao: declaracaoExistente.versao + 1,
+          status: "em análise"
+        },
+        { new: true }
+      );
 
-      await declaracao.save();
-      return declaracao;
+      console.log('Declaracao atualizada: ', declaracaoRetificada);
+
+      return declaracaoRetificada;
     } catch (error: any) {
-      throw new Error("Erro ao atualizar dados dos arquivos da declaração: " + error.message);
+      throw new Error("Erro ao retificar declaração: " + error.message);
     }
   }
 
-
-  async atualizarArquivistico(anoDeclaracao: string, dadosArquivistico: any) {
-    try {
-      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
-      if (!declaracao) {
-        throw new Error("Declaração não encontrada para o ano especificado.");
-      }
-
-      declaracao.arquivistico = { ...declaracao.arquivistico, ...dadosArquivistico };
-      await declaracao.save();
-      return declaracao;
-    } catch (error: any) {
-      throw new Error("Erro ao atualizar dados arquivísticos: " + error.message);
-    }
-  }
-
-  async atualizarBibliografico(anoDeclaracao: string, dadosBibliografico: any) {
-    try {
-      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
-      if (!declaracao) {
-        throw new Error("Declaração não encontrada para o ano especificado.");
-      }
-      declaracao.bibliografico = { ...declaracao.bibliografico, ...dadosBibliografico };
-      await declaracao.save();
-      return declaracao;
-    } catch (error: any) {
-      throw new Error("Erro ao atualizar dados arquivísticos: " + error.message);
-    }
-  }
-
-  async atualizarMuseologico(anoDeclaracao: string, dadosMuseologico: any) {
-    try {
-      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
-      if (!declaracao) {
-        throw new Error("Declaração não encontrada para o ano especificado.");
-      }
-      declaracao.museologico = { ...declaracao.museologico, ...dadosMuseologico };
-      await declaracao.save();
-      return declaracao;
-    } catch (error: any) {
-      throw new Error("Erro ao atualizar dados arquivísticos: " + error.message);
-    }
-  }
-
-  async atualizarStatusDeclaracao(hashArquivo: string, tipoArquivo: string, novoStatus: any) {
-    try {
-      // Buscar a declaração pelo hash do arquivo e pelo tipo de arquivo
-      const declaracao = await Declaracoes.findOne({ hashArquivo, tipoArquivo });
-
-      // Verificar se a declaração foi encontrada
-      if (!declaracao) {
-        throw new Error("Declaração não encontrada para o hash e tipo de arquivo especificados.");
-      }
-
-      // Atualizar o status da declaração
-      declaracao.status = novoStatus;
-      await declaracao.save();
-    } catch (error: any) {
-      throw new Error("Erro ao atualizar o status da declaração: " + error.message);
-    }
-  }
 
 }
 

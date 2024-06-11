@@ -1,18 +1,19 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
 
-interface IUsuario extends Document {
+export interface IUsuario extends Document {
   nome: string
   email: string
   museus: string[]
-  admin: boolean
   senha: string
+  admin: boolean
+  papel_usuario: string
 }
-
 const UsuarioSchema = new Schema<IUsuario>({
   nome: { type: String, required: true },
   email: { type: String, required: true, unique: true },
+  senha: { type: String, required: true },
   admin: { type: Boolean, default: false },
-  senha: { type: String, required: true }
+  papel_usuario: { type: String, enum: ["administrador", "analista"], default: "analista" }
 });
 
 interface IRefreshToken extends Document {
