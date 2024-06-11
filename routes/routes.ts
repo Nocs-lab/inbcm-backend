@@ -36,11 +36,11 @@ routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDe
 routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum);
 routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
 routes.get("/declaracoes/pendentes", adminMiddleware, declaracaoController.getDeclaracaoPendente);
-routes.get("/getStatusEnum", declaracaoController.getStatusEnum);
-routes.get("/dashboard/anoDeclaracao", declaracaoController.getDeclaracoesPorAnoDashboard);
-routes.get("/dashboard/regiao", declaracaoController.getDeclaracoesPorRegiao);
-routes.get("/dashboard/UF", declaracaoController.getDeclaracoesPorUF);
-routes.get("/dashboard/status", declaracaoController.getDeclaracoesPorStatus);
+routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum);
+routes.get("/dashboard/anoDeclaracao", adminMiddleware, declaracaoController.getDeclaracoesPorAnoDashboard);
+routes.get("/dashboard/regiao", adminMiddleware, declaracaoController.getDeclaracoesPorRegiao);
+routes.get("/dashboard/UF", adminMiddleware, declaracaoController.getDeclaracoesPorUF);
+routes.get("/dashboard/status", adminMiddleware, declaracaoController.getDeclaracoesPorStatus);
 
 //Recibo
 routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
