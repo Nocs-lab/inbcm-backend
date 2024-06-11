@@ -18,24 +18,33 @@ routes.get('/listarMuseus', adminMiddleware, MuseuController.listarMuseus);
 routes.get("/museus", userMiddleware, MuseuController.userMuseus);
 
 //rota declarações
-routes.put(
+routes.post(
   "/uploads/:museu/:anoDeclaracao",
   uploadMiddleware,
   userMiddleware,
   declaracaoController.uploadDeclaracao
 );
+
+routes.put(
+  "/retificar/:museu/:anoDeclaracao/:idDeclaracao",
+  uploadMiddleware,
+  userMiddleware,
+  declaracaoController.retificarDeclaracao.bind(declaracaoController)
+);
+
 routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
   userMiddleware,
   declaracaoController.downloadDeclaracao
 );
-//routes.get("/declaracoes/:declaracaoId/:tipoArquivo/pendencias",userMiddleware,declaracaoController.listarPendencias);
-routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracoes);
-routes.get("/declaracoes/:id", userMiddleware, declaracaoController.getDeclaracao);
-routes.get("/declaracoes/:museu/:anoDeclaracao", userMiddleware, declaracaoController.getDeclaracaoAno);
-routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
-routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum);
-routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
-routes.get("/declaracoes/pendentes", adminMiddleware, declaracaoController.getDeclaracaoPendente);
+
+routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracao);
+
+routes.get("/declaracoes/:museu/:anoDeclaracao", declaracaoController.getDeclaracaoAno);
+
+routes.post("/declaracoesFiltradas", declaracaoController.getDeclaracaoFiltrada);
+
+routes.get("/declaracoes/pendentes", userMiddleware, declaracaoController.getDeclaracaoPendente);
+
 routes.get("/getStatusEnum", declaracaoController.getStatusEnum);
 routes.get("/dashboard/anoDeclaracao", declaracaoController.getDeclaracoesPorAnoDashboard);
 routes.get("/dashboard/regiao", declaracaoController.getDeclaracoesPorRegiao);
