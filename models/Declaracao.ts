@@ -1,20 +1,10 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-interface Pendencia {
-  index?: number;
-  field?: string;
-}
-
-const PendenciaSchema = new Schema({
-  index: Number,
-  field: String
-}, { _id: false });
-
 interface Arquivo {
   nome?: string;
   caminho?: string;
   status: string;
-  pendencias: Pendencia[];
+  pendencias: string[];
   quantidadeItens: number;
   hashArquivo?: string;
 }
@@ -27,7 +17,7 @@ const ArquivoSchema = new Schema<Arquivo>({
     enum: ["em processamento", "em análise", "com pendências", "não enviado"],
     default: "não enviado",
   },
-  pendencias: [PendenciaSchema],
+  pendencias: [String],
   quantidadeItens: { type: Number, default: 0 },
   hashArquivo: String,
 }, { _id: false });
@@ -77,5 +67,5 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>({
 
 
 export const Declaracoes = mongoose.model<DeclaracaoModel>("Declaracoes", DeclaracaoSchema);
-export { DeclaracaoModel, Pendencia };
+export { DeclaracaoModel };
 export default Declaracoes;
