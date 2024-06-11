@@ -1,20 +1,10 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-interface Pendencia {
-  index?: number;
-  field?: string;
-}
-
-const PendenciaSchema = new Schema({
-  index: Number,
-  field: String
-}, { _id: false });
-
 interface Arquivo {
   nome?: string;
   caminho?: string;
   status: string;
-  pendencias: Pendencia[];
+  pendencias: string[];
   quantidadeItens: number;
   hashArquivo?: string;
   tipoEnvio?: 'enviado' | 'reenviado';
@@ -28,28 +18,18 @@ interface Arquivo {
   }[];
 };
 
-  const ArquivoSchema = new Schema<Arquivo>({
-    nome: String,
-    caminho: String,
-    status: {
-      type: String,
-      enum: ["em processamento", "em análise", "com pendências", "não enviado"],
-      default: "não enviado",
-    },
-    pendencias: [PendenciaSchema],
-    quantidadeItens: { type: Number, default: 0 },
-    hashArquivo: String,
-    versao: { type: Number, default: 0 },
-    tipoEnvio: { type: String, enum: ["enviado", "reenviado"], default: "enviado" },
-    dataEnvio: { type: Date, default: Date.now },
-    historicoVersoes: [{
-      nome: String,
-      caminho: String,
-      hashArquivo: String,
-      dataEnvio: Date,
-      tipoEnvio: { type: String, enum: ["enviado", "reenviado"], default: "enviado" },
-    }]
-  }, { _id: false });
+const ArquivoSchema = new Schema<Arquivo>({
+  nome: String,
+  caminho: String,
+  status: {
+    type: String,
+    enum: ["em processamento", "em análise", "com pendências", "não enviado"],
+    default: "não enviado",
+  },
+  pendencias: [String],
+  quantidadeItens: { type: Number, default: 0 },
+  hashArquivo: String,
+}, { _id: false });
 
   interface DeclaracaoModel extends Document {
     museu_id: mongoose.Types.ObjectId;
@@ -100,7 +80,6 @@ interface Arquivo {
     museologico: ArquivoSchema,
   });
 
-
-  export const Declaracoes = mongoose.model<DeclaracaoModel>("Declaracoes", DeclaracaoSchema);
-  export { DeclaracaoModel, Pendencia };
-  export default Declaracoes;
+export const Declaracoes = mongoose.model<DeclaracaoModel>("Declaracoes", DeclaracaoSchema);
+export { DeclaracaoModel };
+export default Declaracoes;

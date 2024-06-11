@@ -1,40 +1,7 @@
 import crypto from "crypto";
-import { Declaracoes, Pendencia, Museu } from "../models";
-import mongoose from "mongoose";
-
-const regioesMap = {
-  SP: "Sudeste",
-  MG: "Sudeste",
-  RJ: "Sudeste",
-  ES: "Sudeste",
-  PR: "Sul",
-  SC: "Sul",
-  RS: "Sul",
-  MS: "Centro-Oeste",
-  MT: "Centro-Oeste",
-  GO: "Centro-Oeste",
-  DF: "Centro-Oeste",
-  TO: "Norte",
-  PA: "Norte",
-  AP: "Norte",
-  AM: "Norte",
-  RR: "Norte",
-  RO: "Norte",
-  AC: "Norte",
-  MA: "Nordeste",
-  PI: "Nordeste",
-  CE: "Nordeste",
-  PB: "Nordeste",
-  PE: "Nordeste",
-  AL: "Nordeste",
-  SE: "Nordeste",
-  BA: "Nordeste",
-  RN: "Nordeste",
-};
+import { Declaracoes, Museu } from "../models";
 
 class DeclaracaoService {
-
-
   async declaracoesPorStatus() {
     try {
       const result = await Declaracoes.aggregate([

@@ -12,7 +12,6 @@ const parsed = {
   DB_PASS: process.env.DB_PASS ?? "",
   DB_URL: process.env.DB_URL ?? "",
   JWT_SECRET: process.env.JWT_SECRET ?? "__SeCrEt__",
-  PUBLIC_SITE_URL: process.env.PUBLIC_SITE_URL ?? "https://localhost:5174",
   ADMIN_SITE_URL: process.env.PRIVATE_SITE_URL ?? "https://localhost:5173",
 }
 
@@ -25,7 +24,6 @@ const schema = z.object({
   DB_PASS: z.string().min(1),
   DB_URL: z.string().min(1).url(),
   JWT_SECRET: z.string().min(1),
-  PUBLIC_SITE_URL: z.string().min(1).url(),
   ADMIN_SITE_URL: z.string().min(1).url(),
 })
 
