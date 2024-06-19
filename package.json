@@ -17,6 +17,7 @@
   "dependencies": {
     "@faker-js/faker": "^8.4.1",
     "@node-rs/argon2": "^1.8.3",
+    "@types/mongoose": "^5.11.97",
     "amqplib": "^0.10.4",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",
@@ -32,7 +33,7 @@
     "html-pdf": "^3.0.1",
     "inquirer": "^9.2.22",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.4.0",
+    "mongoose": "^8.4.3",
     "mongoose-sequence": "^6.0.1",
     "morgan": "^1.10.0",
     "msgpackr": "^1.10.2",
