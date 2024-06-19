@@ -7,28 +7,51 @@ import { IMuseu } from '../models/Museu';
 import { IUsuario } from '../models/Usuario';
 import { ReciboDados } from "../types/DadosRecibo";
 
+/**
+ * Obtém uma declaração pelo seu ID.
+ * 
+ * @param declaracaoId - O ID da declaração a ser obtida.
+ * @returns Uma promessa que resolve com a declaração encontrada.
+ * @throws Um erro se a declaração não for encontrada.
+ */
 
-async function getDeclaracao(declaracaoId:mongoose.Types.ObjectId){
+async function buscaDeclaracao(declaracaoId:mongoose.Types.ObjectId){
     const declaracao = await Declaracoes.findById(declaracaoId);
     if (!declaracao) {
       throw new Error(`Declaração não encontrada para o ID especificado: ${declaracaoId}`);
     }
     return declaracao
 }
-async function getMuseu(museuId:mongoose.Types.ObjectId){
+
+/**
+ * Obtém um museu pelo seu ID.
+ * 
+ * @param museuId - O ID do museu a ser obtido.
+ * @returns Uma promessa que resolve com o museu encontrado.
+ * @throws Um erro se o museu não for encontrado.
+ */
+async function buscaMuseu(museuId:mongoose.Types.ObjectId){
   const museu = await Museu.findById(museuId);
   if (!museu) {
     throw new Error(`Museu não encontrado para o ID especificado: ${museuId}`);
   }
   return museu;
 }
-async function getUsuario(usuarioId:mongoose.Types.ObjectId){
+async function buscaUsuario(usuarioId:mongoose.Types.ObjectId){
   const usuario = await Usuario.findById(usuarioId);
   if (!usuario) {
     throw new Error(`Usuário não encontrado para o ID especificado: ${usuarioId}`);
   }
   return usuario;
 }
+/**
+ * Formata os dados de uma declaração para o recibo.
+ * 
+ * @param declaracao - A declaração a ser formatada.
+ * @param museu - O museu relacionado à declaração.
+ * @param usuario - O usuário relacionado ao museu.
+ * @returns Os dados formatados para o recibo.
+ */
 function formatarDadosRecibo(declaracao: DeclaracaoModel,museu:IMuseu,usuario:IUsuario){
   const totalBensDeclarados =
     (declaracao.arquivistico.quantidadeItens || 0) +
@@ -59,10 +82,22 @@ function formatarDadosRecibo(declaracao: DeclaracaoModel,museu:IMuseu,usuario:IU
     tipoDeclaracao: tipoDeclaracao.toUpperCase()
   };
 }
+/**
+ * Renderiza um template de recibo com os dados fornecidos.
+ * 
+ * @param dados - Os dados a serem usados para renderizar o template.
+ * @returns Uma promessa que resolve com o conteúdo HTML do recibo renderizado.
+ */
 async function redenrizarTemplate(dados:ReciboDados){
   const templatePath = path.join(__dirname, "../templates/ejs/recibo.ejs");
   return await ejs.renderFile(templatePath, dados);
 }
+/**
+ * Converte o conteúdo HTML para PDF.
+ * 
+ * @param htmlContent - O conteúdo HTML a ser convertido.
+ * @returns Uma promessa que resolve com o buffer do PDF gerado.
+ */
 function converterHtmlParaPdf(htmlContent: string): Promise<Buffer> {
   const pdfOptions = {
     format: "A4" as "A4",
@@ -86,11 +121,18 @@ function converterHtmlParaPdf(htmlContent: string): Promise<Buffer> {
     });
   });
 }
+/**
+ * Gera o PDF do recibo com base no ID da declaração.
+ * 
+ * @param declaracaoId - O ID da declaração para a qual gerar o recibo.
+ * @returns Uma promessa que resolve com o buffer do PDF do recibo gerado.
+ * @throws Um erro se houver algum problema ao gerar o recibo.
+ */
 async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Buffer> {
   try {
-    const declaracao = await getDeclaracao(declaracaoId);
-    const museu = await getMuseu(declaracao.museu_id);
-    const usuario = await getUsuario(museu.usuario);
+    const declaracao = await buscaDeclaracao(declaracaoId);
+    const museu = await buscaMuseu(declaracao.museu_id);
+    const usuario = await buscaUsuario(museu.usuario);
 
     const dadosFormatados = formatarDadosRecibo(declaracao, museu, usuario);
     const htmlContent = await redenrizarTemplate(dadosFormatados);
