@@ -3,6 +3,12 @@ import mongoose from "mongoose";
 import { gerarPDFRecibo } from "../service/ReciboService";
 
 class ReciboController {
+  /**
+   * Gera o recibo em formato PDF com base no ID da declaração fornecido na requisição.
+   *   @param req.params - Parâmetros da rota:
+   *     @param idDeclaracao - ID da declaração para a qual o recibo será gerado.
+  
+   */
   async gerarRecibo(req: Request, res: Response): Promise<void> {
     try {
       const { idDeclaracao } = req.params;
