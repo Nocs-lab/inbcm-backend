@@ -92,7 +92,7 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>({
   status: {
     type: String,
     enum: Object.values(Status),
-    default: Status.EmAnalise,
+    default: Status.Recebido,
   },
   arquivistico: ArquivoSchema,
   bibliografico: ArquivoSchema,
