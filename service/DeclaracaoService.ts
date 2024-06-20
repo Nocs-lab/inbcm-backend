@@ -304,7 +304,7 @@ async  updateDeclaracao(
         ...bemExistente,
         nome: arquivos[0].filename,
         caminho: arquivos[0].path,
-        status: Status.EmProcessamento,
+        status: Status.Recebido,
         pendencias: pendenciasBem,
         quantidadeItens: dadosBem.length,
         hashArquivo: undefined,
