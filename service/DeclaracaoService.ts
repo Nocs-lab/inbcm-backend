@@ -1,5 +1,8 @@
 import crypto from "crypto";
-import { Declaracoes, Museu } from "../models";
+import { Status } from "../enums/Status";
+import { TipoEnvio } from "../enums/tipoEnvio";
+import { gerarData } from "../utils/dataUtils"
+import { Declaracoes,Museu,Arquivo, Arquivistico, Bibliografico, Museologico, DeclaracaoModel } from "../models";
 
 class DeclaracaoService {
   async declaracoesPorStatus() {
@@ -272,32 +275,54 @@ class DeclaracaoService {
     return declaracaoExistente;
   }
 
-  async updateDeclaracao({ idDeclaracao }: { idDeclaracao: string }) {
-    try {
-      const declaracaoExistente = await Declaracoes.findById(idDeclaracao);
-      if (!declaracaoExistente) {
-        throw new Error("Declaração não encontrada.");
-      }
 
-      const declaracaoRetificada = await Declaracoes.findByIdAndUpdate(
-        idDeclaracao,
-        {
-          retificacao: true,
-          dataAtualizacao: new Date(),
-          versao: declaracaoExistente.versao + 1,
-          status: "em análise"
-        },
-        { new: true }
-      );
 
-      console.log('Declaracao atualizada: ', declaracaoRetificada);
-
-      return declaracaoRetificada;
-    } catch (error: any) {
-      throw new Error("Erro ao retificar declaração: " + error.message);
+/**
+ * Processa e atualiza um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
+ * 
+ * @param arquivos - Lista de arquivos enviados (pode ser indefinida).
+ * @param dados - String JSON contendo os dados do bem.
+ * @param erros - String JSON contendo os erros relacionados ao bem.
+ * @param declaracao - A declaração que está sendo atualizada.
+ * @param tipo - O tipo de bem a ser processado ("arquivistico", "bibliografico" ou "museologico").
+ * 
+ * @returns Uma promessa que resolve quando o processamento e a atualização são concluídos com sucesso.
+ */
+async  updateDeclaracao(
+    arquivos: Express.Multer.File[] | undefined,
+    dados: string,
+    erros: string,
+    declaracao: DeclaracaoModel,
+    tipo: "arquivistico" | "bibliografico" | "museologico"
+  ) {
+    if (arquivos) {
+      const dadosBem = JSON.parse(dados);
+      const pendenciasBem = JSON.parse(erros);
+      const bemExistente = declaracao[tipo] || {};
+  
+      const novoBem: Arquivo = {
+        ...bemExistente,
+        nome: arquivos[0].filename,
+        caminho: arquivos[0].path,
+        status: Status.EmProcessamento,
+        pendencias: pendenciasBem,
+        quantidadeItens: dadosBem.length,
+        hashArquivo: undefined,
+        tipoEnvio: TipoEnvio.Reenviado, 
+        dataEnvio: gerarData(),
+        versao: (bemExistente.versao || 0) + 1,
+      };
+  
+      declaracao[tipo] = novoBem;
+  
+      dadosBem.forEach((item: { declaracao_ref: string, versao: number }) => {
+        item.declaracao_ref = declaracao._id as string;
+        item.versao = novoBem.versao; 
+      });
+  
+      await (tipo === 'arquivistico' ? Arquivistico : tipo === 'bibliografico' ? Bibliografico : Museologico).insertMany(dadosBem);
     }
   }
-
 
 }
 
