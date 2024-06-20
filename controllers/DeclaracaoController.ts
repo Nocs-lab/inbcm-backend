@@ -145,12 +145,6 @@ class DeclaracaoController {
       const arquivistico = files.arquivisticoArquivo;
       const bibliografico = files.bibliograficoArquivo;
       const museologico = files.museologicoArquivo;
-       // Log dos arquivos recebidos
-       console.log('Arquivos recebidos:', files);
-
-       // Log dos dados do corpo da requisição
-       console.log('Dados do corpo da requisição:', req.body);
-      // Verificar se a declaração já existe para o ano especificado
       const declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
 
 
@@ -184,7 +178,7 @@ class DeclaracaoController {
         await Arquivistico.insertMany(arquivisticoData);
       } else {
         novaDeclaracao.arquivistico = {
-          status: Status.Recebido,
+          status: Status.NaoEnviado,
           pendencias: [],
           quantidadeItens: 0,
           dataEnvio: gerarData(),
