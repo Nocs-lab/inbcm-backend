@@ -279,13 +279,13 @@ class DeclaracaoService {
 
 /**
  * Processa e atualiza um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
- * 
+ *
  * @param arquivos - Lista de arquivos enviados (pode ser indefinida).
  * @param dados - String JSON contendo os dados do bem.
  * @param erros - String JSON contendo os erros relacionados ao bem.
  * @param declaracao - A declaração que está sendo atualizada.
  * @param tipo - O tipo de bem a ser processado ("arquivistico", "bibliografico" ou "museologico").
- * 
+ *
  * @returns Uma promessa que resolve quando o processamento e a atualização são concluídos com sucesso.
  */
 async  updateDeclaracao(
@@ -299,7 +299,8 @@ async  updateDeclaracao(
       const dadosBem = JSON.parse(dados);
       const pendenciasBem = JSON.parse(erros);
       const bemExistente = declaracao[tipo] || {};
-  
+      const novoHashDeclaracao = this.createHash(declaracao);
+
       const novoBem: Arquivo = {
         ...bemExistente,
         nome: arquivos[0].filename,
@@ -307,21 +308,27 @@ async  updateDeclaracao(
         status: Status.Recebido,
         pendencias: pendenciasBem,
         quantidadeItens: dadosBem.length,
-        hashArquivo: undefined,
-        tipoEnvio: TipoEnvio.Reenviado, 
+        hashArquivo: novoHashDeclaracao,
+        tipoEnvio: TipoEnvio.Reenviado,
         dataEnvio: gerarData(),
         versao: (bemExistente.versao || 0) + 1,
       };
-  
+
       declaracao[tipo] = novoBem;
-  
+
       dadosBem.forEach((item: { declaracao_ref: string, versao: number }) => {
         item.declaracao_ref = declaracao._id as string;
-        item.versao = novoBem.versao; 
+        item.versao = novoBem.versao;
       });
-  
+
       await (tipo === 'arquivistico' ? Arquivistico : tipo === 'bibliografico' ? Bibliografico : Museologico).insertMany(dadosBem);
     }
+  }
+
+  private createHash(declaracao: DeclaracaoModel): string {
+    const dataString = `${declaracao.anoDeclaracao}${declaracao.museu_id}`;
+    const hash = crypto.createHash('sha256').update(dataString).digest('hex');
+    return hash;
   }
 
 }
