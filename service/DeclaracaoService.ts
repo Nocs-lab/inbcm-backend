@@ -234,6 +234,18 @@ class DeclaracaoService {
     }
   }
 
+  /**
+ * Processa e atualiza um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
+ * 
+ * @param anoDeclaracao - ano de criacao da declaracao.
+ * @param museu_id - id do museu o qual deseja-se criar uma declaracao.
+ * @param retificacao - faz referenciao ao estado de originalidade de declaracao.
+ * @param retificacaoRef - A declaração que está sendo atualizada.
+ * @param muse_nome - nome do museu o qual deseja-se criar uma declaracao
+ * 
+ * @returns retorna uma nova declaracao ou um erro ao tentar criar uma declaracao
+ */
+
   async criarDeclaracao({ anoDeclaracao, museu_id, user_id, retificacao = false, retificacaoRef, museu_nome }:
     { anoDeclaracao: string; museu_id: string; user_id: string; retificacao?: boolean; retificacaoRef?: string;
        museu_nome: string}) {
@@ -254,8 +266,8 @@ class DeclaracaoService {
             museu_nome,
             responsavelEnvio: user_id,
             hashDeclaracao,
-            dataCriacao: new Date(),
-            status: "em análise",
+            dataCriacao: gerarData(),
+            status: Status.Recebido,
             retificacao,
             retificacaoRef
         });

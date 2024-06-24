@@ -83,7 +83,7 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>({
   anoDeclaracao: String,
   responsavelEnvio: { type: Schema.Types.ObjectId, ref: 'usuarios', required: true },
   hashDeclaracao: String,
-  dataCriacao: { type: Date, default: gerarData },
+  dataCriacao: { type: String, default: gerarData },
   dataAtualizacao: { type: String, default: gerarData },
   retificacao: { type: Boolean, default: false },
   retificacaoRef: { type: Schema.Types.ObjectId, ref: 'Declaracoes' },
