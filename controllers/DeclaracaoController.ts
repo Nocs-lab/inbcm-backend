@@ -170,7 +170,7 @@ class DeclaracaoController {
           quantidadeItens: arquivisticoData.length,
           dataEnvio: gerarData(),
           versao: 0,
-          historicoVersoes: []
+       
         };
 
         arquivisticoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = novaDeclaracao._id  as string);
@@ -183,7 +183,7 @@ class DeclaracaoController {
           quantidadeItens: 0,
           dataEnvio: gerarData(),
           versao: 0,
-          historicoVersoes: []
+       
         }
       }
 
@@ -200,7 +200,7 @@ class DeclaracaoController {
           quantidadeItens: bibliograficoData.length,
           dataEnvio: gerarData(),
           versao: 0,
-          historicoVersoes: []
+       
         };
 
         bibliograficoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = novaDeclaracao._id  as string);
@@ -213,7 +213,7 @@ class DeclaracaoController {
           quantidadeItens: 0,
           dataEnvio: gerarData(),
           versao: 0,
-          historicoVersoes: []
+       
         }
       }
 
@@ -230,7 +230,7 @@ class DeclaracaoController {
           quantidadeItens: museologicoData.length,
           dataEnvio: gerarData(),
           versao: 0,
-          historicoVersoes: []
+       
         };
 
         museologicoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = novaDeclaracao._id  as string);
@@ -243,7 +243,7 @@ class DeclaracaoController {
           quantidadeItens: 0,
           dataEnvio: gerarData(),
           versao: 0,
-          historicoVersoes: []
+       
         }
       }
 
@@ -331,7 +331,6 @@ class DeclaracaoController {
       }
 
       declaracao.retificacao = true;
-      declaracao.versao += 1;
       declaracao.dataAtualizacao = gerarData();
       declaracao.status = Status.Recebido;
 
