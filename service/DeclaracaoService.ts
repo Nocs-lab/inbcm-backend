@@ -290,7 +290,7 @@ class DeclaracaoService {
 
 
 /**
- * Processa e atualiza um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
+ * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
  * 
  * @param arquivos - Lista de arquivos enviados (pode ser indefinida).
  * @param dados - String JSON contendo os dados do bem.
@@ -300,41 +300,64 @@ class DeclaracaoService {
  * 
  * @returns Uma promessa que resolve quando o processamento e a atualização são concluídos com sucesso.
  */
-async  updateDeclaracao(
-    arquivos: Express.Multer.File[] | undefined,
-    dados: string,
-    erros: string,
-    declaracao: DeclaracaoModel,
-    tipo: "arquivistico" | "bibliografico" | "museologico"
-  ) {
+async updateDeclaracao(
+  arquivos: Express.Multer.File[] | undefined,
+  dados: string,
+  erros: string,
+  declaracao: DeclaracaoModel,
+  tipo: "arquivistico" | "bibliografico" | "museologico"
+) {
+  try {
     if (arquivos) {
       const dadosBem = JSON.parse(dados);
       const pendenciasBem = JSON.parse(erros);
-      const bemExistente = declaracao[tipo] || {};
-  
-      const novoBem: Arquivo = {
-        ...bemExistente,
-        nome: arquivos[0].filename,
-        caminho: arquivos[0].path,
-        status: Status.Recebido,
-        pendencias: pendenciasBem,
-        quantidadeItens: dadosBem.length,
-        hashArquivo: undefined,
-        tipoEnvio: TipoEnvio.Reenviado, 
-        dataEnvio: gerarData(),
-        versao: (bemExistente.versao || 0) + 1,
-      };
-  
-      declaracao[tipo] = novoBem;
-  
+      const bemExistente = declaracao[tipo];
+
+      if (!bemExistente) {
+        throw new Error(`${tipo} não encontrado na declaração.`);
+      }
+    
+       declaracao.historicoDeclaracoes.push({
+        versao: declaracao.versao,
+        dataAtualizacao: gerarData(),
+        arquivistico: declaracao.arquivistico,
+        bibliografico: declaracao.bibliografico,
+        museologico: declaracao.museologico,
+      });
+
+      // // Atualizar o arquivo com os novos dados
+      bemExistente.nome = arquivos[0].filename;
+      bemExistente.caminho = arquivos[0].path;
+      bemExistente.status = Status.Recebido;
+      bemExistente.pendencias = pendenciasBem;
+      bemExistente.quantidadeItens = dadosBem.length;
+      bemExistente.tipoEnvio = TipoEnvio.Reenviado;
+      bemExistente.dataEnvio = gerarData();
+      bemExistente.versao = (bemExistente.versao || 0) + 1; // Incrementar a versão
+
+
+      declaracao.versao = (declaracao.versao || 0) + 1;
+      declaracao.dataAtualizacao = gerarData();
+
+      // Atualizar a declaração com o novo arquivo
+      declaracao[tipo] = bemExistente;
+
+      // Atualizar os dados de referência
       dadosBem.forEach((item: { declaracao_ref: string, versao: number }) => {
         item.declaracao_ref = declaracao._id as string;
-        item.versao = novoBem.versao; 
+        item.versao = bemExistente.versao; // Atualizar a versão do item
       });
-  
+
+      // Inserir os dados atualizados
       await (tipo === 'arquivistico' ? Arquivistico : tipo === 'bibliografico' ? Bibliografico : Museologico).insertMany(dadosBem);
     }
+
+    await declaracao.save();
+  } catch (error) {
+    console.error("Erro ao atualizar declaração:", error);
+    throw new Error("Erro ao atualizar declaração.");
   }
+}
 
 }
 

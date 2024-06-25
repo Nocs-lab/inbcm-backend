@@ -1,30 +1,10 @@
+
 import mongoose, { Schema, Document } from "mongoose";
 import { Status } from "../enums/Status";
 import { TipoEnvio } from "../enums/tipoEnvio";
-import {gerarData} from "../utils/dataUtils"
+import { gerarData } from "../utils/dataUtils"
 
-export interface HistoricoVersao {
-  nome: string;
-  caminho: string;
-  dataEnvio: string;
-  tipoEnvio: TipoEnvio;
-  pendencias: string[];
-  quantidadeItens: number;
-  versao: number;
-}
 
-const HistoricoVersaoSchema = new Schema<HistoricoVersao>({
-  nome: String,
-  caminho: String,
-  dataEnvio: { type: String, default: gerarData },
-  tipoEnvio: {
-    type: String,
-    enum: Object.values(TipoEnvio),
-  },
-  pendencias: [String],
-  quantidadeItens: { type: Number, default: 0 },
-  versao: { type: Number, default: 0 },
-}, { _id: false });
 
 export interface Arquivo {
   nome?: string;
@@ -36,7 +16,6 @@ export interface Arquivo {
   tipoEnvio?: TipoEnvio;
   dataEnvio: string;
   versao: number;
-  historicoVersoes: HistoricoVersao[];
 }
 
 const ArquivoSchema = new Schema<Arquivo>({
@@ -52,7 +31,22 @@ const ArquivoSchema = new Schema<Arquivo>({
   hashArquivo: String,
   dataEnvio: { type: String, default: gerarData },
   versao: { type: Number, default: 0 },
-  historicoVersoes: [HistoricoVersaoSchema]
+}, { _id: false });
+
+export interface HistoricoDeclaracao {
+  versao: number;
+  dataAtualizacao: string;
+  arquivistico: Arquivo;
+  bibliografico: Arquivo;
+  museologico: Arquivo;
+}
+
+const HistoricoDeclaracaoSchema = new Schema<HistoricoDeclaracao>({
+  versao: { type: Number, required: true },
+  dataAtualizacao: { type: String, required: true },
+  arquivistico: ArquivoSchema,
+  bibliografico: ArquivoSchema,
+  museologico: ArquivoSchema,
 }, { _id: false });
 
 export interface DeclaracaoModel extends Document {
@@ -70,8 +64,8 @@ export interface DeclaracaoModel extends Document {
   museologico: Arquivo;
   retificacao: boolean;
   retificacaoRef: mongoose.Types.ObjectId;
-  pendente: boolean;
   versao: number;
+  historicoDeclaracoes: HistoricoDeclaracao[];
 }
 
 export type ArquivoTypes = 'arquivisticoArquivo' | 'bibliograficoArquivo' | 'museologicoArquivo';
@@ -88,7 +82,6 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>({
   retificacao: { type: Boolean, default: false },
   retificacaoRef: { type: Schema.Types.ObjectId, ref: 'Declaracoes' },
   totalItensDeclarados: { type: Number },
-  pendente: { type: Boolean, default: false },
   status: {
     type: String,
     enum: Object.values(Status),
@@ -97,6 +90,7 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>({
   arquivistico: ArquivoSchema,
   bibliografico: ArquivoSchema,
   museologico: ArquivoSchema,
+  historicoDeclaracoes: { type: [HistoricoDeclaracaoSchema], default: [] }
 });
 
 export const Declaracoes = mongoose.model<DeclaracaoModel>("Declaracoes", DeclaracaoSchema);
