@@ -1,7 +1,8 @@
+
 import mongoose, { Schema, Document } from "mongoose";
 import { Status } from "../enums/Status";
 import { TipoEnvio } from "../enums/tipoEnvio";
-import {gerarData} from "../utils/dataUtils"
+import { gerarData } from "../utils/dataUtils"
 
 export interface HistoricoVersao {
   nome: string;
@@ -52,7 +53,7 @@ const ArquivoSchema = new Schema<Arquivo>({
   hashArquivo: String,
   dataEnvio: { type: String, default: gerarData },
   versao: { type: Number, default: 0 },
-  historicoVersoes: [HistoricoVersaoSchema]
+  historicoVersoes: { type: [HistoricoVersaoSchema], default: [] }
 }, { _id: false });
 
 export interface DeclaracaoModel extends Document {
@@ -70,7 +71,6 @@ export interface DeclaracaoModel extends Document {
   museologico: Arquivo;
   retificacao: boolean;
   retificacaoRef: mongoose.Types.ObjectId;
-  pendente: boolean;
   versao: number;
 }
 
@@ -88,7 +88,6 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>({
   retificacao: { type: Boolean, default: false },
   retificacaoRef: { type: Schema.Types.ObjectId, ref: 'Declaracoes' },
   totalItensDeclarados: { type: Number },
-  pendente: { type: Boolean, default: false },
   status: {
     type: String,
     enum: Object.values(Status),
