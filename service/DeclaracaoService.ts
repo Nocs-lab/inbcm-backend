@@ -290,7 +290,7 @@ class DeclaracaoService {
 
 
 /**
- * Processa e atualiza o histórico de versões de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
+ * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
  * 
  * @param arquivos - Lista de arquivos enviados (pode ser indefinida).
  * @param dados - String JSON contendo os dados do bem.
@@ -316,19 +316,16 @@ async updateDeclaracao(
       if (!bemExistente) {
         throw new Error(`${tipo} não encontrado na declaração.`);
       }
-      
-      // Adicionar a versão atual ao histórico de versões
-      bemExistente.historicoVersoes.push({
-        nome: bemExistente.nome || '',
-        caminho: bemExistente.caminho || '',
-        tipoEnvio: bemExistente.tipoEnvio || TipoEnvio.Reenviado,
-        pendencias: bemExistente.pendencias || [],
-        quantidadeItens: bemExistente.quantidadeItens,
-        versao: bemExistente.versao,
-        dataEnvio: bemExistente.dataEnvio,
+    
+       declaracao.historicoDeclaracoes.push({
+        versao: declaracao.versao,
+        dataAtualizacao: gerarData(),
+        arquivistico: declaracao.arquivistico,
+        bibliografico: declaracao.bibliografico,
+        museologico: declaracao.museologico,
       });
 
-      // Atualizar o arquivo com os novos dados
+      // // Atualizar o arquivo com os novos dados
       bemExistente.nome = arquivos[0].filename;
       bemExistente.caminho = arquivos[0].path;
       bemExistente.status = Status.Recebido;
@@ -337,6 +334,10 @@ async updateDeclaracao(
       bemExistente.tipoEnvio = TipoEnvio.Reenviado;
       bemExistente.dataEnvio = gerarData();
       bemExistente.versao = (bemExistente.versao || 0) + 1; // Incrementar a versão
+
+
+      declaracao.versao = (declaracao.versao || 0) + 1;
+      declaracao.dataAtualizacao = gerarData();
 
       // Atualizar a declaração com o novo arquivo
       declaracao[tipo] = bemExistente;
