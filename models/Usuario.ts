@@ -1,18 +1,20 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
 
 interface IUsuario extends Document {
-  nome: string
-  email: string
-  museus: string[]
-  admin: boolean
-  senha: string
+  nome: string;
+  email: string;
+  museus: string[];
+  admin: boolean;
+  senha: string;
+  profile: Types.ObjectId;
 }
 
 const UsuarioSchema = new Schema<IUsuario>({
   nome: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   admin: { type: Boolean, default: false },
-  senha: { type: String, required: true }
+  senha: { type: String, required: true },
+  profile: { type: Schema.Types.ObjectId, required: true, ref: "profiles" }
 });
 
 interface IRefreshToken extends Document {
