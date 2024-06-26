@@ -23,8 +23,15 @@ export const permissionCheckMiddleware: (permission: string) => Handler = (permi
     //extrai os dados do profile do usuário para verificar se possui permissão de acesso
     const user_id = decodedToken.sub
     const user = await Usuario.findOne({ _id: user_id })
+    if (!user) {
+      return res.status(401).send('Usuário não identificado.');
+    }
+
     const profile_id = user.profile.toString();
     const profile = await Profile.findOne({ _id: profile_id })
+    if (!profile) {
+      return res.status(401).send('Profile não identificado.');
+    }
 
 
     if (!profile.permissions.includes(permission)) {

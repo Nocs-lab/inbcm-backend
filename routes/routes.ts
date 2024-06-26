@@ -19,15 +19,15 @@ const authService = new AuthService()
 //Profile
 
 routes.post('/profile', ProfileController.createProfile);
-routes.get('/profiles',permissionCheckMiddleware('getProfiles'), ProfileController.getProfiles);
-routes.get('/profile/:id',permissionCheckMiddleware('getProfileById'), ProfileController.getProfileById);
+routes.get('/profiles', ProfileController.getProfiles);
+routes.get('/profile/:id',permissionCheckMiddleware('getProfile'), ProfileController.getProfileById);
 routes.put('/profile/:id', ProfileController.updateProfile);
 routes.delete('/profile/:id', ProfileController.deleteProfile);
 
 
 //Usuário
 routes.post('/user', UsuarioController.registerUsuario);
-routes.get('/users', UsuarioController.getUsuarios);
+routes.get('/users',permissionCheckMiddleware('getUsers'), UsuarioController.getUsuarios);
 routes.get('/user/:id', UsuarioController.getUsuarioPorId);
 routes.put('/user/:id', UsuarioController.atualizarUsuario);
 
