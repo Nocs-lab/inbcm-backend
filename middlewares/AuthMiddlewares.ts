@@ -21,8 +21,8 @@ export const permissionCheckMiddleware: (permission: string) => Handler = (permi
     };
 
     //extrai os dados do profile do usuário para verificar se possui permissão de acesso
-    const user_id = 'decodedToken.sub'
-    const user = await Usuario.findOne({ _id: 'user_id' })
+    const user_id = decodedToken.sub
+    const user = await Usuario.findOne({ _id: user_id })
     const profile_id = user.profile.toString();
     const profile = await Profile.findOne({ _id: profile_id })
 
