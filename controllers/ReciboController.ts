@@ -18,10 +18,11 @@ class ReciboController {
       }
 
       const declaracaoId = new mongoose.Types.ObjectId(idDeclaracao);
-      const pdfHtml = await gerarPDFRecibo(declaracaoId);
+      const pdfBuffer = await gerarPDFRecibo(declaracaoId);
 
-      res.setHeader("Content-Type", "text/plain");
-      res.send(pdfHtml);
+      res.setHeader('Content-Disposition', 'attachment; filename=recibo.pdf');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.send(pdfBuffer);
     } catch (error) {
       console.error("Erro ao gerar o recibo:", error);
       res.status(500).json({ error: "Erro ao gerar o recibo." });
