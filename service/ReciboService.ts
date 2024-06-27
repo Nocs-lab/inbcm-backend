@@ -121,7 +121,7 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
               [{
                 columns: [
                   { text: 'INSTITUTO BRASILEIRO DE MUSEUS', style: 'headerLeft' },
-                  { text: 'ANO-CALENDÁRIO 2024', style: 'headerRight' }
+                  { text: `ANO-CALENDÁRIO ${dadosFormatados.anoCalendario}`, style: 'headerRight' }
                 ]
               }]
             ]
