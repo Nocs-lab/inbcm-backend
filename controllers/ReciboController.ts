@@ -7,9 +7,9 @@ class ReciboController {
    * Gera o recibo em formato PDF com base no ID da declaração fornecido na requisição.
    *   @param req.params - Parâmetros da rota:
    *     @param idDeclaracao - ID da declaração para a qual o recibo será gerado.
-  
+
    */
-  async gerarRecibo(req: Request, res: Response): Promise<void> {
+  async gerarRecibo(req: Request, res: Response) {
     try {
       const { idDeclaracao } = req.params;
       if (!mongoose.Types.ObjectId.isValid(idDeclaracao)) {
@@ -18,12 +18,10 @@ class ReciboController {
       }
 
       const declaracaoId = new mongoose.Types.ObjectId(idDeclaracao);
-      const pdfBuffer = await gerarPDFRecibo(declaracaoId);
+      const pdfHtml = await gerarPDFRecibo(declaracaoId);
 
-      res.setHeader("Content-Disposition", `attachment; filename="recibo.pdf"`);
-      res.contentType("application/pdf");
-      res.send(pdfBuffer);
-      
+      res.setHeader("Content-Type", "text/plain");
+      res.send(pdfHtml);
     } catch (error) {
       console.error("Erro ao gerar o recibo:", error);
       res.status(500).json({ error: "Erro ao gerar o recibo." });

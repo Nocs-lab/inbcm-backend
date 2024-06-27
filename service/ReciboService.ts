@@ -9,7 +9,7 @@ import { ReciboDados } from "../types/DadosRecibo";
 
 /**
  * Obtém uma declaração pelo seu ID.
- * 
+ *
  * @param declaracaoId - O ID da declaração a ser obtida.
  * @returns Uma promessa que resolve com a declaração encontrada.
  * @throws Um erro se a declaração não for encontrada.
@@ -25,7 +25,7 @@ async function buscaDeclaracao(declaracaoId:mongoose.Types.ObjectId){
 
 /**
  * Obtém um museu pelo seu ID.
- * 
+ *
  * @param museuId - O ID do museu a ser obtido.
  * @returns Uma promessa que resolve com o museu encontrado.
  * @throws Um erro se o museu não for encontrado.
@@ -46,7 +46,7 @@ async function buscaUsuario(usuarioId:mongoose.Types.ObjectId){
 }
 /**
  * Formata os dados de uma declaração para o recibo.
- * 
+ *
  * @param declaracao - A declaração a ser formatada.
  * @param museu - O museu relacionado à declaração.
  * @param usuario - O usuário relacionado ao museu.
@@ -84,7 +84,7 @@ function formatarDadosRecibo(declaracao: DeclaracaoModel,museu:IMuseu,usuario:IU
 }
 /**
  * Renderiza um template de recibo com os dados fornecidos.
- * 
+ *
  * @param dados - Os dados a serem usados para renderizar o template.
  * @returns Uma promessa que resolve com o conteúdo HTML do recibo renderizado.
  */
@@ -94,7 +94,7 @@ async function redenrizarTemplate(dados:ReciboDados){
 }
 /**
  * Converte o conteúdo HTML para PDF.
- * 
+ *
  * @param htmlContent - O conteúdo HTML a ser convertido.
  * @returns Uma promessa que resolve com o buffer do PDF gerado.
  */
@@ -123,12 +123,12 @@ function converterHtmlParaPdf(htmlContent: string): Promise<Buffer> {
 }
 /**
  * Gera o PDF do recibo com base no ID da declaração.
- * 
+ *
  * @param declaracaoId - O ID da declaração para a qual gerar o recibo.
  * @returns Uma promessa que resolve com o buffer do PDF do recibo gerado.
  * @throws Um erro se houver algum problema ao gerar o recibo.
  */
-async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Buffer> {
+async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<string> {
   try {
     const declaracao = await buscaDeclaracao(declaracaoId);
     const museu = await buscaMuseu(declaracao.museu_id);
@@ -137,7 +137,7 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
     const dadosFormatados = formatarDadosRecibo(declaracao, museu, usuario);
     const htmlContent = await redenrizarTemplate(dadosFormatados);
 
-    return await converterHtmlParaPdf(htmlContent);
+    return htmlContent;
   } catch (error) {
     console.error("Erro ao gerar o recibo:", error);
     throw new Error("Erro ao gerar o recibo.");
