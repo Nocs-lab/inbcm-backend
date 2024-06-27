@@ -2,7 +2,14 @@ import { fakerPT_BR } from "@faker-js/faker"
 import { Museu, Usuario } from "../models";
 import { hash } from "@node-rs/argon2";
 import connect from "../db/conn";
-import { randomUUID } from "crypto"
+
+
+function gerarCodIbram(): string {
+  const min = 100000; 
+  const max = 999999; 
+  const randomId = Math.floor(Math.random() * (max - min + 1)) + min;
+  return randomId.toString();
+}
 
 ;(async () => {
   await connect()
@@ -36,7 +43,7 @@ import { randomUUID } from "crypto"
       uf: fakerPT_BR.location.state({ abbreviated: true })
     },
     esferaAdministraiva: "Privado",
-    codIbram: randomUUID(),
+    codIbram: gerarCodIbram(),
     usuario: users[index % 2]._id
   })))
 
