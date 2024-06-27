@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { Status } from "../enums/Status";
 import { TipoEnvio } from "../enums/tipoEnvio";
 import { gerarData } from "../utils/dataUtils"
+import { createHash, createHashUpdate } from "../utils/hashUtils";
 import { Declaracoes,Museu,Arquivo, Arquivistico, Bibliografico, Museologico, DeclaracaoModel } from "../models";
 
 class DeclaracaoService {
@@ -245,7 +246,8 @@ class DeclaracaoService {
         }
 
         // Gerar o hash da declaração
-        const hashDeclaracao = crypto.createHash('sha256').digest('hex');
+        const hashDeclaracao = createHash({ anoDeclaracao, museu_id });
+
         console.log(user_id);
         // Criar a nova declaração com os campos relacionados à declaração, incluindo museu
         const novaDeclaracao = await Declaracoes.create({
@@ -299,7 +301,7 @@ async  updateDeclaracao(
       const dadosBem = JSON.parse(dados);
       const pendenciasBem = JSON.parse(erros);
       const bemExistente = declaracao[tipo] || {};
-      const novoHashDeclaracao = this.createHash(declaracao);
+      const novoHashDeclaracao = createHashUpdate(arquivos[0].path, arquivos[0].filename);
 
       const novoBem: Arquivo = {
         ...bemExistente,
@@ -325,11 +327,6 @@ async  updateDeclaracao(
     }
   }
 
-  private createHash(declaracao: DeclaracaoModel): string {
-    const dataString = `${declaracao.anoDeclaracao}${declaracao.museu_id}`;
-    const hash = crypto.createHash('sha256').update(dataString).digest('hex');
-    return hash;
-  }
 
 }
 

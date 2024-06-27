@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { Declaracoes,Bibliografico,Museologico,Arquivistico} from "../models";
 import DeclaracaoService from "../service/DeclaracaoService";
-import crypto from "crypto";
+import { createHash , createHashUpdate } from "../utils/hashUtils";
 import { Museu } from "../models";
 import fs from "fs";
 import path from "path";
@@ -160,7 +160,7 @@ class DeclaracaoController {
       if (arquivistico) {
         const arquivisticoData = JSON.parse(req.body.arquivistico);
         const pendenciasArquivistico = JSON.parse(req.body.arquivisticoErros)
-        const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(arquivistico[0])).digest('hex');
+        const hashArquivo = createHashUpdate(arquivistico[0].path, arquivistico[0].filename);
         novaDeclaracao.arquivistico = {
           caminho: arquivistico[0].path,
           nome: arquivistico[0].filename,
@@ -190,7 +190,7 @@ class DeclaracaoController {
       if (bibliografico) {
         const bibliograficoData = JSON.parse(req.body.bibliografico);
         const pendenciasBibliografico = JSON.parse(req.body.bibliograficoErros);
-        const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(bibliografico[0])).digest('hex');
+        const hashArquivo = createHashUpdate(bibliografico[0].path, bibliografico[0].filename);
         novaDeclaracao.bibliografico = {
           caminho: bibliografico[0].path,
           nome: bibliografico[0].filename,
@@ -220,7 +220,7 @@ class DeclaracaoController {
       if (museologico) {
         const museologicoData = JSON.parse(req.body.museologico);
         const pendenciasMuseologico = JSON.parse(req.body.museologicoErros);
-        const hashArquivo = crypto.createHash('sha256').update(JSON.stringify(museologico[0])).digest('hex');
+        const hashArquivo = createHashUpdate(museologico[0].path, museologico[0].filename);
         novaDeclaracao.museologico = {
           caminho: museologico[0].path,
           nome: museologico[0].filename,
@@ -295,7 +295,7 @@ class DeclaracaoController {
 
   /**
  * Retifica uma declaração existente com base nos parâmetros fornecidos na requisição e nos arquivos enviados.
- * 
+ *
  *  @param req.params - Parâmetros da rota:
  *    @param anoDeclaracao - Ano da declaração.
  *    @param museu - ID do museu.
