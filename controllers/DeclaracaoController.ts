@@ -7,7 +7,7 @@ import fs from "fs";
 import path from "path";
 import {gerarData} from "../utils/dataUtils"
 import {Status} from "../enums/Status"
-import {TipoEnvio} from "../enums/tipoEnvio"
+
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;
 
