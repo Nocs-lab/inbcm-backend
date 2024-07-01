@@ -2,6 +2,7 @@ import type { Handler } from "express"
 import jwt from "jsonwebtoken"
 import { Usuario } from "../models/Usuario"
 import { Profile } from "../models/Profile"
+import { Permission } from "../models/Permission"
 import { verify } from "@node-rs/argon2"
 import config from "../config"
 
@@ -33,8 +34,12 @@ export const permissionCheckMiddleware: (permission: string) => Handler = (permi
       return res.status(401).send('Profile não identificado.');
     }
 
+    const permissions = await Permission.find({ _id: { $in: profile.permissions } });
+    const permissionsNames = permissions.map(permission => permission.name);
 
-    if (!profile.permissions.includes(permission)) {
+    console.log(permissionsNames);
+
+    if (!permissionsNames.includes(permission)) {
       return res.status(403).json({ mensagem: "Sem permissão para realizar esta ação." });
     }
 
