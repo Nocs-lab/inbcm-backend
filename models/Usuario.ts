@@ -4,7 +4,7 @@ interface IUsuario extends Document {
   nome: string;
   email: string;
   museus: string[];
-  admin: boolean;
+  admin: boolean; 
   senha: string;
   profile: Types.ObjectId;
 }

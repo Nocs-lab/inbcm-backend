@@ -4,6 +4,7 @@ import DeclaracaoController from "../controllers/DeclaracaoController";
 import MuseuController from "../controllers/MuseuController";
 import ReciboController from "../controllers/ReciboController";
 import ProfileController from "../controllers/ProfileController";
+import PermissionController from "../controllers/PermissionController";
 import AuthService from "../service/AuthService";
 import { adminMiddleware, userMiddleware, permissionCheckMiddleware } from "../middlewares/AuthMiddlewares";
 import UsuarioController from "../controllers/UsuarioController";
@@ -14,20 +15,23 @@ const reciboController = new ReciboController();
 const declaracaoController = new DeclaracaoController();
 const authService = new AuthService()
 
+//Permission
+routes.get('/permissions', PermissionController.getPermissions);
 
 
 //Profile
 
 routes.post('/profile', ProfileController.createProfile);
-routes.get('/profiles', ProfileController.getProfiles);
-routes.get('/profile/:id',permissionCheckMiddleware('getProfile'), ProfileController.getProfileById);
+routes.get('/profiles',ProfileController.getProfiles);
+routes.get('/profile/:id', ProfileController.getProfileById);
 routes.put('/profile/:id', ProfileController.updateProfile);
 routes.delete('/profile/:id', ProfileController.deleteProfile);
+routes.post('/profile/addPermissions', ProfileController.addPermissions);
 
 
 //Usuário
 routes.post('/user', UsuarioController.registerUsuario);
-routes.get('/users',permissionCheckMiddleware('getUsers'), UsuarioController.getUsuarios);
+routes.get('/users', UsuarioController.getUsuarios);
 routes.get('/user/:id', UsuarioController.getUsuarioPorId);
 routes.put('/user/:id', UsuarioController.atualizarUsuario);
 
