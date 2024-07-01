@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { Status } from "../enums/Status";
 import { TipoEnvio } from "../enums/tipoEnvio";
 import { gerarData } from "../utils/dataUtils"
+import { createHash, createHashUpdate } from "../utils/hashUtils";
 import { Declaracoes,Museu,Arquivo, Arquivistico, Bibliografico, Museologico, DeclaracaoModel } from "../models";
 
 class DeclaracaoService {
@@ -236,13 +237,13 @@ class DeclaracaoService {
 
   /**
  * Processa e atualiza um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
- * 
+ *
  * @param anoDeclaracao - ano de criacao da declaracao.
  * @param museu_id - id do museu o qual deseja-se criar uma declaracao.
  * @param retificacao - faz referenciao ao estado de originalidade de declaracao.
  * @param retificacaoRef - A declaração que está sendo atualizada.
  * @param muse_nome - nome do museu o qual deseja-se criar uma declaracao
- * 
+ *
  * @returns retorna uma nova declaracao ou um erro ao tentar criar uma declaracao
  */
 
@@ -257,7 +258,8 @@ class DeclaracaoService {
         }
 
         // Gerar o hash da declaração
-        const hashDeclaracao = crypto.createHash('sha256').digest('hex');
+        const hashDeclaracao = createHash({ anoDeclaracao, museu_id });
+
         console.log(user_id);
         // Criar a nova declaração com os campos relacionados à declaração, incluindo museu
         const novaDeclaracao = await Declaracoes.create({
@@ -291,13 +293,13 @@ class DeclaracaoService {
 
 /**
  * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
- * 
+ *
  * @param arquivos - Lista de arquivos enviados (pode ser indefinida).
  * @param dados - String JSON contendo os dados do bem.
  * @param erros - String JSON contendo os erros relacionados ao bem.
  * @param declaracao - A declaração que está sendo atualizada.
  * @param tipo - O tipo de bem a ser processado ("arquivistico", "bibliografico" ou "museologico").
- * 
+ *
  * @returns Uma promessa que resolve quando o processamento e a atualização são concluídos com sucesso.
  */
 async updateDeclaracao(
@@ -312,11 +314,12 @@ async updateDeclaracao(
       const dadosBem = JSON.parse(dados);
       const pendenciasBem = JSON.parse(erros);
       const bemExistente = declaracao[tipo];
+      const novoHashDeclaracao = createHashUpdate(arquivos[0].path, arquivos[0].filename);
 
       if (!bemExistente) {
         throw new Error(`${tipo} não encontrado na declaração.`);
       }
-    
+
        declaracao.historicoDeclaracoes.push({
         versao: declaracao.versao,
         dataAtualizacao: gerarData(),
@@ -330,6 +333,7 @@ async updateDeclaracao(
       bemExistente.caminho = arquivos[0].path;
       bemExistente.status = Status.Recebido;
       bemExistente.pendencias = pendenciasBem;
+      bemExistente.hashArquivo = novoHashDeclaracao;
       bemExistente.quantidadeItens = dadosBem.length;
       bemExistente.tipoEnvio = TipoEnvio.Reenviado;
       bemExistente.dataEnvio = gerarData();
