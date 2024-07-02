@@ -8,6 +8,13 @@ import { adminMiddleware, userMiddleware } from "../middlewares/AuthMiddlewares"
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from '../swagger';
 import * as OpenApiValidator from 'express-openapi-validator';
+import { rateLimit } from 'express-rate-limit'
+
+// Rate limit para ações onde o usuário ainda não está autenticado
+const limiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	limit: 30
+})
 
 const routes = express.Router();
 const reciboController = new ReciboController();
@@ -581,7 +588,7 @@ routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
  *       '401':
  *         description: Credenciais inválidas.
  */
-routes.post("/auth/login", async (req, res) => {
+routes.post("/auth/login", limiter, async (req, res) => {
   const { email, password } = req.body
   const { admin } = req.query
   const { token, refreshToken, user } = await authService.login({ email, password, admin: admin === "true" })
