@@ -7,18 +7,36 @@ import AuthService from "../service/AuthService";
 import { adminMiddleware, userMiddleware } from "../middlewares/AuthMiddlewares";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from '../swagger';
+import * as OpenApiValidator from 'express-openapi-validator';
+import { rateLimit } from 'express-rate-limit'
+import sanitizeMongo from "../middlewares/sanitizers/mongo";
+import sanitizeHtml from "../middlewares/sanitizers/html";
 
+// Rate limit para ações onde o usuário ainda não está autenticado
+const limiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	limit: 30
+})
 
 const routes = express.Router();
 const reciboController = new ReciboController();
 const declaracaoController = new DeclaracaoController();
 const authService = new AuthService()
 
+routes.use(sanitizeMongo());
+routes.use(sanitizeHtml());
 
 //Swagger
 routes.use('/api-docs', swaggerUi.serve);
 routes.get('/api-docs', swaggerUi.setup(swaggerSpec));
 
+routes.use(
+  OpenApiValidator.middleware({
+    apiSpec: './openapi.yaml',
+    validateRequests: true,
+    validateApiSpec: false,
+  })
+);
 
 /**
  * @swagger
@@ -26,8 +44,6 @@ routes.get('/api-docs', swaggerUi.setup(swaggerSpec));
  *   post:
  *     summary: Cria um novo museu.
  *     description: Endpoint para criar um novo museu.
- *     security:
- *       - basicAuth: []
  *     tags:
  *       - Museu
  *     parameters:
@@ -79,14 +95,13 @@ routes.get('/api-docs', swaggerUi.setup(swaggerSpec));
  *         description: Erro ao criar o museu.
  */
 routes.post('/criarMuseu', adminMiddleware, MuseuController.criarMuseu);
+
 /**
  * @swagger
  * /api/listarMuseus:
  *   get:
- *     summary: Lista todos os museus.
+ *     summary: Lista os museus.
  *     description: Endpoint para listar todos os museus cadastrados no sistema.
- *     security:
- *       - basicAuth: []
  *     tags:
  *       - Museu
  *     responses:
@@ -96,13 +111,12 @@ routes.post('/criarMuseu', adminMiddleware, MuseuController.criarMuseu);
  *           application/json:
  *             schema:
  *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Museu'
+ *               items: {}
  *       '500':
  *         description: Erro ao listar museus.
  */
-
 routes.get('/listarMuseus', adminMiddleware, MuseuController.listarMuseus);
+
 /**
  * @swagger
  * /api/museus:
@@ -111,8 +125,6 @@ routes.get('/listarMuseus', adminMiddleware, MuseuController.listarMuseus);
  *     description: Endpoint para listar os museus associados ao usuário autenticado.
  *     tags:
  *       - Museu
- *     security:
- *       - basicAuth: []
  *     responses:
  *       '200':
  *         description: Lista de museus do usuário retornada com sucesso.
@@ -120,12 +132,10 @@ routes.get('/listarMuseus', adminMiddleware, MuseuController.listarMuseus);
  *           application/json:
  *             schema:
  *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Museu'
+ *               items: {}
  *       '500':
  *         description: Erro ao listar museus do usuário.
  */
-
 routes.get("/museus", userMiddleware, MuseuController.userMuseus);
 
 //rota declarações
@@ -135,8 +145,6 @@ routes.get("/museus", userMiddleware, MuseuController.userMuseus);
  *   post:
  *     summary: Envia uma declaração para o museu.
  *     description: Endpoint para enviar uma declaração para o museu especificado.
- *     security:
- *       - basicAuth: []
  *     tags:
  *       - Declarações
  *     parameters:
@@ -197,21 +205,19 @@ routes.get("/museus", userMiddleware, MuseuController.userMuseus);
  *       '500':
  *         description: Erro ao enviar arquivos para a declaração.
  */
-
 routes.post(
   "/uploads/:museu/:anoDeclaracao",
   uploadMiddleware,
   userMiddleware,
   declaracaoController.uploadDeclaracao
 );
+
 /**
  * @swagger
  * /api/retificar/{museu}/{anoDeclaracao}/{idDeclaracao}:
  *   put:
  *     summary: Retifica uma declaração existente.
  *     description: Endpoint para retificar uma declaração existente para o museu especificado.
- *     security:
- *       - basicAuth: []
  *     tags:
  *       - Declarações
  *     parameters:
@@ -278,21 +284,19 @@ routes.post(
  *       '500':
  *         description: Erro ao retificar declaração.
  */
-
 routes.put(
   "/retificar/:museu/:anoDeclaracao/:idDeclaracao",
   uploadMiddleware,
   userMiddleware,
   declaracaoController.retificarDeclaracao.bind(declaracaoController)
 );
+
 /**
  * @swagger
  * /api/download/{museu}/{anoDeclaracao}/{tipoArquivo}:
  *   get:
  *     summary: Baixa um arquivo de declaração.
  *     description: Endpoint para baixar um arquivo de declaração para o museu e ano especificados.
- *     security:
- *       - basicAuth: []
  *     tags:
  *       - Declarações
  *     parameters:
@@ -323,12 +327,13 @@ routes.put(
  *       '500':
  *         description: Erro ao baixar arquivo da declaração.
  */
-
 routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
   userMiddleware,
   declaracaoController.downloadDeclaracao
 );
+
 //routes.get("/declaracoes/:declaracaoId/:tipoArquivo/pendencias",userMiddleware,declaracaoController.listarPendencias);
+
 /**
  * @swagger
  * /api/declaracoes:
@@ -337,16 +342,14 @@ routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
  *     description: Endpoint para obter todas as declarações pertencentes ao usuário autenticado.
  *     tags:
  *       - Declarações
- *     security:
- *       - basicAuth: []
  *     responses:
  *       '200':
  *         description: Lista de todas as declarações do usuário obtida com sucesso.
  *       '500':
  *         description: Erro ao buscar declarações.
  */
-
 routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracoes);
+
 /**
  * @swagger
  * /api/declaracoes/{id}:
@@ -355,8 +358,6 @@ routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracoes);
  *     description: Endpoint para obter uma declaração específica pelo seu ID.
  *     tags:
  *       - Declarações
- *     security:
- *       - basicAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -372,8 +373,8 @@ routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracoes);
  *       '500':
  *         description: Erro ao buscar declaração.
  */
-
 routes.get("/declaracoes/:id", userMiddleware, declaracaoController.getDeclaracao);
+
 /**
  * @swagger
  * /api/declaracoes/{museu}/{anoDeclaracao}:
@@ -405,34 +406,24 @@ routes.get("/declaracoes/:id", userMiddleware, declaracaoController.getDeclaraca
  *       '500':
  *         description: Erro ao buscar declarações.
  */
-
 routes.get("/declaracoes/:museu/:anoDeclaracao", userMiddleware, declaracaoController.getDeclaracaoAno);
+
 /**
  * @swagger
  * /api/declaracoesFiltradas:
- *   post:
+ *   get:
  *     summary: Obtém declarações com base em filtros.
  *     description: Endpoint para buscar declarações com base em filtros especificados.
  *     tags:
  *       - Declarações
- *     security:
- *       - basicAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               // Adicione propriedades de filtro conforme necessário
  *     responses:
  *       '200':
  *         description: Declarações filtradas obtidas com sucesso.
  *       '500':
  *         description: Erro ao buscar declarações com filtros.
  */
-
 routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
+
 /**
  * @swagger
  * /api/getStatusEnum:
@@ -441,13 +432,12 @@ routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDe
  *     description: Endpoint para obter os valores de enumeração para o status das declarações.
  *     tags:
  *       - Declarações
- *     security:
- *       - basicAuth: []
  *     responses:
  *       '200':
  *         description: Valores de enumeração para o status das declarações obtidos com sucesso.
  */
 routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum);
+
 /**
  * @swagger
  * /api/declaracoesFiltradas:
@@ -456,24 +446,44 @@ routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum
  *     description: Endpoint para buscar declarações com base em filtros especificados.
  *     tags:
  *       - Declarações
- *     security:
- *       - basicAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               // Adicione propriedades de filtro conforme necessário
  *     responses:
  *       '200':
  *         description: Declarações filtradas obtidas com sucesso.
  *       '500':
  *         description: Erro ao buscar declarações com filtros.
  */
-
 routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
+
+// atualizar status
+/**
+ * @swagger
+ * /api/atualizarStatus/{id}:
+ *  put:
+ *   summary: Atualiza o status de uma declaração.
+ *   description: Endpoint para atualizar o status de uma declaração.
+ *   parameters:
+ *    - in: path
+ *      name: id
+ *      type: string
+ *   requestBody:
+ *     required: true
+ *     content:
+ *       application/*:
+ *         schema:
+ *           type: object
+ *           proporties:
+ *             status:
+ *               type: string
+ *         required:
+ *           - status
+ *   tags:
+ *     - Declarações
+ *   responses:
+ *     '200':
+ *       description: a
+ */
+routes.put("/atualizarStatus/:id", adminMiddleware, declaracaoController.atualizarStatusDeclaracao);
+
 /**
  * @swagger
  * /api/declaracoes/pendentes:
@@ -482,17 +492,16 @@ routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDe
  *     description: Endpoint para obter declarações pendentes para processamento.
  *     tags:
  *       - Declarações
- *     security:
- *       - basicAuth: []
  *     responses:
  *       '200':
  *         description: Declarações pendentes obtidas com sucesso.
  *       '500':
  *         description: Erro ao buscar declarações pendentes.
  */
-
 routes.get("/declaracoes/pendentes", adminMiddleware, declaracaoController.getDeclaracaoPendente);
-routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum);
+
+// routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum);
+
 /**
  * @swagger
  * /api/dashboard/anoDeclaracao:
@@ -501,16 +510,14 @@ routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum
  *     description: Endpoint para obter declarações organizadas por ano para exibição no dashboard.
  *     tags:
  *       - Dashboard
- *    security:
- *       - basicAuth: []
  *     responses:
  *       '200':
  *         description: Declarações organizadas por ano obtidas com sucesso.
  *       '500':
  *         description: Erro ao organizar declarações por ano para o dashboard.
  */
-
 routes.get("/dashboard/anoDeclaracao", adminMiddleware, declaracaoController.getDeclaracoesPorAnoDashboard);
+
 /**
  * @swagger
  * /api/dashboard/regiao:
@@ -519,8 +526,6 @@ routes.get("/dashboard/anoDeclaracao", adminMiddleware, declaracaoController.get
  *     description: Endpoint para obter declarações organizadas por região para exibição no dashboard.
  *     tags:
  *       - Dashboard
- *    security:
- *       - basicAuth: []
  *     responses:
  *       '200':
  *         description: Declarações organizadas por região obtidas com sucesso.
@@ -528,6 +533,7 @@ routes.get("/dashboard/anoDeclaracao", adminMiddleware, declaracaoController.get
  *         description: Erro ao organizar declarações por região para o dashboard.
  */
 routes.get("/dashboard/regiao", adminMiddleware, declaracaoController.getDeclaracoesPorRegiao);
+
 /**
  * @swagger
  * /api/dashboard/UF:
@@ -536,8 +542,6 @@ routes.get("/dashboard/regiao", adminMiddleware, declaracaoController.getDeclara
  *     description: Endpoint para obter declarações organizadas por UF para exibição no dashboard.
  *     tags:
  *       - Dashboard
- *     security:
- *       - basicAuth: []
  *     responses:
  *       '200':
  *         description: Declarações organizadas por UF obtidas com sucesso.
@@ -545,6 +549,7 @@ routes.get("/dashboard/regiao", adminMiddleware, declaracaoController.getDeclara
  *         description: Erro ao organizar declarações por UF para o dashboard.
  */
 routes.get("/dashboard/UF", adminMiddleware, declaracaoController.getDeclaracoesPorUF);
+
 /**
  * @swagger
  * /api/dashboard/status:
@@ -553,16 +558,12 @@ routes.get("/dashboard/UF", adminMiddleware, declaracaoController.getDeclaracoes
  *     description: Endpoint para obter declarações organizadas por status para exibição no dashboard.
  *     tags:
  *       - Dashboard
- *    security:
- *       - basicAuth: []
  *     responses:
  *       '200':
  *         description: Declarações organizadas por status obtidas com sucesso.
  *       '500':
  *         description: Erro ao organizar declarações por status para o dashboard.
  */
-
-
 routes.get("/dashboard/status", adminMiddleware, declaracaoController.getDeclaracoesPorStatus);
 
 //Recibo
@@ -581,8 +582,6 @@ routes.get("/dashboard/status", adminMiddleware, declaracaoController.getDeclara
  *         required: true
  *         schema:
  *           type: string
- *    security:
- *       - basicAuth: []
  *     responses:
  *       '200':
  *         description: Recibo gerado com sucesso.
@@ -591,7 +590,6 @@ routes.get("/dashboard/status", adminMiddleware, declaracaoController.getDeclara
  *       '500':
  *         description: Erro ao gerar o recibo.
  */
-
 routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
 
 /**
@@ -600,14 +598,14 @@ routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
  *   post:
  *     summary: Realiza login de usuário.
  *     description: Endpoint para realizar login de usuário.
- *     tags:
- *       - Auth
- *          security:
- *             - basicAuth: []
+ *     parameters:
+ *        - in: query
+ *          name: admin
+ *          type: boolean
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         application/*:
  *           schema:
  *             type: object
  *             properties:
@@ -624,11 +622,10 @@ routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
  *       '401':
  *         description: Credenciais inválidas.
  */
-
-routes.post("/auth/login", async (req, res) => {
+routes.post("/auth/login", limiter, async (req, res) => {
   const { email, password } = req.body
-  const { admin } = req.query
-  const { token, refreshToken, user } = await authService.login({ email, password, admin: admin === "true" })
+  const { admin } = req.query as any
+  const { token, refreshToken, user } = await authService.login({ email, password, admin })
 
   res.cookie("token", token, {
     httpOnly: true,
@@ -652,24 +649,19 @@ routes.post("/auth/login", async (req, res) => {
     email: user.email
   })
 })
+
 /**
  * @swagger
  * /api/auth/refresh:
  *   post:
  *     summary: Atualiza token de acesso.
  *     description: Endpoint para atualizar o token de acesso.
- *     tags:
- *       - Auth
- *     security:
- *       - basicAuth: []
  *     responses:
  *       '200':
  *         description: Token atualizado com sucesso.
  *       '401':
  *         description: Falha ao atualizar o token.
  */
-
-
 routes.post("/auth/refresh", async (req, res) => {
   const { refreshToken } = req.signedCookies
   try {
