@@ -2,7 +2,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { Status } from "../enums/Status";
 import { TipoEnvio } from "../enums/tipoEnvio";
-import { gerarData } from "../utils/dataUtils"
+
 
 
 
@@ -14,7 +14,7 @@ export interface Arquivo {
   quantidadeItens: number;
   hashArquivo?: string;
   tipoEnvio?: TipoEnvio;
-  dataEnvio: string;
+  dataEnvio?: Date;
   versao: number;
 }
 
@@ -29,7 +29,7 @@ const ArquivoSchema = new Schema<Arquivo>({
   pendencias: [String],
   quantidadeItens: { type: Number, default: 0 },
   hashArquivo: String,
-  dataEnvio: { type: String, default: gerarData },
+  dataEnvio: { type: Date,Date,default: Date.now() },
   versao: { type: Number, default: 0 },
 }, { _id: false });
 
@@ -40,8 +40,8 @@ export interface DeclaracaoModel extends Document {
   anoDeclaracao: string;
   responsavelEnvio: mongoose.Types.ObjectId;
   hashDeclaracao: string;
-  dataCriacao: String;
-  dataAtualizacao?: String;
+  dataCriacao?: Date;
+  dataAtualizacao?: Date;
   totalItensDeclarados?: number;
   status: Status;
   arquivistico: Arquivo;
@@ -50,6 +50,8 @@ export interface DeclaracaoModel extends Document {
   retificacao: boolean;
   retificacaoRef: mongoose.Types.ObjectId;
   versao: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export type ArquivoTypes = 'arquivisticoArquivo' | 'bibliograficoArquivo' | 'museologicoArquivo';
@@ -61,8 +63,8 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>({
   anoDeclaracao: String,
   responsavelEnvio: { type: Schema.Types.ObjectId, ref: 'usuarios', required: true },
   hashDeclaracao: String,
-  dataCriacao: { type: String, default: gerarData },
-  dataAtualizacao: { type: String, default: gerarData },
+  dataCriacao: { type: Date,default: Date.now() },
+  dataAtualizacao: { type: Date, default: Date.now() },
   retificacao: { type: Boolean, default: false },
   retificacaoRef: { type: Schema.Types.ObjectId, ref: 'Declaracoes' },
   totalItensDeclarados: { type: Number },
@@ -74,7 +76,7 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>({
   arquivistico: ArquivoSchema,
   bibliografico: ArquivoSchema,
   museologico: ArquivoSchema,
-});
+},{ timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }});
 
 export const Declaracoes = mongoose.model<DeclaracaoModel>("Declaracoes", DeclaracaoSchema);
 export default Declaracoes;
