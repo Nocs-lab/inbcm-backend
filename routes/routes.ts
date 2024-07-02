@@ -9,6 +9,8 @@ import swaggerUi from "swagger-ui-express";
 import swaggerSpec from '../swagger';
 import * as OpenApiValidator from 'express-openapi-validator';
 import { rateLimit } from 'express-rate-limit'
+import sanitizeMongo from "../middlewares/sanitizers/mongo";
+import sanitizeHtml from "../middlewares/sanitizers/html";
 
 // Rate limit para ações onde o usuário ainda não está autenticado
 const limiter = rateLimit({
@@ -21,6 +23,8 @@ const reciboController = new ReciboController();
 const declaracaoController = new DeclaracaoController();
 const authService = new AuthService()
 
+routes.use(sanitizeMongo());
+routes.use(sanitizeHtml());
 
 //Swagger
 routes.use('/api-docs', swaggerUi.serve);
