@@ -1,4 +1,6 @@
 import swaggerJSDoc from 'swagger-jsdoc';
+import yaml from 'yaml';
+import { writeFileSync } from 'fs';
 
 const options = {
   definition: {
@@ -20,11 +22,18 @@ const options = {
         },
       },
     },
+    security: [
+      {},
+      {
+        basicAuth: [],
+      },
+    ],
   },
- 
-   apis: ['routes/*.ts'], // Especifique o caminho para seus arquivos de rota
+  apis: ['routes/*.ts'], // Especifique o caminho para seus arquivos de rota
 
 }
 const swaggerSpec = swaggerJSDoc(options);
+
+writeFileSync('openapi.yaml', yaml.stringify(swaggerSpec))
 
 export default swaggerSpec;
