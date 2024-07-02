@@ -1,4 +1,4 @@
-import sanitizeHtml, { IOptions } from 'sanitize-html';
+import _sanitizeHtml, { IOptions } from 'sanitize-html';
 
 interface Body {
   [key: string]: any;
@@ -11,7 +11,7 @@ function cleanup(body: Body, config: Config): Body {
     if (typeof body[key] === 'object' || Array.isArray(body[key])) {
       body[key] = cleanup(body[key], config);
     } else if (typeof body[key] === 'string') {
-      body[key] = sanitizeHtml(body[key], config);
+      body[key] = _sanitizeHtml(body[key], config);
     }
   }
   return body;

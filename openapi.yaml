@@ -371,13 +371,18 @@ paths:
           description: Declarações filtradas obtidas com sucesso.
         "500":
           description: Erro ao buscar declarações com filtros.
-    responses:
-      "200":
-        description: Declarações filtradas obtidas com sucesso.
-      "500":
-        description: Erro ao buscar declarações com filtros.
-  /api/getStatusEnum:
     post:
+      summary: Obtém declarações com base em filtros.
+      description: Endpoint para buscar declarações com base em filtros especificados.
+      tags:
+        - Declarações
+      responses:
+        "200":
+          description: Declarações filtradas obtidas com sucesso.
+        "500":
+          description: Erro ao buscar declarações com filtros.
+  /api/getStatusEnum:
+    get:
       summary: Obtém os valores de enumeração para o status das declarações.
       description: Endpoint para obter os valores de enumeração para o status das
         declarações.
@@ -387,6 +392,30 @@ paths:
         "200":
           description: Valores de enumeração para o status das declarações obtidos com
             sucesso.
+  /api/atualizarStatus/{id}:
+    put:
+      summary: Atualiza o status de uma declaração.
+      description: Endpoint para atualizar o status de uma declaração.
+      parameters:
+        - in: path
+          name: id
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/*:
+            schema:
+              type: object
+              proporties:
+                status:
+                  type: string
+            required:
+              - status
+      tags:
+        - Declarações
+      responses:
+        "200":
+          description: a
   /api/declaracoes/pendentes:
     get:
       summary: Obtém declarações pendentes.

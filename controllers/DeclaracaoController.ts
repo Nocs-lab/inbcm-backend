@@ -5,8 +5,8 @@ import { createHashUpdate } from "../utils/hashUtils";
 import { Museu } from "../models";
 import fs from "fs";
 import path from "path";
-import {gerarData} from "../utils/dataUtils"
-import {Status} from "../enums/Status"
+import { gerarData } from "../utils/dataUtils"
+import { Status } from "../enums/Status"
 
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;
@@ -20,6 +20,24 @@ class DeclaracaoController {
     this.getDeclaracoesPorRegiao = this.getDeclaracoesPorRegiao.bind(this);
     this.getDeclaracoesPorUF = this.getDeclaracoesPorUF.bind(this);
     this.getDeclaracoesPorStatus = this.getDeclaracoesPorStatus.bind(this);
+  }
+
+  async atualizarStatusDeclaracao(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      const declaracao = await Declaracoes.findById(id);
+      if (!declaracao) {
+        return res.status(404).json({ message: "Declaração não encontrada." });
+      }
+      declaracao.status = status;
+      declaracao.dataAtualizacao = gerarData();
+      await declaracao.save({ validateBeforeSave: false });
+      return res.status(200).json(declaracao);
+    } catch (error) {
+      console.error("Erro ao atualizar status da declaração:", error);
+      return res.status(500).json({ message: "Erro ao atualizar status da declaração." });
+    }
   }
 
   async getDeclaracoesPorStatus(req: Request, res: Response) {

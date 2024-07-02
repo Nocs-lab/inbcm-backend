@@ -427,7 +427,7 @@ routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDe
 /**
  * @swagger
  * /api/getStatusEnum:
- *   post:
+ *   get:
  *     summary: Obtém os valores de enumeração para o status das declarações.
  *     description: Endpoint para obter os valores de enumeração para o status das declarações.
  *     tags:
@@ -441,18 +441,48 @@ routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum
 /**
  * @swagger
  * /api/declaracoesFiltradas:
- *   get:
+ *   post:
  *     summary: Obtém declarações com base em filtros.
  *     description: Endpoint para buscar declarações com base em filtros especificados.
  *     tags:
  *       - Declarações
- *   responses:
+ *     responses:
  *       '200':
  *         description: Declarações filtradas obtidas com sucesso.
  *       '500':
  *         description: Erro ao buscar declarações com filtros.
  */
 routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
+
+// atualizar status
+/**
+ * @swagger
+ * /api/atualizarStatus/{id}:
+ *  put:
+ *   summary: Atualiza o status de uma declaração.
+ *   description: Endpoint para atualizar o status de uma declaração.
+ *   parameters:
+ *    - in: path
+ *      name: id
+ *      type: string
+ *   requestBody:
+ *     required: true
+ *     content:
+ *       application/*:
+ *         schema:
+ *           type: object
+ *           proporties:
+ *             status:
+ *               type: string
+ *         required:
+ *           - status
+ *   tags:
+ *     - Declarações
+ *   responses:
+ *     '200':
+ *       description: a
+ */
+routes.put("/atualizarStatus/:id", adminMiddleware, declaracaoController.atualizarStatusDeclaracao);
 
 /**
  * @swagger
@@ -594,8 +624,8 @@ routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
  */
 routes.post("/auth/login", limiter, async (req, res) => {
   const { email, password } = req.body
-  const { admin } = req.query
-  const { token, refreshToken, user } = await authService.login({ email, password, admin: admin === "true" })
+  const { admin } = req.query as any
+  const { token, refreshToken, user } = await authService.login({ email, password, admin })
 
   res.cookie("token", token, {
     httpOnly: true,
