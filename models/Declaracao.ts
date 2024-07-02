@@ -33,21 +33,6 @@ const ArquivoSchema = new Schema<Arquivo>({
   versao: { type: Number, default: 0 },
 }, { _id: false });
 
-export interface HistoricoDeclaracao {
-  versao: number;
-  dataAtualizacao: string;
-  arquivistico: Arquivo;
-  bibliografico: Arquivo;
-  museologico: Arquivo;
-}
-
-const HistoricoDeclaracaoSchema = new Schema<HistoricoDeclaracao>({
-  versao: { type: Number, required: true },
-  dataAtualizacao: { type: String, required: true },
-  arquivistico: ArquivoSchema,
-  bibliografico: ArquivoSchema,
-  museologico: ArquivoSchema,
-}, { _id: false });
 
 export interface DeclaracaoModel extends Document {
   museu_id: mongoose.Types.ObjectId;
@@ -65,7 +50,6 @@ export interface DeclaracaoModel extends Document {
   retificacao: boolean;
   retificacaoRef: mongoose.Types.ObjectId;
   versao: number;
-  historicoDeclaracoes: HistoricoDeclaracao[];
 }
 
 export type ArquivoTypes = 'arquivisticoArquivo' | 'bibliograficoArquivo' | 'museologicoArquivo';
@@ -90,7 +74,6 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>({
   arquivistico: ArquivoSchema,
   bibliografico: ArquivoSchema,
   museologico: ArquivoSchema,
-  historicoDeclaracoes: { type: [HistoricoDeclaracaoSchema], default: [] }
 });
 
 export const Declaracoes = mongoose.model<DeclaracaoModel>("Declaracoes", DeclaracaoSchema);
