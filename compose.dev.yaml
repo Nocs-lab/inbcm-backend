@@ -4,7 +4,7 @@ services:
       - "64000:27017"
 
   mongo-express:
-    image: mongo-express
+    image: docker.io/mongo-express
     ports:
       - 8081:8081
     environment:

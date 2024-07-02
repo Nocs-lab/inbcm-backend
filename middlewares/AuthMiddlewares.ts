@@ -5,6 +5,13 @@ import { Profile } from "../models/Profile"
 import { Permission } from "../models/Permission"
 import { verify } from "@node-rs/argon2"
 import config from "../config"
+import { rateLimit } from 'express-rate-limit'
+
+const limiter = rateLimit({
+	windowMs: 2 * 60 * 1000,
+	limit: 50,
+  keyGenerator: (req) => req.body.user?.sub ?? "anonymous"
+})
 
 export const permissionCheckMiddleware: (permission: string) => Handler = (permission) => async (req, res, next) => {
   try {
@@ -84,7 +91,7 @@ export const userMiddleware: Handler = async (req, res, next) => {
 
   req.body.user = payload
 
-  next()
+  limiter(req, res, next)
 }
 
 export const adminMiddleware: Handler = async (req, res, next) => {
@@ -121,5 +128,5 @@ export const adminMiddleware: Handler = async (req, res, next) => {
 
   req.body.user = payload
 
-  next();
+  limiter(req, res, next)
 }

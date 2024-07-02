@@ -1,40 +1,11 @@
 import crypto from "crypto";
-import { Declaracoes, Pendencia, Museu } from "../models";
-import mongoose from "mongoose";
-
-const regioesMap = {
-  SP: "Sudeste",
-  MG: "Sudeste",
-  RJ: "Sudeste",
-  ES: "Sudeste",
-  PR: "Sul",
-  SC: "Sul",
-  RS: "Sul",
-  MS: "Centro-Oeste",
-  MT: "Centro-Oeste",
-  GO: "Centro-Oeste",
-  DF: "Centro-Oeste",
-  TO: "Norte",
-  PA: "Norte",
-  AP: "Norte",
-  AM: "Norte",
-  RR: "Norte",
-  RO: "Norte",
-  AC: "Norte",
-  MA: "Nordeste",
-  PI: "Nordeste",
-  CE: "Nordeste",
-  PB: "Nordeste",
-  PE: "Nordeste",
-  AL: "Nordeste",
-  SE: "Nordeste",
-  BA: "Nordeste",
-  RN: "Nordeste",
-};
+import { Status } from "../enums/Status";
+import { TipoEnvio } from "../enums/tipoEnvio";
+import { gerarData } from "../utils/dataUtils"
+import { createHash, createHashUpdate } from "../utils/hashUtils";
+import { Declaracoes,Museu,Arquivo, Arquivistico, Bibliografico, Museologico, DeclaracaoModel } from "../models";
 
 class DeclaracaoService {
-
-
   async declaracoesPorStatus() {
     try {
       const result = await Declaracoes.aggregate([
@@ -264,28 +235,52 @@ class DeclaracaoService {
     }
   }
 
-  async criarDeclaracao({ anoDeclaracao, museu_id, user_id, retificacao = false, retificacaoRef }: { anoDeclaracao: string; museu_id: string; user_id: string; retificacao?: boolean; retificacaoRef?: string }) {
-    try {
-      // Gerar o hash da declaração
-      const hashDeclaracao = crypto.createHash('sha256').digest('hex');
-      console.log(user_id);
-      // Criar a nova declaração com os campos relacionados à declaração, incluindo museu
-      const novaDeclaracao = await Declaracoes.create({
-        anoDeclaracao,
-        museu_id, // Adicionar museu
-        responsavelEnvio: user_id,
-        hashDeclaracao,
-        dataCriacao: new Date(),
-        status: "em análise",
-        retificacao,
-        retificacaoRef
-      });
+  /**
+ * Processa e atualiza um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
+ *
+ * @param anoDeclaracao - ano de criacao da declaracao.
+ * @param museu_id - id do museu o qual deseja-se criar uma declaracao.
+ * @param retificacao - faz referenciao ao estado de originalidade de declaracao.
+ * @param retificacaoRef - A declaração que está sendo atualizada.
+ * @param muse_nome - nome do museu o qual deseja-se criar uma declaracao
+ *
+ * @returns retorna uma nova declaracao ou um erro ao tentar criar uma declaracao
+ */
 
-      return novaDeclaracao;
+  async criarDeclaracao({ anoDeclaracao, museu_id, user_id, retificacao = false, retificacaoRef, museu_nome }:
+    { anoDeclaracao: string; museu_id: string; user_id: string; retificacao?: boolean; retificacaoRef?: string;
+       museu_nome: string}) {
+    try {
+        // Verificar se já existe uma declaração para o ano e museu especificados
+        const declaracaoExistente = await this.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
+        if (declaracaoExistente) {
+            throw new Error("Você já enviou uma declaração para este museu e ano especificados. Se você deseja retificar a declaração, utilize a opção de retificação.");
+        }
+
+        // Gerar o hash da declaração
+        const hashDeclaracao = createHash({ anoDeclaracao, museu_id });
+
+        console.log(user_id);
+        // Criar a nova declaração com os campos relacionados à declaração, incluindo museu
+        const novaDeclaracao = await Declaracoes.create({
+            anoDeclaracao,
+            museu_id, // Adicionar museu
+            museu_nome,
+            responsavelEnvio: user_id,
+            hashDeclaracao,
+            dataCriacao: gerarData(),
+            status: Status.Recebido,
+            retificacao,
+            retificacaoRef
+        });
+
+        return novaDeclaracao;
     } catch (error: any) {
-      throw new Error("Erro ao criar declaração: " + error.message);
+        throw new Error("Erro ao criar declaração: " + error.message);
     }
-  }
+}
+
+
 
   async verificarDeclaracaoExistente(museu: string, anoDeclaracao: string) {
     // Verifique se existe uma declaração com o ano fornecido
@@ -294,92 +289,79 @@ class DeclaracaoService {
     return declaracaoExistente;
   }
 
-  async atualizarArquivosDeclaracao(anoDeclaracao: string, dadosArquivos: any) {
-    try {
-      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
-      if (!declaracao) {
-        throw new Error("Declaração não encontrada para o ano especificado.");
+
+
+/**
+ * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
+ *
+ * @param arquivos - Lista de arquivos enviados (pode ser indefinida).
+ * @param dados - String JSON contendo os dados do bem.
+ * @param erros - String JSON contendo os erros relacionados ao bem.
+ * @param declaracao - A declaração que está sendo atualizada.
+ * @param tipo - O tipo de bem a ser processado ("arquivistico", "bibliografico" ou "museologico").
+ *
+ * @returns Uma promessa que resolve quando o processamento e a atualização são concluídos com sucesso.
+ */
+async updateDeclaracao(
+  arquivos: Express.Multer.File[] | undefined,
+  dados: string,
+  erros: string,
+  declaracao: DeclaracaoModel,
+  tipo: "arquivistico" | "bibliografico" | "museologico"
+) {
+  try {
+    if (arquivos) {
+      const dadosBem = JSON.parse(dados);
+      const pendenciasBem = JSON.parse(erros);
+      const bemExistente = declaracao[tipo];
+      const novoHashDeclaracao = createHashUpdate(arquivos[0].path, arquivos[0].filename);
+
+      if (!bemExistente) {
+        throw new Error(`${tipo} não encontrado na declaração.`);
       }
 
-      // Atualizar os dados dos arquivos
-      if (dadosArquivos.arquivistico) {
-        declaracao.arquivistico = dadosArquivos.arquivistico;
-      }
-      if (dadosArquivos.bibliografico) {
-        declaracao.bibliografico = dadosArquivos.bibliografico;
-      }
-      if (dadosArquivos.museologico) {
-        declaracao.museologico = dadosArquivos.museologico;
-      }
+       declaracao.historicoDeclaracoes.push({
+        versao: declaracao.versao,
+        dataAtualizacao: gerarData(),
+        arquivistico: declaracao.arquivistico,
+        bibliografico: declaracao.bibliografico,
+        museologico: declaracao.museologico,
+      });
 
-      await declaracao.save();
-      return declaracao;
-    } catch (error: any) {
-      throw new Error("Erro ao atualizar dados dos arquivos da declaração: " + error.message);
+      // // Atualizar o arquivo com os novos dados
+      bemExistente.nome = arquivos[0].filename;
+      bemExistente.caminho = arquivos[0].path;
+      bemExistente.status = Status.Recebido;
+      bemExistente.pendencias = pendenciasBem;
+      bemExistente.hashArquivo = novoHashDeclaracao;
+      bemExistente.quantidadeItens = dadosBem.length;
+      bemExistente.tipoEnvio = TipoEnvio.Reenviado;
+      bemExistente.dataEnvio = gerarData();
+      bemExistente.versao = (bemExistente.versao || 0) + 1; // Incrementar a versão
+
+
+      declaracao.versao = (declaracao.versao || 0) + 1;
+      declaracao.dataAtualizacao = gerarData();
+
+      // Atualizar a declaração com o novo arquivo
+      declaracao[tipo] = bemExistente;
+
+      // Atualizar os dados de referência
+      dadosBem.forEach((item: { declaracao_ref: string, versao: number }) => {
+        item.declaracao_ref = declaracao._id as string;
+        item.versao = bemExistente.versao; // Atualizar a versão do item
+      });
+
+      // Inserir os dados atualizados
+      await (tipo === 'arquivistico' ? Arquivistico : tipo === 'bibliografico' ? Bibliografico : Museologico).insertMany(dadosBem);
     }
+
+    await declaracao.save();
+  } catch (error) {
+    console.error("Erro ao atualizar declaração:", error);
+    throw new Error("Erro ao atualizar declaração.");
   }
-
-
-  async atualizarArquivistico(anoDeclaracao: string, dadosArquivistico: any) {
-    try {
-      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
-      if (!declaracao) {
-        throw new Error("Declaração não encontrada para o ano especificado.");
-      }
-
-      declaracao.arquivistico = { ...declaracao.arquivistico, ...dadosArquivistico };
-      await declaracao.save();
-      return declaracao;
-    } catch (error: any) {
-      throw new Error("Erro ao atualizar dados arquivísticos: " + error.message);
-    }
-  }
-
-  async atualizarBibliografico(anoDeclaracao: string, dadosBibliografico: any) {
-    try {
-      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
-      if (!declaracao) {
-        throw new Error("Declaração não encontrada para o ano especificado.");
-      }
-      declaracao.bibliografico = { ...declaracao.bibliografico, ...dadosBibliografico };
-      await declaracao.save();
-      return declaracao;
-    } catch (error: any) {
-      throw new Error("Erro ao atualizar dados arquivísticos: " + error.message);
-    }
-  }
-
-  async atualizarMuseologico(anoDeclaracao: string, dadosMuseologico: any) {
-    try {
-      const declaracao = await Declaracoes.findOne({ anoDeclaracao });
-      if (!declaracao) {
-        throw new Error("Declaração não encontrada para o ano especificado.");
-      }
-      declaracao.museologico = { ...declaracao.museologico, ...dadosMuseologico };
-      await declaracao.save();
-      return declaracao;
-    } catch (error: any) {
-      throw new Error("Erro ao atualizar dados arquivísticos: " + error.message);
-    }
-  }
-
-  async atualizarStatusDeclaracao(hashArquivo: string, tipoArquivo: string, novoStatus: any) {
-    try {
-      // Buscar a declaração pelo hash do arquivo e pelo tipo de arquivo
-      const declaracao = await Declaracoes.findOne({ hashArquivo, tipoArquivo });
-
-      // Verificar se a declaração foi encontrada
-      if (!declaracao) {
-        throw new Error("Declaração não encontrada para o hash e tipo de arquivo especificados.");
-      }
-
-      // Atualizar o status da declaração
-      declaracao.status = novoStatus;
-      await declaracao.save();
-    } catch (error: any) {
-      throw new Error("Erro ao atualizar o status da declaração: " + error.message);
-    }
-  }
+}
 
 }
 
