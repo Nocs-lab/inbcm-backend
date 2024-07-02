@@ -40,7 +40,7 @@ class UsuarioController {
 
   async getUsuarios(req: Request, res: Response) {
     try {
-      const usuarios = await Usuario.find().populate('profile');
+      const usuarios = await Usuario.find({ativo: true}).populate('profile');
       return res.status(200).json(usuarios);
     } catch (error) {
       console.error("Erro ao listar usuários:", error);
@@ -65,7 +65,9 @@ class UsuarioController {
 
   async atualizarUsuario(req: Request, res: Response) {
     const { id } = req.params;
-    const { nome, email, senha, museus, profile } = req.body;
+    const { nome, email, senha, museus, profile, ativo } = req.body;
+    console.log(req.body);
+
     //colocar validação para verificar o id do usuário
 
     try {
@@ -79,6 +81,7 @@ class UsuarioController {
       if (senha) usuario.senha = await argon2.hash(senha);
       if (museus) usuario.museus = museus;
       if (profile) usuario.profile = profile;
+      if (ativo !== undefined) usuario.ativo = ativo;
 
       await usuario.save();
 

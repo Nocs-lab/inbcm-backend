@@ -44,8 +44,8 @@ class ProfileController {
 
   public async createProfile(req: Request, res: Response): Promise<Response> {
     try {
-      const { name, description } = req.body;
-      const profile = new Profile({ name, description });
+      const { name, description, permissions } = req.body;
+      const profile = new Profile({ name, description, permissions });
       await profile.save();
       return res.status(201).json(profile);
     } catch (error) {
@@ -81,8 +81,8 @@ class ProfileController {
   public async updateProfile(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
-      const { name, description } = req.body;
-      const profile = await Profile.findByIdAndUpdate(id, { name, description }, { new: true });
+      const { name, description, permissions } = req.body;
+      const profile = await Profile.findByIdAndUpdate(id, { name, description, permissions }, { new: true });
       if (!profile) {
         return res.status(404).json({ message: 'Perfil não encontrado' });
       }
