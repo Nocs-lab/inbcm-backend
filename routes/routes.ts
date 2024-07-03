@@ -35,6 +35,7 @@ routes.use(
     apiSpec: './openapi.yaml',
     validateRequests: true,
     validateApiSpec: false,
+    ignorePaths: () => ['/api/uploads/{museu}/{anoDeclaracao}']
   })
 );
 
@@ -383,8 +384,6 @@ routes.get("/declaracoes/:id", userMiddleware, declaracaoController.getDeclaraca
  *     description: Endpoint para obter declarações de um museu específico para um ano específico.
  *     tags:
  *       - Declarações
- *     security:
- *       - basicAuth: []
  *     parameters:
  *       - in: path
  *         name: museu
@@ -625,7 +624,7 @@ routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
 routes.post("/auth/login", limiter, async (req, res) => {
   const { email, password } = req.body
   const { admin } = req.query as any
-  const { token, refreshToken, user } = await authService.login({ email, password, admin })
+  const { token, refreshToken, user } = await authService.login({ email, password, admin: admin ?? false })
 
   res.cookie("token", token, {
     httpOnly: true,

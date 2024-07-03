@@ -338,8 +338,6 @@ paths:
         específico.
       tags:
         - Declarações
-      security:
-        - basicAuth: []
       parameters:
         - in: path
           name: museu
