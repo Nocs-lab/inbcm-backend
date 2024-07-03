@@ -31,4 +31,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.REGISTRY_URL }}/inbcm-backend:latest
+          tags: ${{ secrets.REGISTRY_URL }}/inbcm-backend-dev:latest
