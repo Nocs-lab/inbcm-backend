@@ -8,79 +8,83 @@ import { rateLimit } from 'express-rate-limit'
 const limiter = rateLimit({
 	windowMs: 2 * 60 * 1000,
 	limit: 50,
-  keyGenerator: (req) => req.body.user?.sub ?? "anonymous"
+  keyGenerator: (req) => req.signedCookies.refreshToken
 })
 
 export const userMiddleware: Handler = async (req, res, next) => {
-  if (config.NODE_ENV !== "PRODUCTION") {
-    const [email, password] = Buffer.from(req.headers["authorization"]?.split(" ")[1] ?? " : ", "base64").toString().split(":")
+  limiter(req, res, async () => {
+    if (config.NODE_ENV !== "PRODUCTION") {
+      const [email, password] = Buffer.from(req.headers["authorization"]?.split(" ")[1] ?? " : ", "base64").toString().split(":")
 
-    const user = await Usuario.findOne({ email, admin: false })
+      const user = await Usuario.findOne({ email, admin: false })
 
-    if (user) {
-      if (await verify(user.senha, password)) {
-        req.body.user = {
-          ...user,
-          sub: user.id,
-          admin: user.admin
+      if (user) {
+        if (await verify(user.senha, password)) {
+          req.body.user = {
+            ...user,
+            sub: user.id,
+            admin: user.admin
+          }
+          return next()
+        } else {
+          throw new Error("Senha incorreta")
         }
-        return next()
-      } else {
-        throw new Error("Senha incorreta")
       }
     }
-  }
 
-  const { token } = req.signedCookies
+    const { token } = req.signedCookies
 
-  if (!token) {
-    return res.status(401).send()
-  }
+    if (!token) {
+      return res.status(401).send()
+    }
 
-  const payload = jwt.verify(token, config.JWT_SECRET) as jwt.JwtPayload
+    const payload = jwt.verify(token, config.JWT_SECRET) as jwt.JwtPayload
 
-  if (payload.admin) {
-    return res.status(404).send()
-  }
+    if (payload.admin) {
+      return res.status(404).send()
+    }
 
-  req.body.user = payload
+    req.user = payload
 
-  limiter(req, res, next)
+    next()
+  })
 }
 
 export const adminMiddleware: Handler = async (req, res, next) => {
-  if (config.NODE_ENV !== "PRODUCTION") {
-    const [email, password] = Buffer.from(req.headers["authorization"]?.split(" ")[1] ?? " : ", "base64").toString().split(":")
+  limiter(req, res, async () => {
+    if (config.NODE_ENV !== "PRODUCTION") {
+      const [email, password] = Buffer.from(req.headers["authorization"]?.split(" ")[1] ?? " : ", "base64").toString().split(":")
 
-    const user = await Usuario.findOne({ email, admin: true })
+      const user = await Usuario.findOne({ email, admin: true })
 
-    if (user) {
-      if (await verify(user.senha, password)) {
-        req.body.user = {
-          ...user,
-          sub: user.id,
-          admin: user.admin
+      if (user) {
+        if (await verify(user.senha, password)) {
+          req.body.user = {
+            ...user,
+            sub: user.id,
+            admin: user.admin
+          }
+          return next()
+        } else {
+          throw new Error("Senha incorreta")
         }
-        return next()
-      } else {
-        throw new Error("Senha incorreta")
       }
     }
-  }
 
-  const { token } = req.signedCookies
+    const { token } = req.signedCookies
 
-  if (!token) {
-    return res.status(401).send()
-  }
+    if (!token) {
+      return res.status(401).send()
+    }
 
-  const payload = jwt.verify(token, config.JWT_SECRET) as jwt.JwtPayload
+    const payload = jwt.verify(token, config.JWT_SECRET) as jwt.JwtPayload
 
-  if (!payload.admin) {
-    return res.status(404).send()
-  }
+    if (!payload.admin) {
+      return res.status(404).send()
+    }
 
-  req.body.user = payload
+    req.user = payload
 
-  limiter(req, res, next)
+    next()
+  })
 }
