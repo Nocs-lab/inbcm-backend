@@ -1,9 +1,9 @@
-import crypto from "crypto";
+
 import { Status } from "../enums/Status";
-import { TipoEnvio } from "../enums/tipoEnvio";
 import { gerarData } from "../utils/dataUtils"
-import { createHash, createHashUpdate } from "../utils/hashUtils";
+import { createHash, createHashUpdate} from "../utils/hashUtils";
 import { Declaracoes,Museu,Arquivo, Arquivistico, Bibliografico, Museologico, DeclaracaoModel } from "../models";
+import mongoose from "mongoose";
 
 class DeclaracaoService {
   async declaracoesPorStatus() {
@@ -304,63 +304,74 @@ class DeclaracaoService {
  */
 async updateDeclaracao(
   arquivos: Express.Multer.File[] | undefined,
-  dados: string,
-  erros: string,
-  declaracao: DeclaracaoModel,
-  tipo: "arquivistico" | "bibliografico" | "museologico"
+  data: string,
+  errors: string,
+  novaDeclaracao: DeclaracaoModel,
+  tipo: 'arquivistico' | 'bibliografico' | 'museologico',
+  arquivoAnterior: Arquivo
 ) {
-  try {
-    if (arquivos) {
-      const dadosBem = JSON.parse(dados);
-      const pendenciasBem = JSON.parse(erros);
-      const bemExistente = declaracao[tipo];
-      const novoHashDeclaracao = createHashUpdate(arquivos[0].path, arquivos[0].filename);
+  if (arquivos) {
+    const arquivoData = JSON.parse(data);
+    const pendencias = JSON.parse(errors);
+    const novoHashDeclaracao = createHashUpdate(arquivos[0].path, arquivos[0].filename);
 
-      if (!bemExistente) {
-        throw new Error(`${tipo} não encontrado na declaração.`);
-      }
+    // Verificar se os dados foram modificados
+    const dadosAlterados: Partial<Arquivo> = {
+      caminho: arquivos[0].path,
+      nome: arquivos[0].filename,
+      status: Status.Recebido,
+      hashArquivo:novoHashDeclaracao,
+      pendencias,
+      quantidadeItens: arquivoData.length,
+      versao: arquivoAnterior.versao + 1,
+    };
 
-       declaracao.historicoDeclaracoes.push({
-        versao: declaracao.versao,
-        dataAtualizacao: gerarData(),
-        arquivistico: declaracao.arquivistico,
-        bibliografico: declaracao.bibliografico,
-        museologico: declaracao.museologico,
-      });
+    // Atualizar apenas os campos modificados
+    novaDeclaracao[tipo] = { ...arquivoAnterior, ...dadosAlterados } as Arquivo;
 
-      // // Atualizar o arquivo com os novos dados
-      bemExistente.nome = arquivos[0].filename;
-      bemExistente.caminho = arquivos[0].path;
-      bemExistente.status = Status.Recebido;
-      bemExistente.pendencias = pendenciasBem;
-      bemExistente.hashArquivo = novoHashDeclaracao;
-      bemExistente.quantidadeItens = dadosBem.length;
-      bemExistente.tipoEnvio = TipoEnvio.Reenviado;
-      bemExistente.dataEnvio = gerarData();
-      bemExistente.versao = (bemExistente.versao || 0) + 1; // Incrementar a versão
+    arquivoData.forEach((item: any) => {
+      item.declaracao_ref = novaDeclaracao._id as string;
+      item.versao = novaDeclaracao.versao;
+    });
 
-
-      declaracao.versao = (declaracao.versao || 0) + 1;
-      declaracao.dataAtualizacao = gerarData();
-
-      // Atualizar a declaração com o novo arquivo
-      declaracao[tipo] = bemExistente;
-
-      // Atualizar os dados de referência
-      dadosBem.forEach((item: { declaracao_ref: string, versao: number }) => {
-        item.declaracao_ref = declaracao._id as string;
-        item.versao = bemExistente.versao; // Atualizar a versão do item
-      });
-
-      // Inserir os dados atualizados
-      await (tipo === 'arquivistico' ? Arquivistico : tipo === 'bibliografico' ? Bibliografico : Museologico).insertMany(dadosBem);
+    // Determinar o modelo apropriado com base no tipo
+    let Modelo;
+    switch (tipo) {
+      case 'arquivistico':
+        Modelo = Arquivistico;
+        break;
+      case 'bibliografico':
+        Modelo = Bibliografico;
+        break;
+      case 'museologico':
+        Modelo = Museologico;
+        break;
+      default:
+        throw new Error('Tipo de declaração inválido');
     }
 
-    await declaracao.save();
-  } catch (error) {
-    console.error("Erro ao atualizar declaração:", error);
-    throw new Error("Erro ao atualizar declaração.");
+    // Inserir os dados associados à nova versão da declaração
+    const itensInseridos = await Modelo.insertMany(arquivoData.map((item: any) => ({
+      ...item,
+      declaracao_ref: novaDeclaracao._id,
+      versao: novaDeclaracao.versao, // Atribui a versão atual da declaração ao item
+    })));
+
+    console.log(`Inseridos ${itensInseridos.length} itens relacionados à nova versão da declaração`);
+  } else {
+    // Mantém os dados anteriores se não houver novo upload
+    novaDeclaracao[tipo] = { ...arquivoAnterior }; // Certifique-se de copiar corretamente
   }
+
+  // Atualizar a referência da retificação
+  const declaracaoAnterior = await Declaracoes.findById(novaDeclaracao.retificacaoRef).exec() as DeclaracaoModel | null;
+  if (declaracaoAnterior && declaracaoAnterior._id) {
+    novaDeclaracao.retificacaoRef = declaracaoAnterior._id as mongoose.Types.ObjectId; // Referência para a declaração anterior
+    novaDeclaracao.retificacao = true;
+  }
+
+  // Salvar a nova declaração
+  await novaDeclaracao.save();
 }
 
 }
