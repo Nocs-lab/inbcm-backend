@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
-import { Declaracoes,Bibliografico,Museologico,Arquivistico} from "../models";
+import { Declaracoes, Bibliografico, Museologico, Arquivistico, DeclaracaoModel } from "../models";
 import DeclaracaoService from "../service/DeclaracaoService";
-import { createHashUpdate } from "../utils/hashUtils";
+import { createHashUpdate, createHash, generateSalt } from "../utils/hashUtils";
 import { Museu } from "../models";
 import fs from "fs";
 import path from "path";
-import { gerarData } from "../utils/dataUtils"
 import { Status } from "../enums/Status"
+import mongoose from "mongoose";
 
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService;
@@ -19,9 +19,8 @@ class DeclaracaoController {
     this.getDeclaracoesPorAnoDashboard = this.getDeclaracoesPorAnoDashboard.bind(this);
     this.getDeclaracoesPorRegiao = this.getDeclaracoesPorRegiao.bind(this);
     this.getDeclaracoesPorUF = this.getDeclaracoesPorUF.bind(this);
-    this.getDeclaracoesPorStatus = this.getDeclaracoesPorStatus.bind(this);
+    this.getDeclaracoesPorStatus = this.getDeclaracoesPorStatus.bind(this)
   }
-
   async atualizarStatusDeclaracao(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -31,7 +30,6 @@ class DeclaracaoController {
         return res.status(404).json({ message: "Declaração não encontrada." });
       }
       declaracao.status = status;
-      declaracao.dataAtualizacao = gerarData();
       await declaracao.save({ validateBeforeSave: false });
       return res.status(200).json(declaracao);
     } catch (error) {
@@ -84,7 +82,7 @@ class DeclaracaoController {
   async getDeclaracaoAno(req: Request, res: Response) {
     try {
       const { anoDeclaracao, museu } = req.params;
-      const declaracao = await Declaracoes.findOne({ anoDeclaracao, museu_id: museu});
+      const declaracao = await Declaracoes.findOne({ anoDeclaracao, museu_id: museu });
 
       if (!declaracao) {
         return res.status(404).json({ message: "Declaração não encontrada para o ano especificado." });
@@ -117,15 +115,40 @@ class DeclaracaoController {
   // Retorna todas as declarações do usuário logado
   async getDeclaracoes(req: Request, res: Response) {
     try {
-      const declaracoes = await Declaracoes.find({ responsavelEnvio: req.body.user.sub }).populate({ path: 'museu_id', model: Museu }).sort('-createdAt')
-      return res.status(200).json(declaracoes);
+      // Realiza a agregação para obter a última declaração de cada museu em cada ano
+      const result = await Declaracoes.aggregate([
+        {
+          $match: {
+            responsavelEnvio: new mongoose.Types.ObjectId(req.body.user.sub) // Filtra pelo ID do usuário atual
+          }
+        },
+        {
+          $sort: { anoDeclaracao: 1, museu_nome: 1, createdAt: -1 } // Ordena por ano, museu e createdAt decrescente
+        },
+        {
+          $group: {
+            _id: { museu_id: "$museu_id", anoDeclaracao: "$anoDeclaracao" },
+            latestDeclaracao: { $first: "$$ROOT" } // Seleciona a primeira declaração de cada grupo (a mais recente)
+          }
+        },
+        {
+          $replaceRoot: { newRoot: "$latestDeclaracao" } // Substitui o documento raiz pelo documento mais recente de cada grupo
+        }
+      ]);
+
+      // Popula os documentos de museu referenciados pelo campo museu_id nas declarações agregadas
+      const populatedResult = await Museu.populate(result, { path: 'museu_id' });
+
+      // Retorna o resultado final
+      return res.status(200).json(populatedResult);
     } catch (error) {
       console.error("Erro ao buscar declarações:", error);
       return res.status(500).json({ message: "Erro ao buscar declarações." });
     }
   }
+ 
 
-  async getStatusEnum(req: Request, res: Response){
+  async getStatusEnum(req: Request, res: Response) {
     const statusEnum = Declaracoes.schema.path('status');
     const status = Object.values(statusEnum)[0];
     return res.status(200).json(status);
@@ -151,128 +174,103 @@ class DeclaracaoController {
     }
   }
 
-  async uploadDeclaracao(req: Request, res: Response) {
+
+  async  criarDeclaracao(req: Request, res: Response) {
     try {
-      const { anoDeclaracao, museu: museu_id } = req.params;
-      const museu = await Museu.findOne({ id: museu_id, usuario: req.body.user.sub  })
+      const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params;
+      const user_id = req.body.user.sub;
+      const museu = await Museu.findOne({ id: museu_id, usuario: user_id });
+  
       if (!museu) {
         return res.status(400).json({ success: false, message: "Museu inválido" });
       }
-
+  
       const files = req.files as unknown as { [fieldname: string]: Express.Multer.File[] };
-      const arquivistico = files.arquivisticoArquivo;
-      const bibliografico = files.bibliograficoArquivo;
-      const museologico = files.museologicoArquivo;
-      const declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
-
-
-      const novaDeclaracao = await this.declaracaoService.criarDeclaracao({
-        anoDeclaracao,
-        museu_id: museu.id,
-        museu_nome: museu.nome,
-        user_id: req.body.user.sub,
-        retificacao: declaracaoExistente ? true : false,
-        retificacaoRef: declaracaoExistente ? declaracaoExistente._id as unknown as string : undefined
-      });
-
-      if (arquivistico) {
-        const arquivisticoData = JSON.parse(req.body.arquivistico);
-        const pendenciasArquivistico = JSON.parse(req.body.arquivisticoErros)
-        const hashArquivo = createHashUpdate(arquivistico[0].path, arquivistico[0].filename);
-        novaDeclaracao.arquivistico = {
-          caminho: arquivistico[0].path,
-          nome: arquivistico[0].filename,
-          status: Status.Recebido,
-          hashArquivo,
-          pendencias: pendenciasArquivistico,
-          quantidadeItens: arquivisticoData.length,
-          dataEnvio: gerarData(),
-          versao: 0,
-
-        };
-
-        arquivisticoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = novaDeclaracao._id  as string);
-
-        await Arquivistico.insertMany(arquivisticoData);
-      } else {
-        novaDeclaracao.arquivistico = {
-          status: Status.NaoEnviado,
-          pendencias: [],
-          quantidadeItens: 0,
-          dataEnvio: gerarData(),
-          versao: 0,
-
+  
+      let declaracaoExistente: (mongoose.Document<unknown, {}, DeclaracaoModel> & DeclaracaoModel & Required<{ _id: unknown }>) | null = null;
+      let novaDeclaracaoData: Partial<DeclaracaoModel>;
+      const salt = generateSalt(); // Gerar um novo salt para a declaração
+  
+      if (idDeclaracao) {
+        // Retificação
+        declaracaoExistente = await Declaracoes.findOne({
+          _id: idDeclaracao,
+          responsavelEnvio: user_id,
+          anoDeclaracao,
+          museu_id: museu_id,
+        }).exec();
+  
+        if (!declaracaoExistente) {
+          return res.status(404).json({ message: "Não foi encontrada uma declaração anterior para retificar." });
         }
-      }
-
-      if (bibliografico) {
-        const bibliograficoData = JSON.parse(req.body.bibliografico);
-        const pendenciasBibliografico = JSON.parse(req.body.bibliograficoErros);
-        const hashArquivo = createHashUpdate(bibliografico[0].path, bibliografico[0].filename);
-        novaDeclaracao.bibliografico = {
-          caminho: bibliografico[0].path,
-          nome: bibliografico[0].filename,
-          status: Status.Recebido,
-          hashArquivo,
-          pendencias: pendenciasBibliografico,
-          quantidadeItens: bibliograficoData.length,
-          dataEnvio: gerarData(),
-          versao: 0,
-
+  
+        novaDeclaracaoData = {
+          museu_id: declaracaoExistente.museu_id,
+          museu_nome: declaracaoExistente.museu_nome,
+          anoDeclaracao: declaracaoExistente.anoDeclaracao,
+          responsavelEnvio: declaracaoExistente.responsavelEnvio,
+          totalItensDeclarados: declaracaoExistente.totalItensDeclarados,
+          status: declaracaoExistente.status,
+          retificacao: true,
+          retificacaoRef: declaracaoExistente._id as mongoose.Types.ObjectId,
+          versao: declaracaoExistente.versao + 1,
+          hashDeclaracao: createHash(declaracaoExistente._id as mongoose.Types.ObjectId, salt), 
         };
-
-        bibliograficoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = novaDeclaracao._id  as string);
-
-        await Bibliografico.insertMany(bibliograficoData);
       } else {
-        novaDeclaracao.bibliografico = {
-          status: Status.NaoEnviado,
-          pendencias: [],
-          quantidadeItens: 0,
-          dataEnvio: gerarData(),
-          versao: 0,
-
-        }
-      }
-
-      if (museologico) {
-        const museologicoData = JSON.parse(req.body.museologico);
-        const pendenciasMuseologico = JSON.parse(req.body.museologicoErros);
-        const hashArquivo = createHashUpdate(museologico[0].path, museologico[0].filename);
-        novaDeclaracao.museologico = {
-          caminho: museologico[0].path,
-          nome: museologico[0].filename,
-          status: Status.Recebido,
-          hashArquivo,
-          pendencias: pendenciasMuseologico,
-          quantidadeItens: museologicoData.length,
-          dataEnvio: gerarData(),
-          versao: 0,
-
+        // Nova declaração
+        declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
+  
+        novaDeclaracaoData = {
+          anoDeclaracao,
+          museu_id: museu.id,
+          museu_nome: museu.nome,
+          responsavelEnvio: user_id,
+          retificacao: !!declaracaoExistente,
+          retificacaoRef: declaracaoExistente ? declaracaoExistente._id as mongoose.Types.ObjectId : undefined,
+          versao: (declaracaoExistente?.versao || 0) + 1,
+          hashDeclaracao: createHash(new mongoose.Types.ObjectId(), salt), // Criar o hash para a nova declaração
         };
-
-        museologicoData.forEach((item: { declaracao_ref: string; }) => item.declaracao_ref = novaDeclaracao._id  as string);
-
-        await Museologico.insertMany(museologicoData);
-      } else {
-        novaDeclaracao.museologico = {
-          status: Status.NaoEnviado,
-          pendencias: [],
-          quantidadeItens: 0,
-          dataEnvio: gerarData(),
-          versao: 0,
-
-        }
       }
-
+  
+      const novaDeclaracao = new Declaracoes(novaDeclaracaoData);
+      const novaVersao = novaDeclaracao.versao;
+  
+      // Atualizar a nova declaração com os dados dos arquivos, se forem enviados
+      await this.declaracaoService.updateDeclaracao(
+        files['arquivisticoArquivo'],
+        req.body.arquivistico,
+        req.body.arquivisticoErros,
+        novaDeclaracao,
+        'arquivistico',
+        declaracaoExistente?.arquivistico || null,
+        novaVersao
+      );
+      await this.declaracaoService.updateDeclaracao(
+        files['bibliograficoArquivo'],
+        req.body.bibliografico,
+        req.body.bibliograficoErros,
+        novaDeclaracao,
+        'bibliografico',
+        declaracaoExistente?.bibliografico || null,
+        novaVersao
+      );
+      console.log(req.body.museologico);
+      await this.declaracaoService.updateDeclaracao(
+        files['museologicoArquivo'],
+        req.body.museologico,
+        req.body.museologicoErros,
+        novaDeclaracao,
+        'museologico',
+        declaracaoExistente?.museologico || null,
+        novaVersao
+      );
+  
       await novaDeclaracao.save();
-
-      // Enviar arquivos para a fila e atualizar as declarações separadamente para cada tipo
-
-      return res.status(200).json({ message: "Declaração enviada com sucesso!" });
+  
+      return res.status(200).json(novaDeclaracao);
     } catch (error) {
-      console.error("Erro ao enviar arquivos para a declaração:", error);
-      return res.status(500).json({ message: "Erro ao enviar arquivos para a declaração." });
+      console.error("Erro ao enviar uma declaração:", error);
+      return res.status(500).json({ message: "Erro ao enviar uma declaração." });
     }
   }
   async downloadDeclaracao(req: Request, res: Response) {
@@ -310,62 +308,81 @@ class DeclaracaoController {
       return res.status(500).json({ message: "Erro ao baixar arquivo da declaração." });
     }
   }
+  async uploadDeclaracao(req: Request, res: Response) {
+    delete req.params.idDeclaracao; // Remove o idDeclaracao para diferenciar a operação
+    return this.criarDeclaracao(req, res);
+  }
+  
 
-  /**
- * Retifica uma declaração existente com base nos parâmetros fornecidos na requisição e nos arquivos enviados.
- *
- *  @param req.params - Parâmetros da rota:
- *    @param anoDeclaracao - Ano da declaração.
- *    @param museu - ID do museu.
- *    @param idDeclaracao - ID da declaração a ser retificada.
- *  @param req.body - Corpo da requisição:
- *    @param user.sub - ID do usuário responsável pelo envio.
- *    @param arquivistico - Dados arquivísticos.
- *    @param arquivisticoErros - Erros de dados arquivísticos.
- *    @param bibliografico - Dados bibliográficos.
- *    @param bibliograficoErros - Erros de dados bibliográficos.
- *    @param museologico - Dados museológicos.
- *    @param museologicoErros - Erros de dados museológicos.
- *  @param req.files - Arquivos enviados:
- *    @param arquivisticoArquivo - Arquivo arquivístico.
- *    @param bibliograficoArquivo - Arquivo bibliográfico.
- *    @param museologicoArquivo - Arquivo museológico.
- * @returns Retorna a declaração atualizada ou um erro.
- */
   async retificarDeclaracao(req: Request, res: Response) {
+    return this.criarDeclaracao(req, res);
+  }
+  async listarArquivistico(req: Request, res: Response) {
+    const { museuId, ano } = req.params;
+    const user_id = req.body.user.sub;
     try {
-      const { anoDeclaracao, museu, idDeclaracao } = req.params;
-      const user_id = req.body.user.sub;
-
-      let declaracao = await Declaracoes.findOne({
-        _id: idDeclaracao,
-        responsavelEnvio: user_id,
-        anoDeclaracao: anoDeclaracao,
-        museu_id: museu
-      });
-
-      if (!declaracao) {
-        return res.status(404).json({ message: "Declaração não encontrada para o ano especificado." });
+      const museu = await Museu.findOne({ _id: museuId, usuario: user_id });
+     
+      if (!museu) {
+        return res.status(400).json({ success: false, message: "Museu inválido ou você não tem permissão para acessá-lo" });
       }
-
-      declaracao.retificacao = true;
-      declaracao.dataAtualizacao = gerarData();
-      declaracao.status = Status.Recebido;
-
-      const files = req.files as unknown as { [fieldname: string]: Express.Multer.File[] };
-
-      await this.declaracaoService.updateDeclaracao(files?.arquivisticoArquivo, req.body.arquivistico, req.body.arquivisticoErros, declaracao, 'arquivistico');
-      await this.declaracaoService.updateDeclaracao(files?.bibliograficoArquivo, req.body.bibliografico, req.body.bibliograficoErros, declaracao, 'bibliografico');
-      await this.declaracaoService.updateDeclaracao(files?.museologicoArquivo, req.body.museologico, req.body.museologicoErros, declaracao, 'museologico');
-
-      await declaracao.save();
-
-      return res.status(200).json(declaracao);
+      const result = await this.declaracaoService.buscarItensArquivistico(museuId, ano);
+      if (!result) {
+        return res.status(404).json({ message: "Itens arquivísticos não encontrados" });
+      }
+      res.status(200).json(result);
     } catch (error) {
-      console.error("Erro ao retificar declaração:", error);
-      return res.status(500).json({ message: "Erro ao retificar declaração." });
+      console.error("Erro ao listar itens arquivísticos:", error);
+      if (error instanceof Error) {
+        res.status(500).json({ message: "Erro ao listar itens arquivísticos", error: error.message });
+      } else {
+        res.status(500).json({ message: "Erro desconhecido ao listar itens arquivísticos" });
+      }
     }
   }
+  async listarBibliografico(req: Request, res: Response) {
+    const { museuId, ano } = req.params;
+    const user_id = req.body.user.sub;
+    try {
+      const museu = await Museu.findOne({ _id: museuId, usuario: user_id });
+     
+      if (!museu) {
+        return res.status(400).json({ success: false, message: "Museu inválido ou você não tem permissão para acessá-lo" });
+      }
+      const result = await this.declaracaoService.buscarItensBibliograficos(museuId, ano);
+      if (!result) {
+        return res.status(404).json({ message: "Itens arquivísticos não encontrados" });
+      }
+      res.status(200).json(result);
+    } catch (error) {
+      console.error("Erro ao listar itens arquivísticos:", error);
+      if (error instanceof Error) {
+        res.status(500).json({ message: "Erro ao listar itens arquivísticos", error: error.message });
+      } else {
+        res.status(500).json({ message: "Erro desconhecido ao listar itens arquivísticos" });
+      }
+    }
+  }
+
+
+  async listarMuseologico(req: Request, res: Response) {
+    const { museuId, ano } = req.params;
+    try {
+      const result = await this.declaracaoService.buscarItensMuseologicos(museuId, ano);
+      if (!result) {
+        return res.status(404).json({ message: "Itens museológicos não encontrados" });
+      }
+      res.status(200).json(result);
+    } catch (error) {
+      console.error("Erro ao listar itens museológicos:", error);
+      if (error instanceof Error) {
+        res.status(500).json({ message: "Erro ao listar itens museológicos", error: error.message });
+      } else {
+        res.status(500).json({ message: "Erro desconhecido ao listar itens museológicos" });
+      }
+    }
+  }
+
 }
 
 export default DeclaracaoController;
