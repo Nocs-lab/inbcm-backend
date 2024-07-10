@@ -1,10 +1,7 @@
-
 export enum Status {
-    EmProcessamento = "em processamento",
-    EmAnalise = "em análise",
-    ComPendencias = "com pendências",
-    NaoEnviado = "não enviado",
-    Recebido = "recebido"
-  }
-  
-
+  EmConformidade = "Em conformidade",
+  EmAnalise = "Em análise",
+  NaoConformidade = "Não conformidade",
+  Recebida = "Recebida",
+  NaoEnviado = "Não enviada"
+}
