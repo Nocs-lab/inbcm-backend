@@ -54,11 +54,11 @@ async function buscaUsuario(usuarioId: mongoose.Types.ObjectId) {
  */
 function formatarDadosRecibo(declaracao: DeclaracaoModel, museu: IMuseu, usuario: IUsuario) {
   const totalBensDeclarados =
-    (declaracao.arquivistico.quantidadeItens || 0) +
-    (declaracao.bibliografico.quantidadeItens || 0) +
-    (declaracao.museologico.quantidadeItens || 0);
+  (declaracao.arquivistico?.quantidadeItens || 0) +
+  (declaracao.bibliografico?.quantidadeItens || 0) +
+  (declaracao.museologico?.quantidadeItens || 0);
 
-  const formatValue = (value: number): string => value === 0 ? '---' : value.toString();
+  const formatValue = (value: number | undefined): string => (value === undefined || value === 0) ? '---' : value.toString();
   const tipoDeclaracao = declaracao.retificacao ? "retificadora" : "original";
 
   return {
@@ -76,9 +76,9 @@ function formatarDadosRecibo(declaracao: DeclaracaoModel, museu: IMuseu, usuario
     horaData: new Date().toLocaleString("pt-BR"),
     numeroRecibo: declaracao.hashDeclaracao,
     totalBensDeclarados: formatValue(totalBensDeclarados),
-    bensMuseologicos: formatValue(declaracao.museologico.quantidadeItens),
-    bensBibliograficos: formatValue(declaracao.bibliografico.quantidadeItens),
-    bensArquivisticos: formatValue(declaracao.arquivistico.quantidadeItens),
+    bensMuseologicos: formatValue(declaracao.museologico?.quantidadeItens),
+    bensBibliograficos: formatValue(declaracao.bibliografico?.quantidadeItens),
+    bensArquivisticos: formatValue(declaracao.arquivistico?.quantidadeItens),
     tipoDeclaracao: tipoDeclaracao.toUpperCase()
   };
 }
@@ -108,8 +108,8 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
     const usuario = await buscaUsuario(museu.usuario);
 
     const dadosFormatados = formatarDadosRecibo(declaracao, museu, usuario);
-
-    const docDefinition = {
+    
+    const docDefinition:any = {
       pageSize: 'A4',
       pageMargins: [40, 60, 40, 60],
       
@@ -127,8 +127,7 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
             ]
           }
         },
-        { text: '\nRECIBO DE ENTREGA DE DECLARAÇÃO DE AJUSTE ANUAL\n\n', style: 'title' },
-        { text: '\n\n'},
+        { text: '\nRECIBO DE ENTREGA DE DECLARAÇÃO DE AJUSTE ANUAL\n', style: 'title' },
         { text: `DECLARAÇÃO ${dadosFormatados.tipoDeclaracao}`, style: 'title' },
         { text: '\n\n'},
         {text:'Identificação do declarante',style:'title'},
@@ -166,10 +165,12 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
         },
         { text: '\n\n'},
         { text: `\nSr(a) ${dadosFormatados.nomeDeclarante},\n`, style: 'footerText' },
-        { text: `O NÚMERO DE RECIBO DE SUA DECLARAÇÃO APRESENTADO EM DATA E HORA ${dadosFormatados.horaData} é, \n`, style: 'footerText' },
+        { text: `O NÚMERO DE RECIBO DE SUA DECLARAÇÃO APRESENTADO EM  ${dadosFormatados.horaData} é, \n`, style: 'footerText' },
         { text: '\n\n'},
         { text: dadosFormatados.numeroRecibo, style: 'footerReceipt' }
+        
       ],
+      
       styles: {
         headerLeft: {
           fontSize: 12,
@@ -202,13 +203,14 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
         footerText: {
           fontSize: 10,
           alignment: 'left',
+          color: 'black'
         },
         footerReceipt: {
           fontSize: 10,
           bold: true,
           alignment: 'center',
           border: [true, true, true, true],
-          borderColor: '#FF0000',
+          borderColor: '#0000',
           color: '#000000' 
         },
         pageNumber: {
@@ -218,6 +220,7 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
         }
       }
     };
+    console.log(`Número do recibo: ${dadosFormatados.numeroRecibo}`)
     return new Promise<Buffer>((resolve, reject) => {
       const pdfDoc = printer.createPdfKitDocument(docDefinition);
       let chunks: Buffer[] = [];
