@@ -1,4 +1,3 @@
-import "./config"
 import "express-async-errors"
 import express, { type ErrorRequestHandler } from "express";
 import routes from "./routes/routes";

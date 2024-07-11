@@ -1,8 +1,6 @@
 import crypto from "crypto";
 import { Status } from "../enums/Status";
-import { TipoEnvio } from "../enums/tipoEnvio";
-import { gerarData } from "../utils/dataUtils"
-import { createHash, createHashUpdate } from "../utils/hashUtils";
+import { createHashUpdate } from "../utils/hashUtils";
 import { Declaracoes,Museu,Arquivo, Arquivistico, Bibliografico, Museologico, DeclaracaoModel } from "../models";
 import mongoose from "mongoose";
 
@@ -398,7 +396,7 @@ async updateDeclaracao(
 
 /**
  * Busca os itens arquivisticos com a maior versão para um determinado museu e ano, projetando apenas os campos especificados.
- * 
+ *
  * @param {string} museuId - O ID do museu.
  * @param {string} ano - O ano da declaração.
  * @returns {Promise<Array>} - Retorna uma promessa que resolve para um array de itens arquivisticos com a maior versão e campos especificos.
@@ -443,7 +441,6 @@ async buscarItensArquivistico (museuId: string, ano: string) {
           codigoReferencia: 1,
           titulo: 1,
           nomeProdutor:1
-          
         }
       }
     ]);
@@ -459,7 +456,7 @@ async buscarItensArquivistico (museuId: string, ano: string) {
 
 /**
  * Busca os itens bibliográficos com a maior versão para um determinado museu e ano, projetando apenas os campos especificados.
- * 
+ *
  * @param {string} museuId - O ID do museu.
  * @param {string} ano - O ano da declaração.
  * @returns {Promise<Array>} - Retorna uma promessa que resolve para um array de itens bibliográficos com a maior versão e campos especificos.
@@ -505,8 +502,7 @@ async buscarItensBibliograficos (museuId: string, ano: string){
           numeroRegistro: 1,
           situacao: 1,
           titulo: 1,
-          localProducao:1
-          
+          localProducao: 1
         }
       }
     ]);
@@ -523,7 +519,7 @@ async buscarItensBibliograficos (museuId: string, ano: string){
 
 /**
  * Busca os itens museologicos com a maior versão para um determinado museu e ano, projetando apenas os campos especificados.
- * 
+ *
  * @param {string} museuId - O ID do museu.
  * @param {string} ano - O ano da declaração.
  * @returns {Promise<Array>} - Retorna uma promessa que resolve para um array de itens museologicos com a maior versão e campos especificos.
@@ -568,8 +564,7 @@ async buscarItensMuseologicos(museuId: string, ano: string) {
           numeroRegistro: 1,
           situacao: 1,
           denominacao: 1,
-          autor:1
-          
+          autor: 1
         }
       }
     ]);

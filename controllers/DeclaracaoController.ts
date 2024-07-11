@@ -1,11 +1,9 @@
 import { Request, Response } from "express";
-import { Declaracoes, Bibliografico, Museologico, Arquivistico, DeclaracaoModel } from "../models";
+import { Museu, Declaracoes, DeclaracaoModel } from "../models";
 import DeclaracaoService from "../service/DeclaracaoService";
-import { createHashUpdate, createHash, generateSalt } from "../utils/hashUtils";
-import { Museu } from "../models";
+import { createHash, generateSalt } from "../utils/hashUtils";
 import fs from "fs";
 import path from "path";
-import { Status } from "../enums/Status"
 import mongoose from "mongoose";
 
 class DeclaracaoController {
@@ -146,7 +144,7 @@ class DeclaracaoController {
       return res.status(500).json({ message: "Erro ao buscar declarações." });
     }
   }
- 
+
 
   async getStatusEnum(req: Request, res: Response) {
     const statusEnum = Declaracoes.schema.path('status');
@@ -180,17 +178,17 @@ class DeclaracaoController {
       const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params;
       const user_id = req.body.user.sub;
       const museu = await Museu.findOne({ id: museu_id, usuario: user_id });
-  
+
       if (!museu) {
         return res.status(400).json({ success: false, message: "Museu inválido" });
       }
-  
+
       const files = req.files as unknown as { [fieldname: string]: Express.Multer.File[] };
-  
+
       let declaracaoExistente: (mongoose.Document<unknown, {}, DeclaracaoModel> & DeclaracaoModel & Required<{ _id: unknown }>) | null = null;
       let novaDeclaracaoData: Partial<DeclaracaoModel>;
       const salt = generateSalt(); // Gerar um novo salt para a declaração
-  
+
       if (idDeclaracao) {
         // Retificação
         declaracaoExistente = await Declaracoes.findOne({
@@ -199,11 +197,11 @@ class DeclaracaoController {
           anoDeclaracao,
           museu_id: museu_id,
         }).exec();
-  
+
         if (!declaracaoExistente) {
           return res.status(404).json({ message: "Não foi encontrada uma declaração anterior para retificar." });
         }
-  
+
         novaDeclaracaoData = {
           museu_id: declaracaoExistente.museu_id,
           museu_nome: declaracaoExistente.museu_nome,
@@ -214,12 +212,12 @@ class DeclaracaoController {
           retificacao: true,
           retificacaoRef: declaracaoExistente._id as mongoose.Types.ObjectId,
           versao: declaracaoExistente.versao + 1,
-          hashDeclaracao: createHash(declaracaoExistente._id as mongoose.Types.ObjectId, salt), 
+          hashDeclaracao: createHash(declaracaoExistente._id as mongoose.Types.ObjectId, salt),
         };
       } else {
         // Nova declaração
         declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
-  
+
         novaDeclaracaoData = {
           anoDeclaracao,
           museu_id: museu.id,
@@ -231,10 +229,10 @@ class DeclaracaoController {
           hashDeclaracao: createHash(new mongoose.Types.ObjectId(), salt), // Criar o hash para a nova declaração
         };
       }
-  
+
       const novaDeclaracao = new Declaracoes(novaDeclaracaoData);
       const novaVersao = novaDeclaracao.versao;
-  
+
       // Atualizar a nova declaração com os dados dos arquivos, se forem enviados
       await this.declaracaoService.updateDeclaracao(
         files['arquivisticoArquivo'],
@@ -264,9 +262,9 @@ class DeclaracaoController {
         declaracaoExistente?.museologico || null,
         novaVersao
       );
-  
+
       await novaDeclaracao.save();
-  
+
       return res.status(200).json(novaDeclaracao);
     } catch (error) {
       console.error("Erro ao enviar uma declaração:", error);
@@ -312,7 +310,7 @@ class DeclaracaoController {
     delete req.params.idDeclaracao; // Remove o idDeclaracao para diferenciar a operação
     return this.criarDeclaracao(req, res);
   }
-  
+
 
   async retificarDeclaracao(req: Request, res: Response) {
     return this.criarDeclaracao(req, res);
@@ -322,7 +320,7 @@ class DeclaracaoController {
     const user_id = req.body.user.sub;
     try {
       const museu = await Museu.findOne({ _id: museuId, usuario: user_id });
-     
+
       if (!museu) {
         return res.status(400).json({ success: false, message: "Museu inválido ou você não tem permissão para acessá-lo" });
       }
@@ -345,7 +343,7 @@ class DeclaracaoController {
     const user_id = req.body.user.sub;
     try {
       const museu = await Museu.findOne({ _id: museuId, usuario: user_id });
-     
+
       if (!museu) {
         return res.status(400).json({ success: false, message: "Museu inválido ou você não tem permissão para acessá-lo" });
       }

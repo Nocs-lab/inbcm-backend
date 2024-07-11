@@ -108,11 +108,11 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
     const usuario = await buscaUsuario(museu.usuario);
 
     const dadosFormatados = formatarDadosRecibo(declaracao, museu, usuario);
-    
+
     const docDefinition:any = {
       pageSize: 'A4',
       pageMargins: [40, 60, 40, 60],
-      
+
       content: [
         {
           table: {
@@ -168,9 +168,9 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
         { text: `O NÚMERO DE RECIBO DE SUA DECLARAÇÃO APRESENTADO EM  ${dadosFormatados.horaData} é, \n`, style: 'footerText' },
         { text: '\n\n'},
         { text: dadosFormatados.numeroRecibo, style: 'footerReceipt' }
-        
+
       ],
-      
+
       styles: {
         headerLeft: {
           fontSize: 12,
@@ -211,7 +211,7 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
           alignment: 'center',
           border: [true, true, true, true],
           borderColor: '#0000',
-          color: '#000000' 
+          color: '#000000'
         },
         pageNumber: {
           fontSize: 8,
@@ -224,7 +224,7 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
     return new Promise<Buffer>((resolve, reject) => {
       const pdfDoc = printer.createPdfKitDocument(docDefinition);
       let chunks: Buffer[] = [];
-      
+
       pdfDoc.on('data', (chunk: Buffer) => chunks.push(chunk));
       pdfDoc.on('end', () => {
         const result = Buffer.concat(chunks);

@@ -1,23 +1,15 @@
 import mongoose from "mongoose";
 import Bem from "./BemCultural";
+import { museologico } from "inbcm-xlsx-validator/schema.ts";
+
+const fields: Record<string, unknown> = {}
+
+for (const field of Object.keys(museologico.fields)) {
+  fields[field] = { type: String, maxlength: 1024 }
+}
 
 // Modelo específico para documentos museológicos
-const MuseologicoSchema = new mongoose.Schema({
-  numeroRegistro: { type: String,alias:"nderegistro"},
-  outrosNumeros: { type: String,alias:"outrosnumeros"},
-  situacao: { type: String},
-  denominacao: { type: String},
-  autor: { type: String},
-  classificacao: { type: String },
-  resumoDescritivo: { type: String,alias:"resumodescritivo"},
-  dimensoes: { type: String},
-  materialTecnica: { type: String,alias:"materialtecnica" },
-  estadoConservacao: { type: String,alias:"estadodeconservacao" },
-  localProducao: { type: String,alias:"localdeproducao" },
-  dataProducao: { type: String,alias:"datadeproducao"}
-
-
-});
+const MuseologicoSchema = new mongoose.Schema(fields);
 
 export const Museologico = Bem.discriminator("Museologico", MuseologicoSchema);
 

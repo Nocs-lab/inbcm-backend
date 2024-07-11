@@ -1,8 +1,6 @@
-
 import mongoose, { Schema, Document } from "mongoose";
 import { Status } from "../enums/Status";
 import { TipoEnvio } from "../enums/tipoEnvio";
-
 
 export interface Arquivo {
   nome?: string;
@@ -22,7 +20,7 @@ const ArquivoSchema = new Schema<Arquivo>({
   status: {
     type: String,
     enum: Object.values(Status),
-    default: Status.NaoEnviado,
+    default: Status.Recebida
   },
   pendencias: [String],
   quantidadeItens: { type: Number, default: 0 },
@@ -50,8 +48,8 @@ export interface DeclaracaoModel extends Document {
   retificacao: boolean;
   retificacaoRef: mongoose.Types.ObjectId;
   versao: number;
-  createdAt?: Date;  
-  updatedAt?: Date; 
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export type ArquivoTypes = 'arquivisticoArquivo' | 'bibliograficoArquivo' | 'museologicoArquivo';
