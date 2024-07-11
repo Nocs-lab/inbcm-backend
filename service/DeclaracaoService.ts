@@ -4,6 +4,7 @@ import { TipoEnvio } from "../enums/tipoEnvio";
 import { gerarData } from "../utils/dataUtils"
 import { createHash, createHashUpdate } from "../utils/hashUtils";
 import { Declaracoes,Museu,Arquivo, Arquivistico, Bibliografico, Museologico, DeclaracaoModel } from "../models";
+import mongoose from "mongoose";
 
 class DeclaracaoService {
   async declaracoesPorStatus() {
@@ -247,38 +248,51 @@ class DeclaracaoService {
  * @returns retorna uma nova declaracao ou um erro ao tentar criar uma declaracao
  */
 
-  async criarDeclaracao({ anoDeclaracao, museu_id, user_id, retificacao = false, retificacaoRef, museu_nome }:
-    { anoDeclaracao: string; museu_id: string; user_id: string; retificacao?: boolean; retificacaoRef?: string;
-       museu_nome: string}) {
+  async criarDeclaracao({
+    anoDeclaracao,
+    museu_id,
+    user_id,
+    retificacao = false,
+    retificacaoRef,
+    museu_nome,
+    versao,
+  }: {
+    anoDeclaracao: string;
+    museu_id: string;
+    user_id: string;
+    retificacao?: boolean;
+    retificacaoRef?: string;
+    museu_nome: string;
+    versao: number;
+  }): Promise<DeclaracaoModel> {
     try {
-        // Verificar se já existe uma declaração para o ano e museu especificados
-        const declaracaoExistente = await this.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
-        if (declaracaoExistente) {
-            throw new Error("Você já enviou uma declaração para este museu e ano especificados. Se você deseja retificar a declaração, utilize a opção de retificação.");
-        }
+      const declaracaoExistente = await this.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
+      if (declaracaoExistente) {
+        throw new Error("Você já enviou uma declaração para este museu e ano especificados. Se deseja retificar a declaração, utilize a opção de retificação.");
+      }
 
-        // Gerar o hash da declaração
-        const hashDeclaracao = createHash({ anoDeclaracao, museu_id });
+      // Gerar um novo salt para esta declaração
+      const salt = crypto.randomBytes(16).toString('hex');
 
-        console.log(user_id);
-        // Criar a nova declaração com os campos relacionados à declaração, incluindo museu
-        const novaDeclaracao = await Declaracoes.create({
-            anoDeclaracao,
-            museu_id, // Adicionar museu
-            museu_nome,
-            responsavelEnvio: user_id,
-            hashDeclaracao,
-            dataCriacao: gerarData(),
-            status: Status.Recebido,
-            retificacao,
-            retificacaoRef
-        });
+      const novaDeclaracao = new Declaracoes({
+        anoDeclaracao,
+        museu_id,
+        museu_nome,
+        responsavelEnvio: user_id,
+        status: Status.Recebida,
+        retificacao,
+        retificacaoRef,
+        versao,
+      });
 
-        return novaDeclaracao;
+      await novaDeclaracao.save();
+
+      return novaDeclaracao;
     } catch (error: any) {
-        throw new Error("Erro ao criar declaração: " + error.message);
+      throw new Error("Erro ao criar declaração: " + error.message);
     }
 }
+
 
 
 
@@ -304,65 +318,276 @@ class DeclaracaoService {
  */
 async updateDeclaracao(
   arquivos: Express.Multer.File[] | undefined,
-  dados: string,
-  erros: string,
-  declaracao: DeclaracaoModel,
-  tipo: "arquivistico" | "bibliografico" | "museologico"
+  data: string,
+  errors: string,
+  novaDeclaracao: DeclaracaoModel,
+  tipo: 'arquivistico' | 'bibliografico' | 'museologico',
+  arquivoAnterior: Arquivo | null,
+  novaVersao: number // Este parâmetro define a versão da nova declaração
 ) {
   try {
-    if (arquivos) {
-      const dadosBem = JSON.parse(dados);
-      const pendenciasBem = JSON.parse(erros);
-      const bemExistente = declaracao[tipo];
-      const novoHashDeclaracao = createHashUpdate(arquivos[0].path, arquivos[0].filename);
+    if (arquivos && arquivos.length > 0) {
+      // Processa os dados do arquivo e erros
+      const arquivoData = JSON.parse(data);
+      const pendencias = JSON.parse(errors);
+      const novoHashBemCultural = createHashUpdate(
+        arquivos[0].path,
+        arquivos[0].filename
+      );
+      console.log(arquivoData);
+      // Define os novos dados para o arquivo
+      const dadosAlterados: Partial<Arquivo> = {
+        caminho: arquivos[0].path,
+        nome: arquivos[0].filename,
+        status: Status.Recebida,
+        hashArquivo: novoHashBemCultural,
+        pendencias,
+        quantidadeItens: arquivoData.length,
+        versao: novaVersao, // Atribui a nova versão ao arquivo
+      };
 
-      if (!bemExistente) {
-        throw new Error(`${tipo} não encontrado na declaração.`);
+      // Atualiza apenas os campos modificados na nova declaração
+      novaDeclaracao[tipo] = { ...arquivoAnterior, ...dadosAlterados } as Arquivo;
+
+      // Atualiza os itens relacionados à nova versão da declaração
+      arquivoData.forEach((item: any) => {
+        item.declaracao_ref = novaDeclaracao._id; // Atualiza a referência para a nova declaração
+        item.versao = novaVersao; // Atribui a nova versão ao item
+      });
+
+      // Determina o modelo apropriado com base no tipo de declaração
+      let Modelo;
+      switch (tipo) {
+        case 'arquivistico':
+          Modelo = Arquivistico;
+          break;
+        case 'bibliografico':
+          Modelo = Bibliografico;
+          break;
+        case 'museologico':
+          Modelo = Museologico;
+          break;
+        default:
+          throw new Error('Tipo de declaração inválido');
       }
 
-       declaracao.historicoDeclaracoes.push({
-        versao: declaracao.versao,
-        dataAtualizacao: gerarData(),
-        arquivistico: declaracao.arquivistico,
-        bibliografico: declaracao.bibliografico,
-        museologico: declaracao.museologico,
-      });
+      // Insere os dados associados à nova versão da declaração no banco de dados
+      await Modelo.insertMany(arquivoData);
 
-      // // Atualizar o arquivo com os novos dados
-      bemExistente.nome = arquivos[0].filename;
-      bemExistente.caminho = arquivos[0].path;
-      bemExistente.status = Status.Recebido;
-      bemExistente.pendencias = pendenciasBem;
-      bemExistente.hashArquivo = novoHashDeclaracao;
-      bemExistente.quantidadeItens = dadosBem.length;
-      bemExistente.tipoEnvio = TipoEnvio.Reenviado;
-      bemExistente.dataEnvio = gerarData();
-      bemExistente.versao = (bemExistente.versao || 0) + 1; // Incrementar a versão
-
-
-      declaracao.versao = (declaracao.versao || 0) + 1;
-      declaracao.dataAtualizacao = gerarData();
-
-      // Atualizar a declaração com o novo arquivo
-      declaracao[tipo] = bemExistente;
-
-      // Atualizar os dados de referência
-      dadosBem.forEach((item: { declaracao_ref: string, versao: number }) => {
-        item.declaracao_ref = declaracao._id as string;
-        item.versao = bemExistente.versao; // Atualizar a versão do item
-      });
-
-      // Inserir os dados atualizados
-      await (tipo === 'arquivistico' ? Arquivistico : tipo === 'bibliografico' ? Bibliografico : Museologico).insertMany(dadosBem);
+    } else if (arquivoAnterior) {
+      // Mantém os dados anteriores se não houver novo upload
+      novaDeclaracao[tipo] = { ...arquivoAnterior } as Arquivo;
     }
 
-    await declaracao.save();
+    // Atualiza a referência da retificação, se aplicável
+    if (novaDeclaracao.retificacaoRef) {
+      const declaracaoAnterior = await Declaracoes.findById(novaDeclaracao.retificacaoRef).exec() as DeclaracaoModel | null;
+      if (declaracaoAnterior && declaracaoAnterior._id) {
+        novaDeclaracao.retificacaoRef = declaracaoAnterior._id as mongoose.Types.ObjectId;
+        novaDeclaracao.retificacao = true;
+      }
+    }
+
+    // Salva a nova declaração atualizada no banco de dados
+    await novaDeclaracao.save();
   } catch (error) {
-    console.error("Erro ao atualizar declaração:", error);
-    throw new Error("Erro ao atualizar declaração.");
+    console.error('Erro ao atualizar declaração:', error);
+    throw error;
   }
 }
 
+/**
+ * Busca os itens arquivisticos com a maior versão para um determinado museu e ano, projetando apenas os campos especificados.
+ * 
+ * @param {string} museuId - O ID do museu.
+ * @param {string} ano - O ano da declaração.
+ * @returns {Promise<Array>} - Retorna uma promessa que resolve para um array de itens arquivisticos com a maior versão e campos especificos.
+ */
+async buscarItensArquivistico (museuId: string, ano: string) {
+  try {
+    const maxVersaoResult = await Arquivistico.aggregate([
+      {
+        $lookup: {
+          from: "declaracoes",
+          localField: "declaracao_ref",
+          foreignField: "_id",
+          as: "declaracoes"
+        }
+      },
+      {
+        $unwind: "$declaracoes"
+      },
+      {
+        $match: {
+          "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
+          "declaracoes.anoDeclaracao": ano
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          maxVersao: { $max: "$versao" }
+        }
+      }
+    ]);
+
+    const maxVersao = maxVersaoResult[0]?.maxVersao;
+
+    const result = await Arquivistico.aggregate([
+      {
+        $match: { versao: maxVersao, __t: "Arquivistico" }
+      },
+      {
+        $project: {
+          _id: 1,
+          codigoReferencia: 1,
+          titulo: 1,
+          nomeProdutor:1
+          
+        }
+      }
+    ]);
+
+    console.log("Itens arquivisticos com maior versão encontrados após a consulta:", result);
+
+    return result;
+  } catch (error) {
+    console.error("Erro ao buscar itens arquivisticos com maior versão:", error);
+    throw error;
+  }
 }
+
+/**
+ * Busca os itens bibliográficos com a maior versão para um determinado museu e ano, projetando apenas os campos especificados.
+ * 
+ * @param {string} museuId - O ID do museu.
+ * @param {string} ano - O ano da declaração.
+ * @returns {Promise<Array>} - Retorna uma promessa que resolve para um array de itens bibliográficos com a maior versão e campos especificos.
+ */
+
+async buscarItensBibliograficos (museuId: string, ano: string){
+  try {
+    const maxVersaoResult = await Bibliografico.aggregate([
+      {
+        $lookup: {
+          from: "declaracoes",
+          localField: "declaracao_ref",
+          foreignField: "_id",
+          as: "declaracoes"
+        }
+      },
+      {
+        $unwind: "$declaracoes"
+      },
+      {
+        $match: {
+          "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
+          "declaracoes.anoDeclaracao": ano
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          maxVersao: { $max: "$versao" }
+        }
+      }
+    ]);
+
+    const maxVersao = maxVersaoResult[0]?.maxVersao;
+
+    const result = await Bibliografico.aggregate([
+      {
+        $match: { versao: maxVersao, __t: "Bibliografico" }
+      },
+      {
+        $project: {
+          _id: 1,
+          numeroRegistro: 1,
+          situacao: 1,
+          titulo: 1,
+          localProducao:1
+          
+        }
+      }
+    ]);
+
+    console.log("Itens bibliograficos com maior versão encontrados após a consulta:", result);
+
+    return result;
+  } catch (error) {
+    console.error("Erro ao buscar itens bibliograficos com maior versão:", error);
+    throw error;
+  }
+}
+
+
+/**
+ * Busca os itens museologicos com a maior versão para um determinado museu e ano, projetando apenas os campos especificados.
+ * 
+ * @param {string} museuId - O ID do museu.
+ * @param {string} ano - O ano da declaração.
+ * @returns {Promise<Array>} - Retorna uma promessa que resolve para um array de itens museologicos com a maior versão e campos especificos.
+ */
+async buscarItensMuseologicos(museuId: string, ano: string) {
+  try {
+    const maxVersaoResult = await Museologico.aggregate([
+      {
+        $lookup: {
+          from: "declaracoes",
+          localField: "declaracao_ref",
+          foreignField: "_id",
+          as: "declaracoes"
+        }
+      },
+      {
+        $unwind: "$declaracoes"
+      },
+      {
+        $match: {
+          "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
+          "declaracoes.anoDeclaracao": ano
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          maxVersao: { $max: "$versao" }
+        }
+      }
+    ]);
+
+    const maxVersao = maxVersaoResult[0]?.maxVersao;
+
+    const result = await Museologico.aggregate([
+      {
+        $match: { versao: maxVersao, __t: "Museologico" }
+      },
+      {
+        $project: {
+          _id: 1,
+          numeroRegistro: 1,
+          situacao: 1,
+          denominacao: 1,
+          autor:1
+          
+        }
+      }
+    ]);
+
+
+    console.log("Itens museológicos com maior versão encontrados após a consulta:", result);
+
+    return result;
+  } catch (error) {
+    console.error("Erro ao buscar itens museológicos com maior versão:", error);
+    throw error;
+  }
+}
+
+
+}
+
+
+
 
 export default DeclaracaoService;
