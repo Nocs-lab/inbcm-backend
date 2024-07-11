@@ -26,6 +26,7 @@ const authService = new AuthService()
 routes.use(sanitizeMongo());
 routes.use(sanitizeHtml());
 
+
 //Swagger
 routes.use('/api-docs', swaggerUi.serve);
 routes.get('/api-docs', swaggerUi.setup(swaggerSpec));
@@ -35,8 +36,13 @@ routes.use(
     apiSpec: './openapi.yaml',
     validateRequests: true,
     validateApiSpec: false,
+    ignorePaths: ()=>['/uploads/:museu/:anoDeclaracao','/retificar/:museu/:anoDeclaracao/:idDeclaracao']
   })
 );
+routes.get("/arquivistico/:museuId/:ano", userMiddleware,declaracaoController.listarArquivistico.bind(declaracaoController));
+routes.get("/bibliografico/:museuId/:ano",userMiddleware,declaracaoController.listarBibliografico.bind(declaracaoController));
+routes.get("/museologico/:museuId/:ano",userMiddleware,declaracaoController.listarMuseologico.bind(declaracaoController));
+
 
 /**
  * @swagger
@@ -625,7 +631,7 @@ routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
 routes.post("/auth/login", limiter, async (req, res) => {
   const { email, password } = req.body
   const { admin } = req.query as any
-  const { token, refreshToken, user } = await authService.login({ email, password, admin })
+  const { token, refreshToken, user } = await authService.login({ email, password, admin: admin ?? false })
 
   res.cookie("token", token, {
     httpOnly: true,
