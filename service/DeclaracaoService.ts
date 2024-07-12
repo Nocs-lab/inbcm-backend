@@ -478,11 +478,8 @@ async buscarItensArquivistico (museuId: string, ano: string,userId:string){
       }
     ]);
 
-    console.log("Itens museológicos com maior versão encontrados após a consulta:", result);
-
     return result;
   } catch (error) {
-    console.error("Erro ao buscar itens museológicos com maior versão:", error);
     throw error;
   }
 }
