@@ -175,7 +175,7 @@ class DeclaracaoController {
   }
 
 
-  async  criarDeclaracao(req: Request, res: Response) {
+  async criarDeclaracao(req: Request, res: Response) {
     try {
       const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params;
       const user_id = req.body.user.sub;
@@ -204,6 +204,10 @@ class DeclaracaoController {
           return res.status(404).json({ message: "Não foi encontrada uma declaração anterior para retificar." });
         }
   
+        // Buscar a declaração mais recente para garantir que a versão é incrementada corretamente
+        const ultimaDeclaracao = await Declaracoes.findOne({ museu_id, anoDeclaracao }).sort({ versao: -1 }).exec();
+        const novaVersao = (ultimaDeclaracao?.versao || 0) + 1;
+  
         novaDeclaracaoData = {
           museu_id: declaracaoExistente.museu_id,
           museu_nome: declaracaoExistente.museu_nome,
@@ -213,12 +217,14 @@ class DeclaracaoController {
           status: declaracaoExistente.status,
           retificacao: true,
           retificacaoRef: declaracaoExistente._id as mongoose.Types.ObjectId,
-          versao: declaracaoExistente.versao + 1,
-          hashDeclaracao: createHash(declaracaoExistente._id as mongoose.Types.ObjectId, salt), 
+          versao: novaVersao,
+          hashDeclaracao: createHash(declaracaoExistente._id as mongoose.Types.ObjectId, salt),
         };
+        console.log('Valor de versão após retificação: ' + novaDeclaracaoData.versao);
       } else {
         // Nova declaração
         declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
+        const novaVersao = (declaracaoExistente?.versao || 0) + 1;
   
         novaDeclaracaoData = {
           anoDeclaracao,
@@ -227,13 +233,14 @@ class DeclaracaoController {
           responsavelEnvio: user_id,
           retificacao: !!declaracaoExistente,
           retificacaoRef: declaracaoExistente ? declaracaoExistente._id as mongoose.Types.ObjectId : undefined,
-          versao: (declaracaoExistente?.versao || 0) + 1,
+          versao: novaVersao,
           hashDeclaracao: createHash(new mongoose.Types.ObjectId(), salt), // Criar o hash para a nova declaração
         };
       }
   
       const novaDeclaracao = new Declaracoes(novaDeclaracaoData);
       const novaVersao = novaDeclaracao.versao;
+      console.log("Valor de versão da declaração: " + novaVersao);
   
       // Atualizar a nova declaração com os dados dos arquivos, se forem enviados
       await this.declaracaoService.updateDeclaracao(
@@ -273,6 +280,7 @@ class DeclaracaoController {
       return res.status(500).json({ message: "Erro ao enviar uma declaração." });
     }
   }
+  
   async downloadDeclaracao(req: Request, res: Response) {
     try {
       const { museu, anoDeclaracao, tipoArquivo } = req.params;
@@ -326,7 +334,7 @@ class DeclaracaoController {
       if (!museu) {
         return res.status(400).json({ success: false, message: "Museu inválido ou você não tem permissão para acessá-lo" });
       }
-      const result = await this.declaracaoService.buscarItensArquivistico(museuId, ano);
+      const result = await this.declaracaoService.buscarItensArquivistico(museuId, ano,user_id);
       if (!result) {
         return res.status(404).json({ message: "Itens arquivísticos não encontrados" });
       }
@@ -349,7 +357,7 @@ class DeclaracaoController {
       if (!museu) {
         return res.status(400).json({ success: false, message: "Museu inválido ou você não tem permissão para acessá-lo" });
       }
-      const result = await this.declaracaoService.buscarItensBibliograficos(museuId, ano);
+      const result = await this.declaracaoService.buscarItensBibliograficos(museuId, ano,user_id);
       if (!result) {
         return res.status(404).json({ message: "Itens arquivísticos não encontrados" });
       }
@@ -367,8 +375,14 @@ class DeclaracaoController {
 
   async listarMuseologico(req: Request, res: Response) {
     const { museuId, ano } = req.params;
+    const user_id = req.body.user.sub;
     try {
-      const result = await this.declaracaoService.buscarItensMuseologicos(museuId, ano);
+      const museu = await Museu.findOne({ _id: museuId, usuario: user_id });
+     
+      if (!museu) {
+        return res.status(400).json({ success: false, message: "Museu inválido ou você não tem permissão para acessá-lo" });
+      }
+      const result = await this.declaracaoService.buscarItensMuseologicos(museuId,ano,user_id);
       if (!result) {
         return res.status(404).json({ message: "Itens museológicos não encontrados" });
       }
