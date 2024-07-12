@@ -1,7 +1,5 @@
 import crypto from "crypto";
 import { Status } from "../enums/Status";
-import { TipoEnvio } from "../enums/tipoEnvio";
-import { gerarData } from "../utils/dataUtils"
 import { createHash, createHashUpdate } from "../utils/hashUtils";
 import { Declaracoes,Museu,Arquivo, Arquivistico, Bibliografico, Museologico, DeclaracaoModel } from "../models";
 import mongoose from "mongoose";
