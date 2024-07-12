@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { DeclaracaoModel, Declaracoes, Museu, Usuario } from "../models";
+import {gerarDataFormatada,gerarHoraFormatada} from "../utils/dataUtils"
 import PdfPrinter from "pdfmake";
 import { IMuseu } from '../models/Museu';
 import { IUsuario } from '../models/Usuario';
@@ -73,8 +74,8 @@ function formatarDadosRecibo(declaracao: DeclaracaoModel, museu: IMuseu, usuario
     municipio: museu.endereco.municipio,
     uf: museu.endereco.uf,
     nomeDeclarante: usuario.nome,
-    data: new Date().toLocaleDateString("pt-BR"),
-    hora: new Date().toLocaleTimeString("pt-BR"),
+    data: gerarDataFormatada(new Date()),
+    hora: gerarHoraFormatada(new Date()),
     numeroRecibo: declaracao.hashDeclaracao,
     totalBensDeclarados: formatValue(totalBensDeclarados),
     bensMuseologicos: formatValue(declaracao.museologico?.quantidadeItens),
