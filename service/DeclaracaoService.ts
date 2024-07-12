@@ -403,8 +403,16 @@ async updateDeclaracao(
  * @param {string} ano - O ano da declaração.
  * @returns {Promise<Array>} - Retorna uma promessa que resolve para um array de itens arquivisticos com a maior versão e campos especificos.
  */
-async buscarItensArquivistico (museuId: string, ano: string) {
+async buscarItensArquivistico (museuId: string, ano: string,userId:string){
   try {
+    // Verificar se o museu pertence ao usuário específico
+    const museu = await Museu.findOne({ _id: museuId, usuario: userId });
+
+    if (!museu) {
+      throw new Error("Museu inválido ou você não tem permissão para acessá-lo");
+    }
+
+    // Primeira agregação: encontrar a maior versão
     const maxVersaoResult = await Arquivistico.aggregate([
       {
         $lookup: {
@@ -420,7 +428,8 @@ async buscarItensArquivistico (museuId: string, ano: string) {
       {
         $match: {
           "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
-          "declaracoes.anoDeclaracao": ano
+          "declaracoes.anoDeclaracao": ano,
+          "declaracoes.responsavelEnvio": new mongoose.Types.ObjectId(userId)
         }
       },
       {
@@ -433,9 +442,31 @@ async buscarItensArquivistico (museuId: string, ano: string) {
 
     const maxVersao = maxVersaoResult[0]?.maxVersao;
 
+    if (maxVersao === undefined) {
+      return []; // Se não houver versão encontrada, retornar array vazio
+    }
+
+    // Segunda agregação: buscar os itens museológicos da maior versão encontrada
     const result = await Arquivistico.aggregate([
       {
-        $match: { versao: maxVersao, __t: "Arquivistico" }
+        $lookup: {
+          from: "declaracoes",
+          localField: "declaracao_ref",
+          foreignField: "_id",
+          as: "declaracoes"
+        }
+      },
+      {
+        $unwind: "$declaracoes"
+      },
+      {
+        $match: {
+          versao: maxVersao,
+          "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
+          "declaracoes.anoDeclaracao": ano,
+          "declaracoes.responsavelEnvio": new mongoose.Types.ObjectId(userId),
+          __t: "Arquivistico"
+        }
       },
       {
         $project: {
@@ -443,19 +474,20 @@ async buscarItensArquivistico (museuId: string, ano: string) {
           codigoReferencia: 1,
           titulo: 1,
           nomeProdutor:1
-          
         }
       }
     ]);
 
-    console.log("Itens arquivisticos com maior versão encontrados após a consulta:", result);
+    console.log("Itens museológicos com maior versão encontrados após a consulta:", result);
 
     return result;
   } catch (error) {
-    console.error("Erro ao buscar itens arquivisticos com maior versão:", error);
+    console.error("Erro ao buscar itens museológicos com maior versão:", error);
     throw error;
   }
 }
+
+
 
 /**
  * Busca os itens bibliográficos com a maior versão para um determinado museu e ano, projetando apenas os campos especificados.
@@ -465,8 +497,16 @@ async buscarItensArquivistico (museuId: string, ano: string) {
  * @returns {Promise<Array>} - Retorna uma promessa que resolve para um array de itens bibliográficos com a maior versão e campos especificos.
  */
 
-async buscarItensBibliograficos (museuId: string, ano: string){
+async buscarItensBibliograficos (museuId: string, ano: string,userId: string) {
   try {
+    // Verificar se o museu pertence ao usuário específico
+    const museu = await Museu.findOne({ _id: museuId, usuario: userId });
+
+    if (!museu) {
+      throw new Error("Museu inválido ou você não tem permissão para acessá-lo");
+    }
+
+    // Primeira agregação: encontrar a maior versão
     const maxVersaoResult = await Bibliografico.aggregate([
       {
         $lookup: {
@@ -482,7 +522,8 @@ async buscarItensBibliograficos (museuId: string, ano: string){
       {
         $match: {
           "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
-          "declaracoes.anoDeclaracao": ano
+          "declaracoes.anoDeclaracao": ano,
+          "declaracoes.responsavelEnvio": new mongoose.Types.ObjectId(userId)
         }
       },
       {
@@ -495,9 +536,31 @@ async buscarItensBibliograficos (museuId: string, ano: string){
 
     const maxVersao = maxVersaoResult[0]?.maxVersao;
 
+    if (maxVersao === undefined) {
+      return []; // Se não houver versão encontrada, retornar array vazio
+    }
+
+
     const result = await Bibliografico.aggregate([
       {
-        $match: { versao: maxVersao, __t: "Bibliografico" }
+        $lookup: {
+          from: "declaracoes",
+          localField: "declaracao_ref",
+          foreignField: "_id",
+          as: "declaracoes"
+        }
+      },
+      {
+        $unwind: "$declaracoes"
+      },
+      {
+        $match: {
+          versao: maxVersao,
+          "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
+          "declaracoes.anoDeclaracao": ano,
+          "declaracoes.responsavelEnvio": new mongoose.Types.ObjectId(userId),
+          __t: "Bibliografico"
+        }
       },
       {
         $project: {
@@ -506,16 +569,12 @@ async buscarItensBibliograficos (museuId: string, ano: string){
           situacao: 1,
           titulo: 1,
           localProducao:1
-          
         }
       }
     ]);
 
-    console.log("Itens bibliograficos com maior versão encontrados após a consulta:", result);
-
     return result;
   } catch (error) {
-    console.error("Erro ao buscar itens bibliograficos com maior versão:", error);
     throw error;
   }
 }
@@ -528,8 +587,16 @@ async buscarItensBibliograficos (museuId: string, ano: string){
  * @param {string} ano - O ano da declaração.
  * @returns {Promise<Array>} - Retorna uma promessa que resolve para um array de itens museologicos com a maior versão e campos especificos.
  */
-async buscarItensMuseologicos(museuId: string, ano: string) {
+async buscarItensMuseologicos(museuId: string, ano: string, userId: string) {
   try {
+    // Verificar se o museu pertence ao usuário específico
+    const museu = await Museu.findOne({ _id: museuId, usuario: userId });
+
+    if (!museu) {
+      throw new Error("Museu inválido ou você não tem permissão para acessá-lo");
+    }
+
+    // Primeira agregação: encontrar a maior versão
     const maxVersaoResult = await Museologico.aggregate([
       {
         $lookup: {
@@ -545,7 +612,8 @@ async buscarItensMuseologicos(museuId: string, ano: string) {
       {
         $match: {
           "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
-          "declaracoes.anoDeclaracao": ano
+          "declaracoes.anoDeclaracao": ano,
+          "declaracoes.responsavelEnvio": new mongoose.Types.ObjectId(userId)
         }
       },
       {
@@ -558,9 +626,31 @@ async buscarItensMuseologicos(museuId: string, ano: string) {
 
     const maxVersao = maxVersaoResult[0]?.maxVersao;
 
+    if (maxVersao === undefined) {
+      return []; // Se não houver versão encontrada, retornar array vazio
+    }
+
+    // Segunda agregação: buscar os itens museológicos da maior versão encontrada
     const result = await Museologico.aggregate([
       {
-        $match: { versao: maxVersao, __t: "Museologico" }
+        $lookup: {
+          from: "declaracoes",
+          localField: "declaracao_ref",
+          foreignField: "_id",
+          as: "declaracoes"
+        }
+      },
+      {
+        $unwind: "$declaracoes"
+      },
+      {
+        $match: {
+          versao: maxVersao,
+          "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
+          "declaracoes.anoDeclaracao": ano,
+          "declaracoes.responsavelEnvio": new mongoose.Types.ObjectId(userId),
+          __t: "Museologico"
+        }
       },
       {
         $project: {
@@ -568,18 +658,12 @@ async buscarItensMuseologicos(museuId: string, ano: string) {
           numeroRegistro: 1,
           situacao: 1,
           denominacao: 1,
-          autor:1
-          
+          autor: 1
         }
       }
     ]);
-
-
-    console.log("Itens museológicos com maior versão encontrados após a consulta:", result);
-
     return result;
   } catch (error) {
-    console.error("Erro ao buscar itens museológicos com maior versão:", error);
     throw error;
   }
 }
