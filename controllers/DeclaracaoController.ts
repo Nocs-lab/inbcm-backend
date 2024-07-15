@@ -90,7 +90,6 @@ class DeclaracaoController {
 
       return res.status(200).json(declaracao);
     } catch (error) {
-      console.error("Erro ao buscar declaração por ano:", error);
       return res.status(500).json({ message: "Erro ao buscar declaração por ano." });
     }
   }
@@ -107,7 +106,6 @@ class DeclaracaoController {
 
       return res.status(200).json(declaracao);
     } catch (error) {
-      console.error("Erro ao buscar declaração:", error);
       return res.status(500).json({ message: "Erro ao buscar declaração." });
     }
   }
@@ -169,7 +167,6 @@ class DeclaracaoController {
       const declaracoes = await Declaracoes.find({ pendente: true });
       return res.status(200).json(declaracoes);
     } catch (error) {
-      console.error("Erro ao buscar declarações pendentes:", error);
       return res.status(500).json({ message: "Erro ao buscar declarações pendentes." });
     }
   }
