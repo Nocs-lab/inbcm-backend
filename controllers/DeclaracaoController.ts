@@ -322,78 +322,47 @@ class DeclaracaoController {
   async retificarDeclaracao(req: Request, res: Response) {
     return this.criarDeclaracao(req, res);
   }
-  async listarArquivistico(req: Request, res: Response) {
-    const { museuId, ano } = req.params;
+  
+ 
+
+
+  /**
+ * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
+ * @param {string} req.params.museuId - O ID do museu.
+ * @param {string} req.params.ano - O ano da declaração.
+ * @param {string} req.params.tipo - O tipo de item (Arquivistico, Bibliografico, Museologico).
+ * @description Este método verifica se o museu pertence ao usuário que está fazendo a requisição, e se válido, busca itens de um tipo específico (Arquivistico, Bibliografico, Museologico) da maior versão da declaração para aquele museu e ano.
+ * * @returns {Promise<void>} - Retorna uma promessa que resolve quando a resposta é enviada ao cliente. A promessa não retorna nenhum valor, mas durante sua execução, ela pode enviar uma resposta JSON contendo os itens encontrados ou uma mensagem de erro apropriada.
+ */
+  async listarItensPorTipodeBem(req: Request, res: Response) {
+    const { museuId, ano, tipo } = req.params;
     const user_id = req.body.user.sub;
+  
     try {
       const museu = await Museu.findOne({ _id: museuId, usuario: user_id });
-     
+  
       if (!museu) {
         return res.status(400).json({ success: false, message: "Museu inválido ou você não tem permissão para acessá-lo" });
       }
-      const result = await this.declaracaoService.buscarItensArquivistico(museuId, ano,user_id);
+  
+      const result = await this.declaracaoService.buscarItensPorTipo(museuId, ano, user_id, tipo);
+  
       if (!result) {
-        return res.status(404).json({ message: "Itens arquivísticos não encontrados" });
+        return res.status(404).json({ message: `Itens ${tipo} não encontrados` });
       }
+  
       res.status(200).json(result);
     } catch (error) {
-      console.error("Erro ao listar itens arquivísticos:", error);
+      console.error(`Erro ao listar itens ${tipo}:`, error);
+  
       if (error instanceof Error) {
-        res.status(500).json({ message: "Erro ao listar itens arquivísticos", error: error.message });
+        res.status(500).json({ message: `Erro ao listar itens ${tipo}`, error: error.message });
       } else {
-        res.status(500).json({ message: "Erro desconhecido ao listar itens arquivísticos" });
+        res.status(500).json({ message: `Erro desconhecido ao listar itens ${tipo}` });
       }
     }
   }
-  async listarBibliografico(req: Request, res: Response) {
-    const { museuId, ano } = req.params;
-    const user_id = req.body.user.sub;
-    try {
-      const museu = await Museu.findOne({ _id: museuId, usuario: user_id });
-     
-      if (!museu) {
-        return res.status(400).json({ success: false, message: "Museu inválido ou você não tem permissão para acessá-lo" });
-      }
-      const result = await this.declaracaoService.buscarItensBibliograficos(museuId, ano,user_id);
-      if (!result) {
-        return res.status(404).json({ message: "Itens arquivísticos não encontrados" });
-      }
-      res.status(200).json(result);
-    } catch (error) {
-      console.error("Erro ao listar itens arquivísticos:", error);
-      if (error instanceof Error) {
-        res.status(500).json({ message: "Erro ao listar itens arquivísticos", error: error.message });
-      } else {
-        res.status(500).json({ message: "Erro desconhecido ao listar itens arquivísticos" });
-      }
-    }
-  }
-
-
-  async listarMuseologico(req: Request, res: Response) {
-    const { museuId, ano } = req.params;
-    const user_id = req.body.user.sub;
-    try {
-      const museu = await Museu.findOne({ _id: museuId, usuario: user_id });
-     
-      if (!museu) {
-        return res.status(400).json({ success: false, message: "Museu inválido ou você não tem permissão para acessá-lo" });
-      }
-      const result = await this.declaracaoService.buscarItensMuseologicos(museuId,ano,user_id);
-      if (!result) {
-        return res.status(404).json({ message: "Itens museológicos não encontrados" });
-      }
-      res.status(200).json(result);
-    } catch (error) {
-      console.error("Erro ao listar itens museológicos:", error);
-      if (error instanceof Error) {
-        res.status(500).json({ message: "Erro ao listar itens museológicos", error: error.message });
-      } else {
-        res.status(500).json({ message: "Erro desconhecido ao listar itens museológicos" });
-      }
-    }
-  }
-
+  
 }
 
 export default DeclaracaoController;
