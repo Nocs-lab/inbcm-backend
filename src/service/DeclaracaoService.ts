@@ -2,10 +2,7 @@ import crypto from "crypto";
 import { Status } from "../enums/Status";
 import { createHashUpdate } from "../utils/hashUtils";
 import { Declaracoes,Museu,Arquivo, Arquivistico, Bibliografico, Museologico, DeclaracaoModel } from "../models";
-import { createHash, createHashUpdate } from "../utils/hashUtils";
-import { Declaracoes, Museu, Arquivo, Arquivistico, Bibliografico, Museologico, DeclaracaoModel } from "../models";
 import mongoose from "mongoose";
-import { validate_museologico, validate_bibliografico, validate_arquivistico } from "../xlsx_validator"
 
 class DeclaracaoService {
   async declaracoesPorStatus() {
@@ -317,73 +314,69 @@ class DeclaracaoService {
    * @returns Uma promessa que resolve quando o processamento e a atualização são concluídos com sucesso.
    */
   async updateDeclaracao(
-    arquivos: Express.Multer.File[] | undefined,
-    data: string,
-    errors: string,
+    arquivo: Express.Multer.File | undefined,
     novaDeclaracao: DeclaracaoModel,
     tipo: 'arquivistico' | 'bibliografico' | 'museologico',
     arquivoAnterior: Arquivo | null,
     novaVersao: number // Este parâmetro define a versão da nova declaração
   ) {
     try {
-      if (arquivos && arquivos.length > 0) {
+      const { validate_museologico, validate_bibliografico, validate_arquivistico } = await import("../xlsx_validator/index.js")
+  
+      if (arquivo) {
+        // Determina o modelo apropriado com base no tipo de declaração
+        let Modelo;
+        let validate;
+        switch (tipo) {
+          case 'arquivistico':
+            Modelo = Arquivistico;
+            validate = validate_arquivistico;
+            break;
+          case 'bibliografico':
+            Modelo = Bibliografico;
+            validate = validate_bibliografico;
+            break;
+          case 'museologico':
+            Modelo = Museologico;
+            validate = validate_museologico;
+            break;
+          default:
+            throw new Error('Tipo de declaração inválido');
+        }
         // Processa os dados do arquivo e erros
-        const arquivoData = JSON.parse(data);
-        const pendencias = JSON.parse(errors);
+        const { data: arquivoData, errors: pendencias } = await validate(arquivo.buffer);
         const novoHashBemCultural = createHashUpdate(
-          arquivos[0].path,
-          arquivos[0].filename
+          arquivo.path,
+          arquivo.filename
         );
-       
         // Define os novos dados para o arquivo
         const dadosAlterados: Partial<Arquivo> = {
-          caminho: arquivos[0].path,
-          nome: arquivos[0].filename,
+          caminho: arquivo.path,
+          nome: arquivo.filename,
           status: Status.Recebida,
           hashArquivo: novoHashBemCultural,
           pendencias,
           quantidadeItens: arquivoData.length,
           versao: novaVersao, // Atribui a nova versão ao arquivo
         };
-
+  
         // Atualiza apenas os campos modificados na nova declaração
         novaDeclaracao[tipo] = { ...arquivoAnterior, ...dadosAlterados } as Arquivo;
-
-      // Atualiza os itens relacionados à nova versão da declaração
-      arquivoData.forEach((item: any) => {
-        item.declaracao_ref = novaDeclaracao._id; // Atualiza a referência para a nova declaração
-        item.versao = novaVersao; // Atribui a nova versão ao item
-      });
+  
         // Atualiza os itens relacionados à nova versão da declaração
         arquivoData.forEach((item: any) => {
           item.declaracao_ref = novaDeclaracao._id; // Atualiza a referência para a nova declaração
           item.versao = novaVersao; // Atribui a nova versão ao item
         });
-
-        // Determina o modelo apropriado com base no tipo de declaração
-        let Modelo;
-        switch (tipo) {
-          case 'arquivistico':
-            Modelo = Arquivistico;
-            break;
-          case 'bibliografico':
-            Modelo = Bibliografico;
-            break;
-          case 'museologico':
-            Modelo = Museologico;
-            break;
-          default:
-            throw new Error('Tipo de declaração inválido');
-        }
-
+  
         // Insere os dados associados à nova versão da declaração no banco de dados
         await Modelo.insertMany(arquivoData);
-
+  
       } else if (arquivoAnterior) {
         // Mantém os dados anteriores se não houver novo upload
         novaDeclaracao[tipo] = { ...arquivoAnterior } as Arquivo;
       }
-
+  
       // Atualiza a referência da retificação, se aplicável
       if (novaDeclaracao.retificacaoRef) {
         const declaracaoAnterior = await Declaracoes.findById(novaDeclaracao.retificacaoRef).exec() as DeclaracaoModel | null;
@@ -392,14 +385,14 @@ class DeclaracaoService {
           novaDeclaracao.retificacao = true;
         }
       }
-
+  
       // Salva a nova declaração atualizada no banco de dados
       await novaDeclaracao.save();
     } catch (error) {
+      console.error('Erro ao atualizar declaração:', error);
       throw error;
     }
   }
-
   
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
