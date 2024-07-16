@@ -19,5 +19,10 @@
     "tipoacervo",
     "tipodeclaracao",
     "usuario"
-  ]
+  ],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "always"
+  },
+  "eslint.format.enable": true,
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
 }
