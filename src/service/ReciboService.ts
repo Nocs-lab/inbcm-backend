@@ -81,7 +81,7 @@ function formatarDadosRecibo(
     municipio: museu.endereco.municipio,
     uf: museu.endereco.uf,
     nomeDeclarante: usuario.nome,
-    horaData: new Date().toLocaleString("pt-BR"),
+    data: new Date(),
     numeroRecibo: declaracao.hashDeclaracao,
     totalBensDeclarados: formatValue(totalBensDeclarados),
     bensMuseologicos: formatValue(declaracao.museologico?.quantidadeItens),
@@ -232,7 +232,7 @@ async function gerarPDFRecibo(
           style: "footerText"
         },
         {
-          text: `O NÚMERO DE RECIBO DE SUA DECLARAÇÃO APRESENTADO EM  ${dadosFormatados.horaData} é, \n`,
+          text: `O NÚMERO DE RECIBO DE SUA DECLARAÇÃO APRESENTADO EM  ${dadosFormatados.data} é, \n`,
           style: "footerText"
         },
         { text: "\n\n" },
@@ -264,7 +264,7 @@ async function gerarPDFRecibo(
           fontSize: 12
         },
         sectionHeader: {
-          fontSize: 12,
+          fontSize: 14,
           bold: true,
           alignment: "center"
         },
