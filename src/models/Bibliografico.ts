@@ -1,6 +1,6 @@
 import mongoose from "mongoose"
 import Bem from "./BemCultural"
-const { bibliografico } = await import("inbcm-xlsx-validator/schema")
+import { bibliografico } from "inbcm-xlsx-validator/schema"
 
 const fields: Record<string, unknown> = {}
 

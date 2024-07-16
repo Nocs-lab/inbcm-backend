@@ -15,7 +15,6 @@ const parsed = {
   ADMIN_SITE_URL: process.env.PRIVATE_SITE_URL ?? "https://localhost:5173"
 }
 
-// @ts-ignore
 expand({ parsed, processEnv: parsedEnv })
 
 const schema = z.object({

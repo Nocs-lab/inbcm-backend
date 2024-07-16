@@ -50,7 +50,7 @@ class MuseuController {
 
   static async userMuseus(req: Request, res: Response) {
     try {
-      const user_id = req.body.user.sub
+      const user_id = req.user.id
       const museus = await Museu.find({ usuario: user_id })
       return res.status(200).json(museus)
     } catch (erro) {

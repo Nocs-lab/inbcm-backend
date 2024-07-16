@@ -4,6 +4,8 @@ import PdfPrinter from "pdfmake"
 import { IMuseu } from "../models/Museu"
 import { IUsuario } from "../models/Usuario"
 import path from "path"
+import { gerarDataFormatada, gerarHoraFormatada } from "../utils/dataUtils"
+import { TDocumentDefinitions } from "pdfmake/interfaces"
 
 /**
  * Obtém uma declaração pelo seu ID.
@@ -81,7 +83,8 @@ function formatarDadosRecibo(
     municipio: museu.endereco.municipio,
     uf: museu.endereco.uf,
     nomeDeclarante: usuario.nome,
-    data: new Date(),
+    data: gerarDataFormatada(new Date()),
+    hora: gerarHoraFormatada(new Date()),
     numeroRecibo: declaracao.hashDeclaracao,
     totalBensDeclarados: formatValue(totalBensDeclarados),
     bensMuseologicos: formatValue(declaracao.museologico?.quantidadeItens),
@@ -119,7 +122,7 @@ async function gerarPDFRecibo(
 
     const dadosFormatados = formatarDadosRecibo(declaracao, museu, usuario)
 
-    const docDefinition: any = {
+    const docDefinition: TDocumentDefinitions = {
       pageSize: "A4",
       pageMargins: [40, 60, 40, 60],
 
@@ -178,7 +181,7 @@ async function gerarPDFRecibo(
               [
                 dadosFormatados.logradouro,
                 dadosFormatados.numero,
-                dadosFormatados.complemento
+                dadosFormatados.complemento!
               ],
               [
                 { text: "Bairro", style: "tableHeader" },
@@ -277,8 +280,6 @@ async function gerarPDFRecibo(
           fontSize: 10,
           bold: true,
           alignment: "center",
-          border: [true, true, true, true],
-          borderColor: "#0000",
           color: "#000000"
         },
         pageNumber: {

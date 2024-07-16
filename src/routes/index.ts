@@ -18,19 +18,9 @@ const declaracaoController = new DeclaracaoController()
 const authService = new AuthService()
 
 routes.get(
-  "/arquivistico/:museuId/:ano",
+  "/listar-itens/:museuId/:ano/:tipo",
   userMiddleware,
-  declaracaoController.listarArquivistico.bind(declaracaoController)
-)
-routes.get(
-  "/bibliografico/:museuId/:ano",
-  userMiddleware,
-  declaracaoController.listarBibliografico.bind(declaracaoController)
-)
-routes.get(
-  "/museologico/:museuId/:ano",
-  userMiddleware,
-  declaracaoController.listarMuseologico.bind(declaracaoController)
+  declaracaoController.listarItensPorTipodeBem.bind(declaracaoController)
 )
 
 /**
@@ -668,7 +658,7 @@ routes.get(
  */
 routes.post("/auth/login", limiter, async (req, res) => {
   const { email, password } = req.body
-  const { admin } = req.query as any
+  const { admin } = req.query as unknown as { admin: boolean }
   const { token, refreshToken, user } = await authService.login({
     email,
     password,

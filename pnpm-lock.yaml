@@ -52,7 +52,7 @@ importers:
         version: 7.1.0
       inbcm-xlsx-validator:
         specifier: github:vadolasi/inbcm-xlsx-validator
-        version: https://codeload.github.com/vadolasi/inbcm-xlsx-validator/tar.gz/6359620ae01d2a7eabe52804c103a60ca4758f6e
+        version: https://codeload.github.com/vadolasi/inbcm-xlsx-validator/tar.gz/72e97e5db2e715b709e6dee63e6c7e5730227741
       inquirer:
         specifier: ^9.3.5
         version: 9.3.5
@@ -1892,8 +1892,8 @@ packages:
     resolution: {integrity: sha512-JmXMZ6wuvDmLiHEml9ykzqO6lwFbof0GG4IkcGaENdCRDDmMVnny7s5HsIgHCbaq0w2MyPhDqkhTUgS2LU2PHA==}
     engines: {node: '>=0.8.19'}
 
-  inbcm-xlsx-validator@https://codeload.github.com/vadolasi/inbcm-xlsx-validator/tar.gz/6359620ae01d2a7eabe52804c103a60ca4758f6e:
-    resolution: {tarball: https://codeload.github.com/vadolasi/inbcm-xlsx-validator/tar.gz/6359620ae01d2a7eabe52804c103a60ca4758f6e}
+  inbcm-xlsx-validator@https://codeload.github.com/vadolasi/inbcm-xlsx-validator/tar.gz/72e97e5db2e715b709e6dee63e6c7e5730227741:
+    resolution: {tarball: https://codeload.github.com/vadolasi/inbcm-xlsx-validator/tar.gz/72e97e5db2e715b709e6dee63e6c7e5730227741}
     version: 1.0.0
 
   inflight@1.0.6:
@@ -5235,7 +5235,7 @@ snapshots:
 
   imurmurhash@0.1.4: {}
 
-  inbcm-xlsx-validator@https://codeload.github.com/vadolasi/inbcm-xlsx-validator/tar.gz/6359620ae01d2a7eabe52804c103a60ca4758f6e:
+  inbcm-xlsx-validator@https://codeload.github.com/vadolasi/inbcm-xlsx-validator/tar.gz/72e97e5db2e715b709e6dee63e6c7e5730227741:
     dependencies:
       xlsx: 0.18.5
 

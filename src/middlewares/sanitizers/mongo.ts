@@ -1,11 +1,13 @@
+import type { Request, Response } from "express"
+
 interface PlainObject {
-  [key: string]: any
+  [key: string]: unknown
 }
 
 interface Options {
   allowDots?: boolean
   replaceWith?: string
-  onSanitize?: (info: { req: any; key: string }) => void
+  onSanitize?: (info: { req: unknown; key: string }) => void
   dryRun?: boolean
 }
 
@@ -13,7 +15,7 @@ const TEST_REGEX = /^\$|\./
 const TEST_REGEX_WITHOUT_DOT = /^\$/
 const REPLACE_REGEX = /^\$|\./g
 
-function isPlainObject(obj: any): obj is PlainObject {
+function isPlainObject(obj: unknown): obj is PlainObject {
   return typeof obj === "object" && obj !== null
 }
 
@@ -22,14 +24,14 @@ function getTestRegex(allowDots: boolean | undefined): RegExp {
 }
 
 function withEach(
-  target: any,
+  target: unknown,
   cb: (
-    obj: any,
-    val: any,
+    obj: { [key: string]: unknown },
+    val: unknown,
     key: string
   ) => { shouldRecurse: boolean; key?: string }
 ): void {
-  ;(function act(obj: any): void {
+  ;(function act(obj: unknown): void {
     if (Array.isArray(obj)) {
       obj.forEach(act)
     } else if (isPlainObject(obj)) {
@@ -45,9 +47,9 @@ function withEach(
 }
 
 function _sanitize(
-  target: any,
+  target: unknown,
   options: Options
-): { isSanitized: boolean; target: any } {
+): { isSanitized: boolean; target: unknown } {
   const regex = getTestRegex(options.allowDots)
 
   let isSanitized = false
@@ -105,8 +107,8 @@ function _sanitize(
  */
 function sanitizeMongo(options: Options = {}) {
   const hasOnSanitize = typeof options.onSanitize === "function"
-  return function (req: any, _res: any, next: () => void) {
-    ;["body", "params", "headers", "query"].forEach(function (key) {
+  return function (req: Request, _res: Response, next: () => void) {
+    ;(["body", "params", "headers", "query"] as const).forEach(function (key) {
       if (req[key]) {
         const { target, isSanitized } = _sanitize(req[key], options)
         req[key] = target
