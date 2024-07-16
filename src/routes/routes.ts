@@ -39,9 +39,8 @@ routes.use(
     ignorePaths: () => ['/api/uploads/{museu}/{anoDeclaracao}','/retificar/:museu/:anoDeclaracao/:idDeclaracao']
   })
 );
-routes.get("/arquivistico/:museuId/:ano", userMiddleware,declaracaoController.listarArquivistico.bind(declaracaoController));
-routes.get("/bibliografico/:museuId/:ano",userMiddleware,declaracaoController.listarBibliografico.bind(declaracaoController));
-routes.get("/museologico/:museuId/:ano",userMiddleware,declaracaoController.listarMuseologico.bind(declaracaoController));
+
+routes.get("/listar-itens/:museuId/:ano/:tipo", userMiddleware, declaracaoController.listarItensPorTipodeBem.bind(declaracaoController));
 
 
 /**

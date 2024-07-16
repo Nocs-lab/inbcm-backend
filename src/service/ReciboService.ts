@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { DeclaracaoModel, Declaracoes, Museu, Usuario } from "../models";
+import {gerarDataFormatada,gerarHoraFormatada} from "../utils/dataUtils"
 import PdfPrinter from "pdfmake";
 import { IMuseu } from '../models/Museu';
 import { IUsuario } from '../models/Usuario';
@@ -73,7 +74,8 @@ function formatarDadosRecibo(declaracao: DeclaracaoModel, museu: IMuseu, usuario
     municipio: museu.endereco.municipio,
     uf: museu.endereco.uf,
     nomeDeclarante: usuario.nome,
-    horaData: new Date().toLocaleString("pt-BR"),
+    data: gerarDataFormatada(new Date()),
+    hora: gerarHoraFormatada(new Date()),
     numeroRecibo: declaracao.hashDeclaracao,
     totalBensDeclarados: formatValue(totalBensDeclarados),
     bensMuseologicos: formatValue(declaracao.museologico?.quantidadeItens),
@@ -150,22 +152,22 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
             }
           }
         },
-        { text: '\nTOTAL DE BENS DECLARADOS\n\n', style: 'sectionHeader' },
+        { text: '\nTotal  de bens  declarados', style: 'sectionHeader' },
         {
           table: {
             headerRows: 1,
             widths: ['*', '*'],
             body: [
-              [{ text: 'TOTAL DE BENS DECLARADOS', style: 'tableHeader' }, { text: dadosFormatados.totalBensDeclarados, style: 'tableData' }],
-              [{ text: 'Bens museológicos', style: 'tableHeader' }, { text: dadosFormatados.bensMuseologicos, style: 'tableData' }],
-              [{ text: 'Bens bibliográficos', style: 'tableHeader' }, { text: dadosFormatados.bensBibliograficos, style: 'tableData' }],
-              [{ text: 'Bens arquivísticos', style: 'tableHeader' }, { text: dadosFormatados.bensArquivisticos, style: 'tableData' }]
+              [{ text: 'Bens museológicos', style: 'tableHeader' }, { text: dadosFormatados.bensMuseologicos, style: 'tableData',alignment:'right' }],
+              [{ text: 'Bens bibliográficos', style: 'tableHeader' }, { text: dadosFormatados.bensBibliograficos, style: 'tableData',alignment:'right' }],
+              [{ text: 'Bens arquivísticos', style: 'tableHeader' }, { text: dadosFormatados.bensArquivisticos, style: 'tableData',alignment:'right' }],
+              [{ text: 'TOTAL DE BENS DECLARADOS', style: 'tableHeader' }, { text: dadosFormatados.totalBensDeclarados, style: 'tableData',alignment:'right' }],
             ]
           }
         },
         { text: '\n\n'},
         { text: `\nSr(a) ${dadosFormatados.nomeDeclarante},\n`, style: 'footerText' },
-        { text: `O NÚMERO DE RECIBO DE SUA DECLARAÇÃO APRESENTADO EM  ${dadosFormatados.horaData} é, \n`, style: 'footerText' },
+        { text: `O NÚMERO DE RECIBO DE SUA DECLARAÇÃO, APRESENTADO EM  ${dadosFormatados.data} ás ${dadosFormatados.hora}, é: \n`, style: 'footerText' },
         { text: '\n\n'},
         { text: dadosFormatados.numeroRecibo, style: 'footerReceipt' }
 
@@ -196,7 +198,7 @@ async function gerarPDFRecibo(declaracaoId: mongoose.Types.ObjectId): Promise<Bu
           fontSize: 12
         },
         sectionHeader: {
-          fontSize: 12,
+          fontSize: 14,
           bold: true,
           alignment: 'center'
         },
