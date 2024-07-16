@@ -3,7 +3,6 @@ import { Status } from "../enums/Status";
 import { createHashUpdate } from "../utils/hashUtils";
 import { Declaracoes,Museu,Arquivo, Arquivistico, Bibliografico, Museologico, DeclaracaoModel } from "../models";
 import mongoose from "mongoose";
-import { validate_museologico, validate_bibliografico, validate_arquivistico } from "../xlsx_validator"
 
 class DeclaracaoService {
   async declaracoesPorStatus() {
@@ -323,6 +322,8 @@ async updateDeclaracao(
   novaVersao: number // Este parâmetro define a versão da nova declaração
 ) {
   try {
+    const { validate_museologico, validate_bibliografico, validate_arquivistico } = await import("../xlsx_validator/index.js")
+
     if (arquivo) {
       // Determina o modelo apropriado com base no tipo de declaração
       let Modelo;
