@@ -3,17 +3,22 @@ import jwt from "jsonwebtoken"
 import { Usuario } from "../models/Usuario"
 import { verify } from "@node-rs/argon2"
 import config from "../config"
-import { rateLimit } from 'express-rate-limit'
+import { rateLimit } from "express-rate-limit"
 
 const limiter = rateLimit({
-	windowMs: 2 * 60 * 1000,
-	limit: 50,
+  windowMs: 2 * 60 * 1000,
+  limit: 50,
   keyGenerator: (req) => req.body.user?.sub ?? "anonymous"
 })
 
 export const userMiddleware: Handler = async (req, res, next) => {
   if (config.NODE_ENV !== "PRODUCTION") {
-    const [email, password] = Buffer.from(req.headers["authorization"]?.split(" ")[1] ?? " : ", "base64").toString().split(":")
+    const [email, password] = Buffer.from(
+      req.headers["authorization"]?.split(" ")[1] ?? " : ",
+      "base64"
+    )
+      .toString()
+      .split(":")
 
     const user = await Usuario.findOne({ email, admin: false })
 
@@ -50,7 +55,12 @@ export const userMiddleware: Handler = async (req, res, next) => {
 
 export const adminMiddleware: Handler = async (req, res, next) => {
   if (config.NODE_ENV !== "PRODUCTION") {
-    const [email, password] = Buffer.from(req.headers["authorization"]?.split(" ")[1] ?? " : ", "base64").toString().split(":")
+    const [email, password] = Buffer.from(
+      req.headers["authorization"]?.split(" ")[1] ?? " : ",
+      "base64"
+    )
+      .toString()
+      .split(":")
 
     const user = await Usuario.findOne({ email, admin: true })
 

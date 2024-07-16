@@ -1,4 +1,4 @@
-import mongoose, { Schema, Types, Document } from "mongoose";
+import mongoose, { Schema, Types, Document } from "mongoose"
 
 export interface IUsuario extends Document {
   nome: string
@@ -13,8 +13,12 @@ const UsuarioSchema = new Schema<IUsuario>({
   email: { type: String, required: true, unique: true },
   senha: { type: String, required: true },
   admin: { type: Boolean, default: false },
-  papel_usuario: { type: String, enum: ["administrador", "analista"], default: "analista" }
-});
+  papel_usuario: {
+    type: String,
+    enum: ["administrador", "analista"],
+    default: "analista"
+  }
+})
 
 interface IRefreshToken extends Document {
   expiresAt: Date
@@ -26,6 +30,6 @@ const RefreshTokenSchema = new Schema<IRefreshToken>({
   user: { type: Schema.Types.ObjectId, requied: true, ref: "usuarios" }
 })
 
-export const Usuario = mongoose.model("usuarios", UsuarioSchema);
-export const RefreshToken = mongoose.model("refreshToken", RefreshTokenSchema);
-export default Usuario;
+export const Usuario = mongoose.model("usuarios", UsuarioSchema)
+export const RefreshToken = mongoose.model("refreshToken", RefreshTokenSchema)
+export default Usuario

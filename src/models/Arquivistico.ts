@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
-import Bem from "./BemCultural";
-import { arquivistico } from "../xlsx_validator/schema";
+import mongoose from "mongoose"
+import Bem from "./BemCultural"
+import { arquivistico } from "../xlsx_validator/schema"
 
 const fields: Record<string, unknown> = {}
 
@@ -9,8 +9,10 @@ for (const field of Object.keys(arquivistico.fields)) {
 }
 
 // Modelo específico para documentos arquivísticos
-const ArquivisticoSchema = new mongoose.Schema(fields);
+const ArquivisticoSchema = new mongoose.Schema(fields)
 
 // Use discriminadores para distinguir os modelos
-export const Arquivistico = Bem.discriminator("Arquivistico", ArquivisticoSchema);
-
+export const Arquivistico = Bem.discriminator(
+  "Arquivistico",
+  ArquivisticoSchema
+)

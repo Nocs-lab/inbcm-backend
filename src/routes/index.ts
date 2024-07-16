@@ -1,48 +1,37 @@
-import express from "express";
-import uploadMiddleware from "../middlewares/UploadMiddleware";
-import DeclaracaoController from "../controllers/DeclaracaoController";
-import MuseuController from "../controllers/MuseuController";
-import ReciboController from "../controllers/ReciboController";
-import AuthService from "../service/AuthService";
-import { adminMiddleware, userMiddleware } from "../middlewares/AuthMiddlewares";
-import swaggerUi from "swagger-ui-express";
-import swaggerSpec from '../swagger';
-import * as OpenApiValidator from 'express-openapi-validator';
-import { rateLimit } from 'express-rate-limit'
-import sanitizeMongo from "../middlewares/sanitizers/mongo";
-import sanitizeHtml from "../middlewares/sanitizers/html";
-import fileUpload from "express-fileupload"
+import express from "express"
+import uploadMiddleware from "../middlewares/UploadMiddleware"
+import DeclaracaoController from "../controllers/DeclaracaoController"
+import MuseuController from "../controllers/MuseuController"
+import ReciboController from "../controllers/ReciboController"
+import AuthService from "../service/AuthService"
+import { adminMiddleware, userMiddleware } from "../middlewares/AuthMiddlewares"
+import rateLimit from "express-rate-limit"
 
-// Rate limit para ações onde o usuário ainda não está autenticado
 const limiter = rateLimit({
-	windowMs: 15 * 60 * 1000,
-	limit: 30
+  windowMs: 15 * 60 * 1000,
+  limit: 30
 })
 
-const routes = express.Router();
-const reciboController = new ReciboController();
-const declaracaoController = new DeclaracaoController();
+const routes = express.Router()
+const reciboController = new ReciboController()
+const declaracaoController = new DeclaracaoController()
 const authService = new AuthService()
 
-routes.use(sanitizeMongo());
-routes.use(sanitizeHtml());
-
-//Swagger
-routes.use('/api-docs', swaggerUi.serve);
-routes.get('/api-docs', swaggerUi.setup(swaggerSpec));
-
-routes.use(
-  OpenApiValidator.middleware({
-    apiSpec: './openapi.yaml',
-    validateRequests: true,
-    validateApiSpec: false,
-    ignorePaths: () => ['/api/uploads/{museu}/{anoDeclaracao}','/retificar/:museu/:anoDeclaracao/:idDeclaracao']
-  })
-);
-routes.get("/arquivistico/:museuId/:ano", userMiddleware,declaracaoController.listarArquivistico.bind(declaracaoController));
-routes.get("/bibliografico/:museuId/:ano",userMiddleware,declaracaoController.listarBibliografico.bind(declaracaoController));
-routes.get("/museologico/:museuId/:ano",userMiddleware,declaracaoController.listarMuseologico.bind(declaracaoController));
-
+routes.get(
+  "/arquivistico/:museuId/:ano",
+  userMiddleware,
+  declaracaoController.listarArquivistico.bind(declaracaoController)
+)
+routes.get(
+  "/bibliografico/:museuId/:ano",
+  userMiddleware,
+  declaracaoController.listarBibliografico.bind(declaracaoController)
+)
+routes.get(
+  "/museologico/:museuId/:ano",
+  userMiddleware,
+  declaracaoController.listarMuseologico.bind(declaracaoController)
+)
 
 /**
  * @swagger
@@ -100,7 +89,7 @@ routes.get("/museologico/:museuId/:ano",userMiddleware,declaracaoController.list
  *       '400':
  *         description: Erro ao criar o museu.
  */
-routes.post('/criarMuseu', adminMiddleware, MuseuController.criarMuseu);
+routes.post("/criarMuseu", adminMiddleware, MuseuController.criarMuseu)
 
 /**
  * @swagger
@@ -121,7 +110,7 @@ routes.post('/criarMuseu', adminMiddleware, MuseuController.criarMuseu);
  *       '500':
  *         description: Erro ao listar museus.
  */
-routes.get('/listarMuseus', adminMiddleware, MuseuController.listarMuseus);
+routes.get("/listarMuseus", adminMiddleware, MuseuController.listarMuseus)
 
 /**
  * @swagger
@@ -142,7 +131,7 @@ routes.get('/listarMuseus', adminMiddleware, MuseuController.listarMuseus);
  *       '500':
  *         description: Erro ao listar museus do usuário.
  */
-routes.get("/museus", userMiddleware, MuseuController.userMuseus);
+routes.get("/museus", userMiddleware, MuseuController.userMuseus)
 
 //rota declarações
 /**
@@ -216,7 +205,7 @@ routes.post(
   uploadMiddleware,
   userMiddleware,
   declaracaoController.uploadDeclaracao
-);
+)
 
 /**
  * @swagger
@@ -295,7 +284,7 @@ routes.put(
   // uploadMiddleware,
   userMiddleware,
   declaracaoController.retificarDeclaracao.bind(declaracaoController)
-);
+)
 
 /**
  * @swagger
@@ -333,10 +322,11 @@ routes.put(
  *       '500':
  *         description: Erro ao baixar arquivo da declaração.
  */
-routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
+routes.get(
+  "/download/:museu/:anoDeclaracao/:tipoArquivo",
   userMiddleware,
   declaracaoController.downloadDeclaracao
-);
+)
 
 //routes.get("/declaracoes/:declaracaoId/:tipoArquivo/pendencias",userMiddleware,declaracaoController.listarPendencias);
 
@@ -354,7 +344,7 @@ routes.get("/download/:museu/:anoDeclaracao/:tipoArquivo",
  *       '500':
  *         description: Erro ao buscar declarações.
  */
-routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracoes);
+routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracoes)
 
 /**
  * @swagger
@@ -379,7 +369,11 @@ routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracoes);
  *       '500':
  *         description: Erro ao buscar declaração.
  */
-routes.get("/declaracoes/:id", userMiddleware, declaracaoController.getDeclaracao);
+routes.get(
+  "/declaracoes/:id",
+  userMiddleware,
+  declaracaoController.getDeclaracao
+)
 
 /**
  * @swagger
@@ -412,7 +406,11 @@ routes.get("/declaracoes/:id", userMiddleware, declaracaoController.getDeclaraca
  *       '500':
  *         description: Erro ao buscar declarações.
  */
-routes.get("/declaracoes/:museu/:anoDeclaracao", userMiddleware, declaracaoController.getDeclaracaoAno);
+routes.get(
+  "/declaracoes/:museu/:anoDeclaracao",
+  userMiddleware,
+  declaracaoController.getDeclaracaoAno
+)
 
 /**
  * @swagger
@@ -428,7 +426,11 @@ routes.get("/declaracoes/:museu/:anoDeclaracao", userMiddleware, declaracaoContr
  *       '500':
  *         description: Erro ao buscar declarações com filtros.
  */
-routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
+routes.post(
+  "/declaracoesFiltradas",
+  adminMiddleware,
+  declaracaoController.getDeclaracaoFiltrada
+)
 
 /**
  * @swagger
@@ -442,7 +444,11 @@ routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDe
  *       '200':
  *         description: Valores de enumeração para o status das declarações obtidos com sucesso.
  */
-routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum);
+routes.get(
+  "/getStatusEnum",
+  adminMiddleware,
+  declaracaoController.getStatusEnum
+)
 
 /**
  * @swagger
@@ -458,7 +464,11 @@ routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum
  *       '500':
  *         description: Erro ao buscar declarações com filtros.
  */
-routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDeclaracaoFiltrada);
+routes.post(
+  "/declaracoesFiltradas",
+  adminMiddleware,
+  declaracaoController.getDeclaracaoFiltrada
+)
 
 // atualizar status
 /**
@@ -488,7 +498,11 @@ routes.post("/declaracoesFiltradas", adminMiddleware, declaracaoController.getDe
  *     '200':
  *       description: a
  */
-routes.put("/atualizarStatus/:id", adminMiddleware, declaracaoController.atualizarStatusDeclaracao);
+routes.put(
+  "/atualizarStatus/:id",
+  adminMiddleware,
+  declaracaoController.atualizarStatusDeclaracao
+)
 
 /**
  * @swagger
@@ -504,7 +518,11 @@ routes.put("/atualizarStatus/:id", adminMiddleware, declaracaoController.atualiz
  *       '500':
  *         description: Erro ao buscar declarações pendentes.
  */
-routes.get("/declaracoes/pendentes", adminMiddleware, declaracaoController.getDeclaracaoPendente);
+routes.get(
+  "/declaracoes/pendentes",
+  adminMiddleware,
+  declaracaoController.getDeclaracaoPendente
+)
 
 // routes.get("/getStatusEnum", adminMiddleware, declaracaoController.getStatusEnum);
 
@@ -522,7 +540,11 @@ routes.get("/declaracoes/pendentes", adminMiddleware, declaracaoController.getDe
  *       '500':
  *         description: Erro ao organizar declarações por ano para o dashboard.
  */
-routes.get("/dashboard/anoDeclaracao", adminMiddleware, declaracaoController.getDeclaracoesPorAnoDashboard);
+routes.get(
+  "/dashboard/anoDeclaracao",
+  adminMiddleware,
+  declaracaoController.getDeclaracoesPorAnoDashboard
+)
 
 /**
  * @swagger
@@ -538,7 +560,11 @@ routes.get("/dashboard/anoDeclaracao", adminMiddleware, declaracaoController.get
  *       '500':
  *         description: Erro ao organizar declarações por região para o dashboard.
  */
-routes.get("/dashboard/regiao", adminMiddleware, declaracaoController.getDeclaracoesPorRegiao);
+routes.get(
+  "/dashboard/regiao",
+  adminMiddleware,
+  declaracaoController.getDeclaracoesPorRegiao
+)
 
 /**
  * @swagger
@@ -554,7 +580,11 @@ routes.get("/dashboard/regiao", adminMiddleware, declaracaoController.getDeclara
  *       '500':
  *         description: Erro ao organizar declarações por UF para o dashboard.
  */
-routes.get("/dashboard/UF", adminMiddleware, declaracaoController.getDeclaracoesPorUF);
+routes.get(
+  "/dashboard/UF",
+  adminMiddleware,
+  declaracaoController.getDeclaracoesPorUF
+)
 
 /**
  * @swagger
@@ -570,7 +600,11 @@ routes.get("/dashboard/UF", adminMiddleware, declaracaoController.getDeclaracoes
  *       '500':
  *         description: Erro ao organizar declarações por status para o dashboard.
  */
-routes.get("/dashboard/status", adminMiddleware, declaracaoController.getDeclaracoesPorStatus);
+routes.get(
+  "/dashboard/status",
+  adminMiddleware,
+  declaracaoController.getDeclaracoesPorStatus
+)
 
 //Recibo
 /**
@@ -596,7 +630,11 @@ routes.get("/dashboard/status", adminMiddleware, declaracaoController.getDeclara
  *       '500':
  *         description: Erro ao gerar o recibo.
  */
-routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
+routes.get(
+  "/recibo/:idDeclaracao",
+  userMiddleware,
+  reciboController.gerarRecibo
+)
 
 /**
  * @swagger
@@ -631,7 +669,11 @@ routes.get("/recibo/:idDeclaracao",userMiddleware,reciboController.gerarRecibo);
 routes.post("/auth/login", limiter, async (req, res) => {
   const { email, password } = req.body
   const { admin } = req.query as any
-  const { token, refreshToken, user } = await authService.login({ email, password, admin: admin ?? false })
+  const { token, refreshToken, user } = await authService.login({
+    email,
+    password,
+    admin: admin ?? false
+  })
 
   res.cookie("token", token, {
     httpOnly: true,
@@ -687,4 +729,4 @@ routes.post("/auth/refresh", async (req, res) => {
   }
 })
 
-export default routes;
+export default routes

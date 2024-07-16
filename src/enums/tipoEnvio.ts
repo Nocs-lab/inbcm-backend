@@ -1,6 +1,4 @@
-
-  export enum TipoEnvio {
-    Enviado = "enviado",
-    Reenviado = "reenviado",
-  }
-  
+export enum TipoEnvio {
+  Enviado = "enviado",
+  Reenviado = "reenviado"
+}

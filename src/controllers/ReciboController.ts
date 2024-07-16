@@ -1,6 +1,6 @@
-import { Request, Response } from "express";
-import mongoose from "mongoose";
-import { gerarPDFRecibo } from "../service/ReciboService";
+import { Request, Response } from "express"
+import mongoose from "mongoose"
+import { gerarPDFRecibo } from "../service/ReciboService"
 
 class ReciboController {
   /**
@@ -11,22 +11,22 @@ class ReciboController {
    */
   async gerarRecibo(req: Request, res: Response) {
     try {
-      const { idDeclaracao } = req.params;
+      const { idDeclaracao } = req.params
       if (!mongoose.Types.ObjectId.isValid(idDeclaracao)) {
-        res.status(400).json({ error: "ID inválido." });
-        return;
+        res.status(400).json({ error: "ID inválido." })
+        return
       }
 
-      const declaracaoId = new mongoose.Types.ObjectId(idDeclaracao);
-      const pdfBuffer = await gerarPDFRecibo(declaracaoId);
+      const declaracaoId = new mongoose.Types.ObjectId(idDeclaracao)
+      const pdfBuffer = await gerarPDFRecibo(declaracaoId)
 
-      res.setHeader('Content-Disposition', 'attachment; filename=recibo.pdf');
-      res.setHeader('Content-Type', 'application/pdf');
-      res.send(pdfBuffer);
+      res.setHeader("Content-Disposition", "attachment; filename=recibo.pdf")
+      res.setHeader("Content-Type", "application/pdf")
+      res.send(pdfBuffer)
     } catch (error) {
-      console.error("Erro ao gerar o recibo:", error);
-      res.status(500).json({ error: "Erro ao gerar o recibo." });
+      console.error("Erro ao gerar o recibo:", error)
+      res.status(500).json({ error: "Erro ao gerar o recibo." })
     }
   }
 }
-export default ReciboController;
+export default ReciboController

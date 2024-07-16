@@ -1,5 +1,5 @@
-import { Usuario } from "../models";
-import connect from "../db/conn";
+import { Usuario } from "../models"
+import connect from "../db/conn"
 
 const listUsers = async () => {
   await connect()
@@ -9,10 +9,12 @@ const listUsers = async () => {
   console.log(users)
 }
 
-listUsers().then(() => {
-  console.log('Usuários listados com sucesso!');
-  process.exit(0);
-}).catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+listUsers()
+  .then(() => {
+    console.log("Usuários listados com sucesso!")
+    process.exit(0)
+  })
+  .catch((err) => {
+    console.error(err)
+    process.exit(1)
+  })

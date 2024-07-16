@@ -1,6 +1,6 @@
-import dotenv from 'dotenv';
-import { expand } from 'dotenv-expand';
-import { z } from 'zod';
+import dotenv from "dotenv"
+import { expand } from "dotenv-expand"
+import { z } from "zod"
 
 dotenv.config()
 
@@ -12,7 +12,7 @@ const parsed = {
   DB_PASS: process.env.DB_PASS ?? "",
   DB_URL: process.env.DB_URL ?? "",
   JWT_SECRET: process.env.JWT_SECRET ?? "__SeCrEt__",
-  ADMIN_SITE_URL: process.env.PRIVATE_SITE_URL ?? "https://localhost:5173",
+  ADMIN_SITE_URL: process.env.PRIVATE_SITE_URL ?? "https://localhost:5173"
 }
 
 // @ts-ignore
@@ -24,7 +24,7 @@ const schema = z.object({
   DB_PASS: z.string().min(1),
   DB_URL: z.string().min(1).url(),
   JWT_SECRET: z.string().min(1),
-  ADMIN_SITE_URL: z.string().min(1).url(),
+  ADMIN_SITE_URL: z.string().min(1).url()
 })
 
 const config = schema.parse(parsedEnv)

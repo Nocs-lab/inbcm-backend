@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose"
 
 // Subesquema para arquivos inseridos
 const ArquivoInseridoSchema = new Schema({
@@ -18,14 +18,14 @@ const ArquivoInseridoSchema = new Schema({
     type: String,
     required: true
   }
-});
+})
 
 export interface Recibo extends Document {
-  dataHoraEnvio: Date;
-  numeroIdentificacao: string;
-  confirmacaoRecebimento: boolean;
-  responsavelEnvio: string; // Modificado para garantir que seja sempre uma string
-  arquivosInseridos: typeof ArquivoInseridoSchema[];
+  dataHoraEnvio: Date
+  numeroIdentificacao: string
+  confirmacaoRecebimento: boolean
+  responsavelEnvio: string // Modificado para garantir que seja sempre uma string
+  arquivosInseridos: (typeof ArquivoInseridoSchema)[]
 }
 
 const ReciboSchema = new Schema({
@@ -51,6 +51,6 @@ const ReciboSchema = new Schema({
     type: [ArquivoInseridoSchema],
     default: []
   }
-});
+})
 
-export const ReciboModel = mongoose.model<Recibo>("Recibo", ReciboSchema);
+export const ReciboModel = mongoose.model<Recibo>("Recibo", ReciboSchema)

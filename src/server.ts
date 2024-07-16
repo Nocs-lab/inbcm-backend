@@ -1,9 +1,9 @@
 import "./config"
-import app from "./app";
-import conn from "./db/conn";
+import app from "./app"
+import conn from "./db/conn"
 
-conn();
+conn()
 
-const PORT = parseInt(process.env.PORT || "3000");
+const PORT = parseInt(process.env.PORT || "3000")
 
-app.listen(PORT, () => console.log(`Servidor funcionando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor funcionando na porta ${PORT}`))

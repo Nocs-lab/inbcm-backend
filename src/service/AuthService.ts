@@ -4,7 +4,15 @@ import { RefreshToken, Usuario } from "../models/Usuario"
 import config from "../config"
 
 export default class AuthService {
-  async login({ email, password, admin }: { email: string, password: string, admin: boolean }) {
+  async login({
+    email,
+    password,
+    admin
+  }: {
+    email: string
+    password: string
+    admin: boolean
+  }) {
     const user = await Usuario.findOne({ email, admin })
 
     if (!user) {
@@ -13,8 +21,15 @@ export default class AuthService {
       throw new Error("Senha incorreta")
     }
 
-    const token = jwt.sign({ sub: user.id, admin: user.admin ? true : undefined }, config.JWT_SECRET!, { expiresIn: "1h" })
-    const { id: refreshToken } = await RefreshToken.create({ user, expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 })
+    const token = jwt.sign(
+      { sub: user.id, admin: user.admin ? true : undefined },
+      config.JWT_SECRET!,
+      { expiresIn: "1h" }
+    )
+    const { id: refreshToken } = await RefreshToken.create({
+      user,
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
+    })
 
     return {
       token,
@@ -34,7 +49,11 @@ export default class AuthService {
 
     const user = (await Usuario.findById(refreshTokenObj.user))!
 
-    const newToken = jwt.sign({ sub: user.id, admin: user.admin ? true : undefined }, config.JWT_SECRET, { expiresIn: "1h" })
+    const newToken = jwt.sign(
+      { sub: user.id, admin: user.admin ? true : undefined },
+      config.JWT_SECRET,
+      { expiresIn: "1h" }
+    )
 
     return {
       token: newToken

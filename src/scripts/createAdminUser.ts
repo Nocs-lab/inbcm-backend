@@ -1,11 +1,11 @@
-import { hash } from "@node-rs/argon2";
-import { Usuario } from "../models/Usuario";
-import connect from "../db/conn";
+import { hash } from "@node-rs/argon2"
+import { Usuario } from "../models/Usuario"
+import connect from "../db/conn"
 
-const [email, nome, senha] = process.argv.slice(2);
+const [email, nome, senha] = process.argv.slice(2)
 
 const createAdminUser = async () => {
-  await connect();
+  await connect()
 
   const adminUser = new Usuario({
     email,
@@ -15,13 +15,15 @@ const createAdminUser = async () => {
     museus: []
   })
 
-  await adminUser.save();
+  await adminUser.save()
 }
 
-createAdminUser().then(() => {
-  console.log('Usuário criado com sucesso!');
-  process.exit(0);
-}).catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+createAdminUser()
+  .then(() => {
+    console.log("Usuário criado com sucesso!")
+    process.exit(0)
+  })
+  .catch((err) => {
+    console.error(err)
+    process.exit(1)
+  })
