@@ -16,6 +16,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@kaciras/deasync": "^1.0.4",
     "@node-rs/argon2": "^1.8.3",
     "body-parser": "^1.20.2",
     "compression": "^1.7.4",
