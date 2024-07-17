@@ -3,14 +3,6 @@ import { Museu, Usuario } from "../models";
 import { hash } from "@node-rs/argon2";
 import connect from "../db/conn";
 
-
-function gerarCodIbram(): string {
-  const min = 100000; 
-  const max = 999999; 
-  const randomId = Math.floor(Math.random() * (max - min + 1)) + min;
-  return randomId.toString();
-}
-
 ;(async () => {
   await connect()
 
@@ -43,7 +35,7 @@ function gerarCodIbram(): string {
       uf: fakerPT_BR.location.state({ abbreviated: true })
     },
     esferaAdministraiva: "Privado",
-    codIbram: gerarCodIbram(),
+    codIbram: index + 1,
     usuario: users[index % 2]._id
   })))
 
