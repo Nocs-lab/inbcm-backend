@@ -8,5 +8,8 @@
     "skipLibCheck": true,
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
-  }
+    "types": ["node", "express", "./src/types/express.d.ts"],
+  },
+  "include": ["src/**/*.ts", "eslintrc.config.mjs", ".prettierrc.cjs"],
+  "exclude": ["node_modules/", "dist/"]
 }
