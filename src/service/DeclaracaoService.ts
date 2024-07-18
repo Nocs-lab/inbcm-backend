@@ -10,6 +10,11 @@ import {
   DeclaracaoModel
 } from "../models"
 import mongoose from "mongoose"
+import {
+  validate_museologico,
+  validate_arquivistico,
+  validate_bibliografico
+} from "inbcm-xlsx-validator"
 
 class DeclaracaoService {
   async declaracoesPorStatus() {
@@ -387,8 +392,6 @@ class DeclaracaoService {
    */
   async updateDeclaracao(
     arquivos: Express.Multer.File[] | undefined,
-    data: string,
-    errors: string,
     novaDeclaracao: DeclaracaoModel,
     tipo: "arquivistico" | "bibliografico" | "museologico",
     arquivoAnterior: Arquivo | null,
@@ -396,11 +399,21 @@ class DeclaracaoService {
   ) {
     if (arquivos && arquivos.length > 0) {
       // Processa os dados do arquivo e erros
-      const arquivoData = JSON.parse(data)
-      const pendencias = JSON.parse(errors)
       const novoHashBemCultural = createHashUpdate(
         arquivos[0].path,
         arquivos[0].filename
+      )
+
+      let validate = validate_arquivistico
+
+      if (tipo === "bibliografico") {
+        validate = validate_bibliografico
+      } else if (tipo === "museologico") {
+        validate = validate_museologico
+      }
+
+      const { data: arquivoData, errors: pendencias } = await validate(
+        arquivos[0].buffer
       )
 
       // Define os novos dados para o arquivo
@@ -490,38 +503,17 @@ class DeclaracaoService {
     }
 
     // Definir o modelo e os campos de projeção com base no tipo de item
-    let Model
-    let projectFields
+    let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico
 
     switch (tipoItem) {
       case "arquivistico":
         Model = Arquivistico
-        projectFields = {
-          _id: 1,
-          codigoReferencia: 1,
-          titulo: 1,
-          nomeProdutor: 1
-        }
         break
       case "bibliografico":
         Model = Bibliografico
-        projectFields = {
-          _id: 1,
-          numeroRegistro: 1,
-          situacao: 1,
-          titulo: 1,
-          localProducao: 1
-        }
         break
       case "museologico":
         Model = Museologico
-        projectFields = {
-          _id: 1,
-          numeroRegistro: 1,
-          situacao: 1,
-          denominacao: 1,
-          autor: 1
-        }
         break
       default:
         throw new Error("Tipo de item inválido")
@@ -562,31 +554,16 @@ class DeclaracaoService {
     }
 
     // Segunda agregação: buscar os itens do tipo especificado da maior versão encontrada
-    const result = await Model.aggregate([
-      {
-        $lookup: {
-          from: "declaracoes",
-          localField: "declaracao_ref",
-          foreignField: "_id",
-          as: "declaracoes"
-        }
-      },
-      {
-        $unwind: "$declaracoes"
-      },
-      {
-        $match: {
-          versao: maxVersao,
-          "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
-          "declaracoes.anoDeclaracao": ano,
-          "declaracoes.responsavelEnvio": new mongoose.Types.ObjectId(userId),
-          __t: tipoItem
-        }
-      },
-      {
-        $project: projectFields
+    const result = Model.find({
+      versao: maxVersao
+    }).populate({
+      path: "declaracao_ref",
+      match: {
+        museu_id: museuId,
+        anoDeclaracao: ano,
+        responsavelEnvio: userId
       }
-    ])
+    })
 
     return result
   }
