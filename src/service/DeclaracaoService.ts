@@ -504,16 +504,20 @@ class DeclaracaoService {
 
     // Definir o modelo e os campos de projeção com base no tipo de item
     let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico
+    let retornoPorItem: string
 
     switch (tipoItem) {
       case "arquivistico":
         Model = Arquivistico
+        retornoPorItem = "_id codigoReferencia titulo" // Defina os campos específicos para arquivistico
         break
       case "bibliografico":
         Model = Bibliografico
+        retornoPorItem = "_id numeroRegistro situacao titulo localProducao" // Defina os campos específicos para bibliografico
         break
       case "museologico":
         Model = Museologico
+        retornoPorItem = "_id numeroRegistro situacao denominacao" // Defina os campos específicos para museologico
         break
       default:
         throw new Error("Tipo de item inválido")
@@ -554,16 +558,18 @@ class DeclaracaoService {
     }
 
     // Segunda agregação: buscar os itens do tipo especificado da maior versão encontrada
-    const result = Model.find({
+    const result = await Model.find({
       versao: maxVersao
-    }).populate({
-      path: "declaracao_ref",
-      match: {
-        museu_id: museuId,
-        anoDeclaracao: ano,
-        responsavelEnvio: userId
-      }
     })
+      .populate({
+        path: "declaracao_ref",
+        match: {
+          museu_id: museuId,
+          anoDeclaracao: ano,
+          responsavelEnvio: userId
+        }
+      })
+      .select(retornoPorItem)
 
     return result
   }
