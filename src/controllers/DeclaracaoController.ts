@@ -293,18 +293,14 @@ class DeclaracaoController {
 
       // Atualizar a nova declaração com os dados dos arquivos, se forem enviados
       await this.declaracaoService.updateDeclaracao(
-        files["arquivisticoArquivo"],
-        req.body.arquivistico,
-        req.body.arquivisticoErros,
+        files["arquivistico"],
         novaDeclaracao,
         "arquivistico",
         declaracaoExistente?.arquivistico || null,
         novaVersao
       )
       await this.declaracaoService.updateDeclaracao(
-        files["bibliograficoArquivo"],
-        req.body.bibliografico,
-        req.body.bibliograficoErros,
+        files["bibliografico"],
         novaDeclaracao,
         "bibliografico",
         declaracaoExistente?.bibliografico || null,
@@ -312,9 +308,7 @@ class DeclaracaoController {
       )
       console.log(req.body.museologico)
       await this.declaracaoService.updateDeclaracao(
-        files["museologicoArquivo"],
-        req.body.museologico,
-        req.body.museologicoErros,
+        files["museologico"],
         novaDeclaracao,
         "museologico",
         declaracaoExistente?.museologico || null,
