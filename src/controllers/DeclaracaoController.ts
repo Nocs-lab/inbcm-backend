@@ -373,7 +373,14 @@ class DeclaracaoController {
     }
   }
   async uploadDeclaracao(req: Request, res: Response) {
-    delete req.params.idDeclaracao // Remove o idDeclaracao para diferenciar a operação
+    delete req.params.idDeclaracao
+    const declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(req.params.museu,req.params.anoDeclaracao)
+    if (!!declaracaoExistente) {
+      return res.status(406).json({
+        status: false,
+        message: 'Já existe declaração para museu e ano referência informados. Para alterar a declaração é preciso refica-la'
+      });
+    }
     return this.criarDeclaracao(req, res)
   }
 
