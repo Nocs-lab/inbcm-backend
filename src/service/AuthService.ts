@@ -21,6 +21,10 @@ export default class AuthService {
       throw new Error("Senha incorreta")
     }
 
+    if (user.ativo == false) {
+      throw new Error("Não é possível realizar o login com essa conta.")
+    }
+
     const token = jwt.sign(
       { sub: user.id, admin: user.admin ? true : undefined },
       config.JWT_SECRET!,
