@@ -2,6 +2,9 @@ import express from "express"
 import uploadMiddleware from "../middlewares/UploadMiddleware"
 import DeclaracaoController from "../controllers/DeclaracaoController"
 import MuseuController from "../controllers/MuseuController"
+import ProfileController from "../controllers/ProfileController"
+import PermissionController from "../controllers/PermissionController"
+import UsuarioController from "../controllers/UsuarioController"
 import ReciboController from "../controllers/ReciboController"
 import AuthService from "../service/AuthService"
 import { adminMiddleware, userMiddleware } from "../middlewares/AuthMiddlewares"
@@ -22,6 +25,25 @@ routes.get(
   userMiddleware,
   declaracaoController.listarItensPorTipodeBem.bind(declaracaoController)
 )
+
+//Permission
+routes.get('/permissions', PermissionController.getPermissions);
+
+
+//Profile
+routes.post('/profile', ProfileController.createProfile);
+routes.get('/profiles',ProfileController.getProfiles);
+routes.get('/profile/:id', ProfileController.getProfileById);
+routes.put('/profile/:id', ProfileController.updateProfile);
+routes.delete('/profile/:id', ProfileController.deleteProfile);
+routes.post('/profile/addPermissions', ProfileController.addPermissions);
+
+
+//Usuário
+routes.post('/user', UsuarioController.registerUsuarioByAdmin);
+routes.get('/users', UsuarioController.getUsuarios);
+routes.get('/user/:id', UsuarioController.getUsuarioPorId);
+routes.put('/user/:id', UsuarioController.atualizarUsuario);
 
 /**
  * @swagger
