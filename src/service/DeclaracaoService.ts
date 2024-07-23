@@ -496,31 +496,31 @@ class DeclaracaoService {
     tipoItem: string
   ) {
     // Verificar se o museu pertence ao usuário específico
-    const museu = await Museu.findOne({ _id: museuId, usuario: userId })
+    const museu = await Museu.findOne({ _id: museuId, usuario: userId });
 
     if (!museu) {
-      throw new Error("Museu inválido ou você não tem permissão para acessá-lo")
+      throw new Error("Museu inválido ou você não tem permissão para acessá-lo");
     }
 
     // Definir o modelo e os campos de projeção com base no tipo de item
-    let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico
-    let retornoPorItem: string
+    let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico;
+    let retornoPorItem: string;
 
     switch (tipoItem) {
       case "arquivistico":
-        Model = Arquivistico
-        retornoPorItem = "_id codigoReferencia titulo" // Defina os campos específicos para arquivistico
-        break
+        Model = Arquivistico;
+        retornoPorItem = "_id coddereferencia titulo nomedoprodutor"; // Defina os campos específicos para arquivistico
+        break;
       case "bibliografico":
-        Model = Bibliografico
-        retornoPorItem = "_id numeroRegistro situacao titulo localProducao" // Defina os campos específicos para bibliografico
-        break
+        Model = Bibliografico;
+        retornoPorItem = "_id nderegistro situacao titulo localdeproducao"; // Defina os campos específicos para bibliografico
+        break;
       case "museologico":
-        Model = Museologico
-        retornoPorItem = "_id numeroRegistro situacao denominacao" // Defina os campos específicos para museologico
-        break
+        Model = Museologico;
+        retornoPorItem = "_id nderegistro autor situacao denominacao"; // Defina os campos específicos para museologico
+        break;
       default:
-        throw new Error("Tipo de item inválido")
+        throw new Error("Tipo de item inválido");
     }
 
     // Primeira agregação: encontrar a maior versão
@@ -554,24 +554,22 @@ class DeclaracaoService {
     const maxVersao = maxVersaoResult[0]?.maxVersao
 
     if (maxVersao === undefined) {
-      return [] // Se não houver versão encontrada, retornar array vazio
+      return []; // Se não houver versão encontrada, retornar array vazio
     }
 
     // Segunda agregação: buscar os itens do tipo especificado da maior versão encontrada
     const result = await Model.find({
-      versao: maxVersao
-    })
-      .populate({
-        path: "declaracao_ref",
-        match: {
-          museu_id: museuId,
+      versao: maxVersao,
+      declaracao_ref: {
+        $in: await Declaracoes.find({
+          museu_id: new mongoose.Types.ObjectId(museuId),
           anoDeclaracao: ano,
-          responsavelEnvio: userId
-        }
-      })
-      .select(retornoPorItem)
+          responsavelEnvio: new mongoose.Types.ObjectId(userId)
+        }).select('_id')
+      }
+    }).select(retornoPorItem);
 
-    return result
+    return result;
   }
 }
 
