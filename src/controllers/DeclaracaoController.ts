@@ -204,27 +204,23 @@ class DeclaracaoController {
 
   async criarDeclaracao(req: Request, res: Response) {
     try {
-      const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params
+      const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params;
       const user_id = req.user.id
-      const museu = await Museu.findOne({ id: museu_id, usuario: user_id })
 
+      const museu = await Museu.findOne({ _id: museu_id, usuario: user_id });
       if (!museu) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Museu inválido" })
+        return res.status(400).json({ success: false, message: "Museu inválido" });
       }
 
-      const files = req.files as unknown as {
-        [fieldname: string]: Express.Multer.File[]
-      }
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
       let declaracaoExistente:
         | (mongoose.Document<unknown, object, DeclaracaoModel> &
-            DeclaracaoModel &
-            Required<{ _id: unknown }>)
-        | null = null
-      let novaDeclaracaoData: Partial<DeclaracaoModel>
-      const salt = generateSalt() // Gerar um novo salt para a declaração
+          DeclaracaoModel &
+          Required<{ _id: unknown }>)
+        | null = null;
+      let novaDeclaracaoData: Partial<DeclaracaoModel>;
+      const salt = generateSalt(); // Gerar um novo salt para a declaração
 
       if (idDeclaracao) {
         // Retificação
@@ -232,24 +228,23 @@ class DeclaracaoController {
           _id: idDeclaracao,
           responsavelEnvio: user_id,
           anoDeclaracao,
-          museu_id: museu_id
+          museu_id,
         }).exec()
 
         if (!declaracaoExistente) {
           return res.status(404).json({
-            message:
-              "Não foi encontrada uma declaração anterior para retificar."
+            message: "Não foi encontrada uma declaração anterior para retificar.",
           })
         }
 
         // Buscar a declaração mais recente para garantir que a versão é incrementada corretamente
         const ultimaDeclaracao = await Declaracoes.findOne({
           museu_id,
-          anoDeclaracao
+          anoDeclaracao,
         })
           .sort({ versao: -1 })
           .exec()
-        const novaVersao = (ultimaDeclaracao?.versao || 0) + 1
+        const novaVersao = (ultimaDeclaracao?.versao || 0) + 1;
 
         novaDeclaracaoData = {
           museu_id: declaracaoExistente.museu_id,
@@ -264,11 +259,8 @@ class DeclaracaoController {
           hashDeclaracao: createHash(
             declaracaoExistente._id as mongoose.Types.ObjectId,
             salt
-          )
+          ),
         }
-        console.log(
-          "Valor de versão após retificação: " + novaDeclaracaoData.versao
-        )
       } else {
         // Nova declaração
         declaracaoExistente =
@@ -276,11 +268,11 @@ class DeclaracaoController {
             museu_id,
             anoDeclaracao
           )
-        const novaVersao = (declaracaoExistente?.versao || 0) + 1
+        const novaVersao = (declaracaoExistente?.versao || 0) + 1;
 
         novaDeclaracaoData = {
           anoDeclaracao,
-          museu_id: museu.id,
+          museu_id: museu._id as unknown as mongoose.Types.ObjectId,
           museu_nome: museu.nome,
           responsavelEnvio: user_id as unknown as mongoose.Types.ObjectId,
           retificacao: !!declaracaoExistente,
@@ -288,13 +280,12 @@ class DeclaracaoController {
             ? (declaracaoExistente._id as mongoose.Types.ObjectId)
             : undefined,
           versao: novaVersao,
-          hashDeclaracao: createHash(new mongoose.Types.ObjectId(), salt) // Criar o hash para a nova declaração
+          hashDeclaracao: createHash(new mongoose.Types.ObjectId(), salt), // Criar o hash para a nova declaração
         }
       }
 
-      const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
-      const novaVersao = novaDeclaracao.versao
-      console.log("Valor de versão da declaração: " + novaVersao)
+      const novaDeclaracao = new Declaracoes(novaDeclaracaoData);
+      const novaVersao = novaDeclaracao.versao;
 
       // Atualizar a nova declaração com os dados dos arquivos, se forem enviados
       await this.declaracaoService.updateDeclaracao(
@@ -303,24 +294,24 @@ class DeclaracaoController {
         "arquivistico",
         declaracaoExistente?.arquivistico || null,
         novaVersao
-      )
+      );
       await this.declaracaoService.updateDeclaracao(
         files["bibliografico"],
         novaDeclaracao,
         "bibliografico",
         declaracaoExistente?.bibliografico || null,
         novaVersao
-      )
-      console.log(req.body.museologico)
+      );
       await this.declaracaoService.updateDeclaracao(
         files["museologico"],
         novaDeclaracao,
         "museologico",
         declaracaoExistente?.museologico || null,
         novaVersao
-      )
+      );
 
-      await novaDeclaracao.save()
+      novaDeclaracao.ultimaDeclaracao = true;
+      await novaDeclaracao.save();
 
       await Declaracoes.updateMany(
         {
@@ -331,13 +322,10 @@ class DeclaracaoController {
         { ultimaDeclaracao: false }
       );
 
-      novaDeclaracao.ultimaDeclaracao = true;
-      await novaDeclaracao.save();
 
-      return res.status(200).json(novaDeclaracao)
+      return res.status(200).json(novaDeclaracao);
     } catch (error) {
-      console.error("Erro ao enviar uma declaração:", error)
-      return res.status(500).json({ message: "Erro ao enviar uma declaração." })
+      return res.status(500).json({ message: "Erro ao enviar uma declaração: ", error });
     }
   }
 
@@ -390,7 +378,7 @@ class DeclaracaoController {
     }
   }
   async uploadDeclaracao(req: Request, res: Response) {
-    const declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(req.params.museu,req.params.anoDeclaracao)
+    const declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(req.params.museu, req.params.anoDeclaracao)
     if (declaracaoExistente) {
       return res.status(406).json({
         status: false,
