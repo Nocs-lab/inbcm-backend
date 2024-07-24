@@ -15,7 +15,8 @@ import {
   validate_arquivistico,
   validate_bibliografico
 } from "inbcm-xlsx-validator"
-
+import { createHash, generateSalt } from "../utils/hashUtils"
+import { StringDecoder } from "string_decoder"
 class DeclaracaoService {
   async declaracoesPorStatus() {
     try {
@@ -307,70 +308,7 @@ class DeclaracaoService {
     }
   }
 
-  /**
-   * Processa e atualiza um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
-   *
-   * @param anoDeclaracao - ano de criacao da declaracao.
-   * @param museu_id - id do museu o qual deseja-se criar uma declaracao.
-   * @param retificacao - faz referenciao ao estado de originalidade de declaracao.
-   * @param retificacaoRef - A declaração que está sendo atualizada.
-   * @param muse_nome - nome do museu o qual deseja-se criar uma declaracao
-   *
-   * @returns retorna uma nova declaracao ou um erro ao tentar criar uma declaracao
-   */
-
-  async criarDeclaracao({
-    anoDeclaracao,
-    museu_id,
-    user_id,
-    retificacao = false,
-    retificacaoRef,
-    museu_nome,
-    versao
-  }: {
-    anoDeclaracao: string
-    museu_id: string
-    user_id: string
-    retificacao?: boolean
-    retificacaoRef?: string
-    museu_nome: string
-    versao: number
-  }): Promise<DeclaracaoModel> {
-    try {
-      const declaracaoExistente = await this.verificarDeclaracaoExistente(
-        museu_id,
-        anoDeclaracao
-      )
-      if (declaracaoExistente) {
-        throw new Error(
-          "Você já enviou uma declaração para este museu e ano especificados. Se deseja retificar a declaração, utilize a opção de retificação."
-        )
-      }
-
-      const novaDeclaracao = new Declaracoes({
-        anoDeclaracao,
-        museu_id,
-        museu_nome,
-        responsavelEnvio: user_id,
-        status: Status.Recebida,
-        retificacao,
-        retificacaoRef,
-        versao
-      })
-
-      await novaDeclaracao.save()
-
-      return novaDeclaracao
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw new Error("Erro ao criar declaração: " + error.message)
-      }
-      throw new Error("Erro ao criar declaração.")
-    }
-  }
-
   async verificarDeclaracaoExistente(museu: string, anoDeclaracao: string) {
-    // Verifique se existe uma declaração com o ano fornecido
     const declaracaoExistente = await Declaracoes.findOne({
       anoDeclaracao,
       museu_id: museu
@@ -378,6 +316,52 @@ class DeclaracaoService {
 
     return declaracaoExistente
   }
+
+  /**
+   * Processa e atualiza um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
+   *
+   * @param anoDeclaracao - ano de criacao da declaracao.
+   * @param responsavelEnvio  - usuario logado responsavel pelo envio da declaracao
+   * @param museu_id - id do museu o qual deseja-se criar uma declaracao.
+   * @param muse_nome - nome do museu o qual deseja-se criar uma declaracao
+   *
+   * @returns retorna uma nova declaracao ou um erro ao tentar criar uma declaracao
+   */
+  async criarDadosDeclaracao(
+    museu: mongoose.Types.ObjectId | any,
+    responsavelEnvio: mongoose.Types.ObjectId | string,
+    anoDeclaracao: string,
+    declaracaoExistente: any,
+    novaVersao: number,
+    salt: string
+) {
+ 
+
+    return declaracaoExistente
+        ? {
+            museu_id: declaracaoExistente.museu_id,
+            museu_nome: declaracaoExistente.museu_nome,
+            anoDeclaracao: declaracaoExistente.anoDeclaracao,
+            responsavelEnvio: declaracaoExistente.responsavelEnvio,
+            totalItensDeclarados: declaracaoExistente.totalItensDeclarados,
+            status: declaracaoExistente.status,
+            retificacao: true,
+            retificacaoRef: declaracaoExistente._id as mongoose.Types.ObjectId,
+            versao: novaVersao,
+            hashDeclaracao: createHash(declaracaoExistente._id as mongoose.Types.ObjectId, salt),
+        }
+        : {
+            anoDeclaracao,
+            museu_id: museu,
+            museu_nome: museu.nome,
+            responsavelEnvio: responsavelEnvio,
+            retificacao: false,
+            versao: novaVersao,
+            status: Status.Recebida,
+            hashDeclaracao: createHash(new mongoose.Types.ObjectId(), salt),
+        };
+}
+
 
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
@@ -396,87 +380,93 @@ class DeclaracaoService {
     tipo: "arquivistico" | "bibliografico" | "museologico",
     arquivoAnterior: Arquivo | null,
     novaVersao: number // Este parâmetro define a versão da nova declaração
-  ) {
-    if (arquivos && arquivos.length > 0) {
-      // Processa os dados do arquivo e erros
-      const novoHashBemCultural = createHashUpdate(
-        arquivos[0].path,
-        arquivos[0].filename
-      )
+) {
+    try {
+        if (arquivos && arquivos.length > 0) {
+            // Processa os dados do arquivo e erros
+            const novoHashBemCultural = createHashUpdate(
+                arquivos[0].path,
+                arquivos[0].filename
+            );
 
-      let validate = validate_arquivistico
+            let validate = validate_arquivistico;
 
-      if (tipo === "bibliografico") {
-        validate = validate_bibliografico
-      } else if (tipo === "museologico") {
-        validate = validate_museologico
-      }
+            if (tipo === "bibliografico") {
+                validate = validate_bibliografico;
+            } else if (tipo === "museologico") {
+                validate = validate_museologico;
+            }
 
-      const { data: arquivoData, errors: pendencias } = await validate(
-        arquivos[0].buffer
-      )
+            const { data: arquivoData, errors: pendencias } = await validate(
+                arquivos[0].buffer
+            );
 
-      // Define os novos dados para o arquivo
-      const dadosAlterados: Partial<Arquivo> = {
-        caminho: arquivos[0].path,
-        nome: arquivos[0].filename,
-        status: Status.Recebida,
-        hashArquivo: novoHashBemCultural,
-        pendencias,
-        quantidadeItens: arquivoData.length,
-        versao: novaVersao // Atribui a nova versão ao arquivo
-      }
+            // Define os novos dados para o arquivo
+            const dadosAlterados: Partial<Arquivo> = {
+                caminho: arquivos[0].path,
+                nome: arquivos[0].filename,
+                status: Status.Recebida,
+                hashArquivo: novoHashBemCultural,
+                pendencias,
+                quantidadeItens: arquivoData.length,
+                versao: novaVersao // Atribui a nova versão ao arquivo
+            };
 
-      // Atualiza apenas os campos modificados na nova declaração
-      novaDeclaracao[tipo] = {
-        ...arquivoAnterior,
-        ...dadosAlterados
-      } as Arquivo
+            // Atualiza apenas os campos modificados na nova declaração
+            novaDeclaracao[tipo] = {
+                ...arquivoAnterior,
+                ...dadosAlterados
+            } as Arquivo;
 
-      // Atualiza os itens relacionados à nova versão da declaração
-      arquivoData.forEach((item: { [key: string]: unknown }) => {
-        item.declaracao_ref = novaDeclaracao._id // Atualiza a referência para a nova declaração
-        item.versao = novaVersao // Atribui a nova versão ao item
-      })
+            // Atualiza os itens relacionados à nova versão da declaração
+            arquivoData.forEach((item: { [key: string]: unknown }) => {
+                item.declaracao_ref = novaDeclaracao._id; // Atualiza a referência para a nova declaração
+                item.versao = novaVersao; // Atribui a nova versão ao item
+            });
 
-      // Determina o modelo apropriado com base no tipo de declaração
-      let Modelo
-      switch (tipo) {
-        case "arquivistico":
-          Modelo = Arquivistico
-          break
-        case "bibliografico":
-          Modelo = Bibliografico
-          break
-        case "museologico":
-          Modelo = Museologico
-          break
-        default:
-          throw new Error("Tipo de declaração inválido")
-      }
+            // Determina o modelo apropriado com base no tipo de declaração
+            let Modelo;
+            switch (tipo) {
+                case "arquivistico":
+                    Modelo = Arquivistico;
+                    break;
+                case "bibliografico":
+                    Modelo = Bibliografico;
+                    break;
+                case "museologico":
+                    Modelo = Museologico;
+                    break;
+                default:
+                    throw new Error("Tipo de declaração inválido");
+            }
 
-      // Insere os dados associados à nova versão da declaração no banco de dados
-      await Modelo.insertMany(arquivoData)
-    } else if (arquivoAnterior) {
-      // Mantém os dados anteriores se não houver novo upload
-      novaDeclaracao[tipo] = { ...arquivoAnterior } as Arquivo
+            // Insere os dados associados à nova versão da declaração no banco de dados
+            await Modelo.insertMany(arquivoData);
+        } else if (arquivoAnterior) {
+            // Mantém os dados anteriores se não houver novo upload
+            novaDeclaracao[tipo] = { ...arquivoAnterior } as Arquivo;
+        }
+
+        // Atualiza a referência da retificação, se aplicável
+        if (novaDeclaracao.retificacaoRef) {
+            const declaracaoAnterior = await Declaracoes.findById(
+                novaDeclaracao.retificacaoRef
+            ).exec() as DeclaracaoModel | null;
+
+            if (declaracaoAnterior) {
+                novaDeclaracao.retificacaoRef = declaracaoAnterior._id as mongoose.Types.ObjectId;
+                novaDeclaracao.retificacao = true;
+            }
+        }
+
+        // Salva a nova declaração atualizada no banco de dados
+        await novaDeclaracao.save();
+    } catch (error) {
+        console.error("Erro ao atualizar a declaração:", error);
+        throw new Error("Erro ao atualizar a declaração: " + error);
     }
+}
 
-    // Atualiza a referência da retificação, se aplicável
-    if (novaDeclaracao.retificacaoRef) {
-      const declaracaoAnterior = (await Declaracoes.findById(
-        novaDeclaracao.retificacaoRef
-      ).exec()) as DeclaracaoModel | null
-      if (declaracaoAnterior && declaracaoAnterior._id) {
-        novaDeclaracao.retificacaoRef =
-          declaracaoAnterior._id as mongoose.Types.ObjectId
-        novaDeclaracao.retificacao = true
-      }
-    }
-
-    // Salva a nova declaração atualizada no banco de dados
-    await novaDeclaracao.save()
-  }
 
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
