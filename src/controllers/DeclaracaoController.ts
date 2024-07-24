@@ -201,7 +201,19 @@ class DeclaracaoController {
         .json({ message: "Erro ao buscar declarações pendentes." })
     }
   }
-
+  /**
+ * Cria uma nova declaração ou retifica uma declaração existente, associando-a a um museu e ao responsável.
+ * 
+ * @param {string} req.params.anoDeclaracao - O ano da declaração, fornecido na URL.
+ * @param {string} req.params.museu - O ID do museu associado à declaração, fornecido na URL.
+ * @param {string} req.params.idDeclaracao - O ID da declaração existente que está sendo retificada, se aplicável.
+ * 
+ * @returns {Promise<Response>} - Retorna uma resposta HTTP que contém o status da operação e a declaração criada ou um erro.
+ * 
+ * @throws {400} - Se dados obrigatórios estão ausentes ou o museu não é válido.
+ * @throws {404} - Se a declaração a ser retificada não for encontrada.
+ * @throws {500} - Se ocorrer um erro interno ao processar a declaração.
+ */
   async criarDeclaracao(req: Request, res: Response) {
     try {
         const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params;
