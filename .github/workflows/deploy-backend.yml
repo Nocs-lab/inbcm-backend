@@ -26,8 +26,8 @@ jobs:
         run: echo "DOCKER_REPOSITORY=inbcm-backend" >> $GITHUB_ENV
 
       - name: Verify secrets
-        run: echo "DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}, DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}"
-
+        run: echo "DOCKER_USERNAME:${{ secrets.DOCKER_USERNAME }}, DOCKER_PASSWORD:${{ secrets.DOCKER_PASSWORD }}"
+        
       - name: Log in to Docker Registry
         uses: docker/login-action@v3
         with:
