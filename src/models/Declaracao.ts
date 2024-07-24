@@ -51,6 +51,7 @@ export interface DeclaracaoModel extends Document {
   versao: number
   createdAt?: Date
   updatedAt?: Date
+  ultimaDeclaracao: boolean
 }
 
 export type ArquivoTypes =
@@ -82,10 +83,12 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
     },
     arquivistico: ArquivoSchema,
     bibliografico: ArquivoSchema,
-    museologico: ArquivoSchema
+    museologico: ArquivoSchema,
+    ultimaDeclaracao: { type: Boolean, default: true }
   },
   { timestamps: true, versionKey: false }
 )
+
 DeclaracaoSchema.pre("save", function (next) {
   if (this.dataCriacao) {
     this.dataCriacao = this.createdAt
@@ -93,6 +96,7 @@ DeclaracaoSchema.pre("save", function (next) {
   this.dataCriacao = new Date()
   next()
 })
+
 export const Declaracoes = mongoose.model<DeclaracaoModel>(
   "Declaracoes",
   DeclaracaoSchema

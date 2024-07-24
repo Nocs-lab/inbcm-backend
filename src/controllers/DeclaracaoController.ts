@@ -125,6 +125,11 @@ class DeclaracaoController {
         return res.status(404).json({ message: "Declaração não encontrada." })
       }
 
+      if (declaracao.ultimaDeclaracao == false) {
+        return res.status(404).json({ message: "Não é possível acessar declaração." })
+      }
+
+
       return res.status(200).json(declaracao)
     } catch (error) {
       return res.status(500).json({ message: "Erro ao buscar declaração." })
@@ -196,133 +201,99 @@ class DeclaracaoController {
         .json({ message: "Erro ao buscar declarações pendentes." })
     }
   }
-
+  /**
+ * Cria uma nova declaração ou retifica uma declaração existente, associando-a a um museu e ao responsável.
+ * 
+ * @param {string} req.params.anoDeclaracao - O ano da declaração, fornecido na URL.
+ * @param {string} req.params.museu - O ID do museu associado à declaração, fornecido na URL.
+ * @param {string} req.params.idDeclaracao - O ID da declaração existente que está sendo retificada, se aplicável.
+ * 
+ * @returns {Promise<Response>} - Retorna uma resposta HTTP que contém o status da operação e a declaração criada ou um erro.
+ * 
+ * @throws {400} - Se dados obrigatórios estão ausentes ou o museu não é válido.
+ * @throws {404} - Se a declaração a ser retificada não for encontrada.
+ * @throws {500} - Se ocorrer um erro interno ao processar a declaração.
+ */
   async criarDeclaracao(req: Request, res: Response) {
     try {
-      const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params
-      const user_id = req.user.id
-      const museu = await Museu.findOne({ id: museu_id, usuario: user_id })
+        const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params;
+        const user_id = req.user.id;
 
-      if (!museu) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Museu inválido" })
-      }
-
-      const files = req.files as unknown as {
-        [fieldname: string]: Express.Multer.File[]
-      }
-
-      let declaracaoExistente:
-        | (mongoose.Document<unknown, object, DeclaracaoModel> &
-            DeclaracaoModel &
-            Required<{ _id: unknown }>)
-        | null = null
-      let novaDeclaracaoData: Partial<DeclaracaoModel>
-      const salt = generateSalt() // Gerar um novo salt para a declaração
-
-      if (idDeclaracao) {
-        // Retificação
-        declaracaoExistente = await Declaracoes.findOne({
-          _id: idDeclaracao,
-          responsavelEnvio: user_id,
-          anoDeclaracao,
-          museu_id: museu_id
-        }).exec()
-
-        if (!declaracaoExistente) {
-          return res.status(404).json({
-            message:
-              "Não foi encontrada uma declaração anterior para retificar."
-          })
+        
+        if (!museu_id || !user_id) {
+            return res.status(400).json({ success: false, message: "Dados obrigatórios ausentes" });
         }
 
-        // Buscar a declaração mais recente para garantir que a versão é incrementada corretamente
-        const ultimaDeclaracao = await Declaracoes.findOne({
-          museu_id,
-          anoDeclaracao
-        })
-          .sort({ versao: -1 })
-          .exec()
-        const novaVersao = (ultimaDeclaracao?.versao || 0) + 1
+     
+        const museu = await Museu.findOne({ _id: museu_id, usuario: user_id });
+        if (!museu) {
+            return res.status(400).json({ success: false, message: "Museu inválido" });
+        }
 
-        novaDeclaracaoData = {
-          museu_id: declaracaoExistente.museu_id,
-          museu_nome: declaracaoExistente.museu_nome,
-          anoDeclaracao: declaracaoExistente.anoDeclaracao,
-          responsavelEnvio: declaracaoExistente.responsavelEnvio,
-          totalItensDeclarados: declaracaoExistente.totalItensDeclarados,
-          status: declaracaoExistente.status,
-          retificacao: true,
-          retificacaoRef: declaracaoExistente._id as mongoose.Types.ObjectId,
-          versao: novaVersao,
-          hashDeclaracao: createHash(
-            declaracaoExistente._id as mongoose.Types.ObjectId,
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+        const salt = generateSalt();
+
+        // Busca declaração existente, se idDeclaracao for fornecido
+        const declaracaoExistente = idDeclaracao
+            ? await Declaracoes.findOne({
+                _id: idDeclaracao,
+                responsavelEnvio: user_id,
+                anoDeclaracao,
+                museu_id: museu_id,
+            }).exec()
+            : await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
+
+        if (idDeclaracao && !declaracaoExistente) {
+            return res.status(404).json({ message: "Não foi encontrada uma declaração anterior para retificar." });
+        }
+
+        
+        const ultimaDeclaracao = await Declaracoes.findOne({ museu_id, anoDeclaracao }).sort({ versao: -1 }).exec();
+        const novaVersao = (ultimaDeclaracao?.versao || 0) + 1;
+
+        // Cria os dados da nova declaração
+        const novaDeclaracaoData = await this.declaracaoService.criarDadosDeclaracao(
+            museu,
+            user_id as unknown as mongoose.Types.ObjectId, 
+            anoDeclaracao,
+            declaracaoExistente,
+            novaVersao,
             salt
-          )
-        }
-        console.log(
-          "Valor de versão após retificação: " + novaDeclaracaoData.versao
-        )
-      } else {
-        // Nova declaração
-        declaracaoExistente =
-          await this.declaracaoService.verificarDeclaracaoExistente(
+        );
+
+      
+
+        const novaDeclaracao = new Declaracoes(novaDeclaracaoData);
+
+        // Atualiza os arquivos associados à nova declaração
+        await this.declaracaoService.updateDeclaracao(files["arquivistico"], novaDeclaracao, "arquivistico", declaracaoExistente?.arquivistico || null, novaVersao);
+        await this.declaracaoService.updateDeclaracao(files["bibliografico"], novaDeclaracao, "bibliografico", declaracaoExistente?.bibliografico || null, novaVersao);
+        await this.declaracaoService.updateDeclaracao(files["museologico"], novaDeclaracao, "museologico", declaracaoExistente?.museologico || null, novaVersao);
+
+        // Marca a nova declaração como a última
+        novaDeclaracao.ultimaDeclaracao = true;
+        await novaDeclaracao.save();
+
+        // Atualiza declarações anteriores para não serem mais a última
+        await Declaracoes.updateMany(
+          {
             museu_id,
-            anoDeclaracao
-          )
-        const novaVersao = (declaracaoExistente?.versao || 0) + 1
+            anoDeclaracao,
+            _id: { $ne: novaDeclaracao._id },
+          },
+          { ultimaDeclaracao: false }
+        );
 
-        novaDeclaracaoData = {
-          anoDeclaracao,
-          museu_id: museu.id,
-          museu_nome: museu.nome,
-          responsavelEnvio: user_id as unknown as mongoose.Types.ObjectId,
-          retificacao: !!declaracaoExistente,
-          retificacaoRef: declaracaoExistente
-            ? (declaracaoExistente._id as mongoose.Types.ObjectId)
-            : undefined,
-          versao: novaVersao,
-          hashDeclaracao: createHash(new mongoose.Types.ObjectId(), salt) // Criar o hash para a nova declaração
-        }
-      }
-
-      const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
-      const novaVersao = novaDeclaracao.versao
-      console.log("Valor de versão da declaração: " + novaVersao)
-
-      // Atualizar a nova declaração com os dados dos arquivos, se forem enviados
-      await this.declaracaoService.updateDeclaracao(
-        files["arquivistico"],
-        novaDeclaracao,
-        "arquivistico",
-        declaracaoExistente?.arquivistico || null,
-        novaVersao
-      )
-      await this.declaracaoService.updateDeclaracao(
-        files["bibliografico"],
-        novaDeclaracao,
-        "bibliografico",
-        declaracaoExistente?.bibliografico || null,
-        novaVersao
-      )
-      console.log(req.body.museologico)
-      await this.declaracaoService.updateDeclaracao(
-        files["museologico"],
-        novaDeclaracao,
-        "museologico",
-        declaracaoExistente?.museologico || null,
-        novaVersao
-      )
-
-      await novaDeclaracao.save()
-
-      return res.status(200).json(novaDeclaracao)
+        return res.status(200).json(novaDeclaracao);
     } catch (error) {
-      console.error("Erro ao enviar uma declaração:", error)
-      return res.status(500).json({ message: "Erro ao enviar uma declaração." })
+        console.error("Erro ao enviar uma declaração:", error);
+        return res.status(500).json({ message: "Erro ao enviar uma declaração: ", error });
     }
-  }
+}
+
+
+
+
 
   async downloadDeclaracao(req: Request, res: Response) {
     try {
@@ -373,7 +344,13 @@ class DeclaracaoController {
     }
   }
   async uploadDeclaracao(req: Request, res: Response) {
-    delete req.params.idDeclaracao // Remove o idDeclaracao para diferenciar a operação
+    const declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(req.params.museu, req.params.anoDeclaracao)
+    if (declaracaoExistente) {
+      return res.status(406).json({
+        status: false,
+        message: 'Já existe declaração para museu e ano referência informados. Para alterar a declaração é preciso retificá-la.'
+      });
+    }
     return this.criarDeclaracao(req, res)
   }
 
