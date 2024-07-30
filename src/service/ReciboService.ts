@@ -201,19 +201,13 @@ async function gerarPDFRecibo(
             }
           }
         },
-        { text: "\nTOTAL DE BENS DECLARADOS\n\n", style: "sectionHeader" },
+        { text: "\nBens declarados", style: "sectionHeader" },
         {
           table: {
             headerRows: 1,
             widths: ["*", "*"],
             body: [
-              [
-                { text: "TOTAL DE BENS DECLARADOS", style: "tableHeader" },
-                {
-                  text: dadosFormatados.totalBensDeclarados,
-                  style: "tableData"
-                }
-              ],
+             
               [
                 { text: "Bens museológicos", style: "tableHeader" },
                 { text: dadosFormatados.bensMuseologicos, style: "tableData" }
@@ -225,7 +219,14 @@ async function gerarPDFRecibo(
               [
                 { text: "Bens arquivísticos", style: "tableHeader" },
                 { text: dadosFormatados.bensArquivisticos, style: "tableData" }
-              ]
+              ],
+              [
+                { text: "TOTAL DE BENS DECLARADOS", style: "tableHeader" },
+                {
+                  text: dadosFormatados.totalBensDeclarados,
+                  style: "tableData"
+                }
+              ],
             ]
           }
         },
@@ -235,7 +236,7 @@ async function gerarPDFRecibo(
           style: "footerText"
         },
         {
-          text: `O NÚMERO DE RECIBO DE SUA DECLARAÇÃO APRESENTADO EM  ${dadosFormatados.data} é, \n`,
+          text: `O NÚMERO DE RECIBO DE SUA DECLARAÇÃO APRESENTADO EM  ${dadosFormatados.data} às ${dadosFormatados.hora} é, \n`,
           style: "footerText"
         },
         { text: "\n\n" },
@@ -264,7 +265,8 @@ async function gerarPDFRecibo(
           color: "black"
         },
         tableData: {
-          fontSize: 12
+          fontSize: 12,
+          alignment: "right"
         },
         sectionHeader: {
           fontSize: 14,
@@ -289,7 +291,6 @@ async function gerarPDFRecibo(
         }
       }
     }
-    console.log(`Número do recibo: ${dadosFormatados.numeroRecibo}`)
     return new Promise<Buffer>((resolve, reject) => {
       const pdfDoc = printer.createPdfKitDocument(docDefinition)
       const chunks: Buffer[] = []
@@ -305,7 +306,6 @@ async function gerarPDFRecibo(
       pdfDoc.end()
     })
   } catch (error) {
-    console.error("Erro ao gerar o recibo:", error)
     throw new Error("Erro ao gerar o recibo.")
   }
 }
