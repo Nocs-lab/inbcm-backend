@@ -28,11 +28,24 @@ A plataforma do INBCM tem como objetivo principal centralizar e facilitar o aces
 
 - **RabbitMQ**: Para a implementação de mensageria assíncrona e processamento de tarefas em segundo plano.
 
+- **Jest**: Utilizado na implementação de testes automatizados, garantindo a qualidade e a cobertura do código.
+
+
 
 # Pré requisitos para execução do projeto:
+
+### Docker:
   Certifique-se de ter o Docker e o Docker Compose instalados em seu sistema. Você pode encontrar instruções de instalação nos sites oficiais: 
       - https://docs.docker.com/get-started/overview/ 
       - https://docs.docker.com/compose/install/.
+
+### Pnpm:
+  Certifique-se de ter o pnpm instalado em seu sistema. O pnpm é um gerenciador de pacotes rápido, eficiente e economiza espaço em disco ao compartilhar pacotes entre projetos. Você pode instalar o pnpm globalmente usando o npm com o seguinte comando:
+
+```bash
+  npm install -g pnpm
+```
+
 
 # Configuração do projeto:
 
@@ -47,11 +60,11 @@ Clone o repositório do projeto para o seu ambiente de desenvolvimento. Você po
 ```
 
 ## 2.  Instalando as Dependências
-Navegue até o diretório do projeto clonado e instale todas as dependências do Node.js usando o npm. Isso pode ser feito com o seguinte comando:
+Navegue até o diretório do projeto clonado e instale todas as dependências do Node.js usando o pnpm. Isso pode ser feito com o seguinte comando:
 
 ```bash
 cd inbcm-backend
-npm install
+pnpm install
 ```
 
 ## 3.Configurando o Arquivo .env
@@ -77,33 +90,43 @@ ADMIN_SITE_URL="https://localhost:5173"
 ### Inicializando o docker:
  Dentro do diretório inbcm_backend,execute:
 ```bash
- npm run start:docker:dev
+  pnpm run start:docker:dev
 
 ```
 
 ### Criando mocks de usuários e museus:
 ``` bash
-  npm run create:data
+  pnpm run create:data
 ```
 ### Criando mock para usuários admins:
 
 ``` bash
-   npm run create:admin-user
-
+  pnpm run create:admin-user
 ```
 ## Inicializando os serviços:
 ```bash
-
-npm run dev
-
+  pnpm run dev
 ```
 
 # Acessando o database:
  Para acessar o mongo-express e visualizar esquema de documentos,bem como os dados persistidos,acesse localhost:8081,passando as seguintes credenciais :
 
  ```bash
-    user: admin
-    pwd: admin
+  user: admin
+  pwd: admin
+ ```
+
+ # Rodando os testes com jest:
+ Para rodar os testes unitários e testes de feature:
+
+ ```bash
+  pnpm jest
+ ```
+
+ Para verificar a cobertura de testes:
+
+  ```bash
+  pnpm jest --coverage
  ```
 
 
