@@ -1,13 +1,70 @@
-version: "3.8"
-
 services:
   mongo:
     image: mongo
+    ports:
+      - "64000:27017"
     volumes:
-      - mongo:/data/db
+      - mongo-data:/data/db
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${DB_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${DB_PASS}
+      MONGO_INITDB_DATABASE: INBCM
+    env_file:
+      - .env
+    networks:
+      - mynetwork
+
+  mongo-express:
+    image: mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${DB_USER}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${DB_PASS}
+      ME_CONFIG_MONGODB_SERVER: mongo
+    depends_on:
+      - mongo
+    networks:
+      - mynetwork
+
+  minio:
+    image: minio/minio
+    volumes:
+      - "minio:/data"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+    networks:
+      - mynetwork
+    command: server /data --console-address :9001
+    ports:
+      - 9000:9000
+      - 9001:9001
+
+  setup-minio:
+    image: minio/mc
+    depends_on:
+      - minio
+    networks:
+      - mynetwork
+    entrypoint:
+      - sh
+      - -c
+      - |
+        until mc ls minio > /dev/null 2>&1; do
+          sleep 0.5
+        done
+
+        mc alias set minio http://minio:9000 ${MINIO_USER} ${MINIO_PASSWORD}
+        mc admin user svcacct add minio ${MINIO_USER} --access-key ${MINIO_ACCESS_KEY} --secret-key ${MINIO_SECRET_KEY}
+        mc mb minio/inbcm
+
+networks:
+  mynetwork:
 
 volumes:
-  mongo:
+  mongo-data:
+  minio:

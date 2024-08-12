@@ -1,0 +1,18 @@
+openapi: 3.1.0
+info:
+  title: API INBCM
+  description: ""
+  contact:
+    name: Support
+    email: nocsinbcmdev@gmail.com
+  version: 1.0.0
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+security:
+  - {}
+  - basicAuth: []
+paths: {}
+tags: []

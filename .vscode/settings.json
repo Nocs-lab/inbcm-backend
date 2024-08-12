@@ -1,22 +1,28 @@
 {
   "cSpell.words": [
-    "ANODECLARACAO",
+    "anodeclaracao",
     "arquivistico",
     "bibliografico",
     "classificacao",
-    "Criacao",
+    "criacao",
     "declaracao",
-    "Declaracao",
-    "Declaracoes",
+    "declaracao",
+    "declaracoes",
     "denominacao",
-    "IDENTIFICADORMUSEU",
-    "INBCM",
+    "identificadormuseu",
+    "inbcm",
     "museologico",
-    "Museologico",
+    "museologico",
     "originalname",
     "responsavel",
     "situacao",
-    "TIPOACERVO",
-    "TIPODECLARACAO"
-  ]
+    "tipoacervo",
+    "tipodeclaracao",
+    "usuario"
+  ],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "always"
+  },
+  "eslint.format.enable": true,
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
 }
