@@ -18,7 +18,7 @@ const parsed = {
 expand({ parsed, processEnv: parsedEnv })
 
 const schema = z.object({
-  NODE_ENV: z.enum(["DEVELOPMENT", "PRODUCTION"]),
+  NODE_ENV: z.enum(["DEVELOPMENT", "PRODUCTION", "test"]),
   DB_USER: z.string().min(1),
   DB_PASS: z.string().min(1),
   DB_URL: z.string().min(1).url(),
