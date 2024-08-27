@@ -5,6 +5,8 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import { Museu, IMuseu} from '../models/Museu';
 import uploadMiddleware from "../middlewares/UploadMiddleware"
 import DeclaracaoController from "../controllers/DeclaracaoController"
+import { DeclaracaoModel,Declaracoes } from '../models';
+import path from 'path';
 
 const app = express();
 app.use(express.json());
@@ -19,6 +21,8 @@ app.use(mockAuthMiddleware);
 
 const declaracaoController = new DeclaracaoController()
 
+
+
 app.post(
   '/uploads/:museu/:anoDeclaracao',
   uploadMiddleware,
@@ -29,6 +33,7 @@ let mongoServer: MongoMemoryServer;
 let mongoUri: string;
 let userId: string;
 let museuMock: IMuseu;
+let declaracaoMock: DeclaracaoModel;
 
 const setupTestEnvironment = async () => {
   mongoServer = await MongoMemoryServer.create();
@@ -51,6 +56,20 @@ const setupTestEnvironment = async () => {
     },
     usuario: userId
   });
+  declaracaoMock = await Declaracoes.create({
+    museu_id: museuMock._id,
+    museu_nome: museuMock.nome,
+    anoDeclaracao: '2019',
+    responsavelEnvio: userId,
+    status: 'Recebida',
+    retificacao: false,
+    totalItensDeclarados: 0,
+    museologico: {
+      nome: 'museologico',
+      caminho: path.join(__dirname, 'assets/museologico.xlsx'),
+    },
+  });
+ 
 };
 
 const teardownTestEnvironment = async () => {
@@ -58,4 +77,4 @@ const teardownTestEnvironment = async () => {
   await mongoServer.stop();
 };
 
-export { app, setupTestEnvironment, teardownTestEnvironment, museuMock };
+export { app, setupTestEnvironment, teardownTestEnvironment, museuMock,declaracaoMock };
