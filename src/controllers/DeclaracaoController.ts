@@ -3,9 +3,10 @@ import { Declaracoes, DeclaracaoModel } from "../models"
 import DeclaracaoService from "../service/DeclaracaoService"
 import { createHash, generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
-import fs from "fs"
 import path from "path"
 import mongoose from "mongoose"
+import {getLatestPathArchive} from "../utils/minioUtil"
+import minioClient from "../db/minioClient"
 
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -216,135 +217,125 @@ class DeclaracaoController {
  */
   async criarDeclaracao(req: Request, res: Response) {
     try {
-        const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params;
-        const user_id = req.user.id;
-
-        
-        if (!museu_id || !user_id) {
-            return res.status(400).json({ success: false, message: "Dados obrigatórios ausentes" });
-        }
-
-     
-        const museu = await Museu.findOne({ _id: museu_id, usuario: user_id });
-        if (!museu) {
-            return res.status(400).json({ success: false, message: "Museu inválido" });
-        }
-
-        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-        const salt = generateSalt();
-
-        // Busca declaração existente, se idDeclaracao for fornecido
-        const declaracaoExistente = idDeclaracao
-            ? await Declaracoes.findOne({
-                _id: idDeclaracao,
-                responsavelEnvio: user_id,
-                anoDeclaracao,
-                museu_id: museu_id,
-            }).exec()
-            : await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
-
-        if (idDeclaracao && !declaracaoExistente) {
-            return res.status(404).json({ message: "Não foi encontrada uma declaração anterior para retificar." });
-        }
-
-        
-        const ultimaDeclaracao = await Declaracoes.findOne({ museu_id, anoDeclaracao }).sort({ versao: -1 }).exec();
-        const novaVersao = (ultimaDeclaracao?.versao || 0) + 1;
-
-        // Cria os dados da nova declaração
-        const novaDeclaracaoData = await this.declaracaoService.criarDadosDeclaracao(
-            museu,
-            user_id as unknown as mongoose.Types.ObjectId, 
+      const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params;
+      const user_id = req.user.id;
+  
+      if (!museu_id || !user_id) {
+        return res.status(400).json({ success: false, message: "Dados obrigatórios ausentes" });
+      }
+  
+      const museu = await Museu.findOne({ _id: museu_id, usuario: user_id });
+      if (!museu) {
+        return res.status(400).json({ success: false, message: "Museu inválido" });
+      }
+  
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      const salt = generateSalt();
+  
+      const declaracaoExistente = idDeclaracao
+        ? await Declaracoes.findOne({
+            _id: idDeclaracao,
+            responsavelEnvio: user_id,
             anoDeclaracao,
-            declaracaoExistente,
-            novaVersao,
-            salt
-        );
-
-      
-
-        const novaDeclaracao = new Declaracoes(novaDeclaracaoData);
-
-        // Atualiza os arquivos associados à nova declaração
-        await this.declaracaoService.updateDeclaracao(files["arquivistico"], novaDeclaracao, "arquivistico", declaracaoExistente?.arquivistico || null, novaVersao);
-        await this.declaracaoService.updateDeclaracao(files["bibliografico"], novaDeclaracao, "bibliografico", declaracaoExistente?.bibliografico || null, novaVersao);
-        await this.declaracaoService.updateDeclaracao(files["museologico"], novaDeclaracao, "museologico", declaracaoExistente?.museologico || null, novaVersao);
-
-        // Marca a nova declaração como a última
-        novaDeclaracao.ultimaDeclaracao = true;
-        await novaDeclaracao.save();
-
-        // Atualiza declarações anteriores para não serem mais a última
-        await Declaracoes.updateMany(
-          {
-            museu_id,
-            anoDeclaracao,
-            _id: { $ne: novaDeclaracao._id },
-          },
-          { ultimaDeclaracao: false }
-        );
-
-        return res.status(200).json(novaDeclaracao);
+            museu_id: museu_id,
+          }).exec()
+        : await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
+  
+      if (idDeclaracao && !declaracaoExistente) {
+        return res.status(404).json({ message: "Não foi encontrada uma declaração anterior para retificar." });
+      }
+  
+      const ultimaDeclaracao = await Declaracoes.findOne({ museu_id, anoDeclaracao }).sort({ versao: -1 }).exec();
+      const novaVersao = (ultimaDeclaracao?.versao || 0) + 1;
+  
+      const novaDeclaracaoData = await this.declaracaoService.criarDadosDeclaracao(
+        museu,
+        user_id as unknown as mongoose.Types.ObjectId,
+        anoDeclaracao,
+        declaracaoExistente,
+        novaVersao,
+        salt
+      );
+  
+      const novaDeclaracao = new Declaracoes(novaDeclaracaoData);
+  
+      // Atualiza os arquivos associados à nova declaração
+      await this.declaracaoService.updateDeclaracao(files["arquivistico"], novaDeclaracao, "arquivistico", declaracaoExistente?.arquivistico || null, novaVersao);
+      await this.declaracaoService.updateDeclaracao(files["bibliografico"], novaDeclaracao, "bibliografico", declaracaoExistente?.bibliografico || null, novaVersao);
+      await this.declaracaoService.updateDeclaracao(files["museologico"], novaDeclaracao, "museologico", declaracaoExistente?.museologico || null, novaVersao);
+  
+      novaDeclaracao.ultimaDeclaracao = true;
+      await novaDeclaracao.save();
+  
+      await Declaracoes.updateMany(
+        {
+          museu_id,
+          anoDeclaracao,
+          _id: { $ne: novaDeclaracao._id },
+        },
+        { ultimaDeclaracao: false }
+      );
+  
+      return res.status(200).json(novaDeclaracao);
     } catch (error) {
-        console.error("Erro ao enviar uma declaração:", error);
-        return res.status(500).json({ message: "Erro ao enviar uma declaração: ", error });
+      console.error("Erro ao enviar uma declaração:", error);
+      return res.status(500).json({ message: "Erro ao enviar uma declaração: ", error });
     }
-}
+  }
+  
 
-
-
-
-
-  async downloadDeclaracao(req: Request, res: Response) {
+  async  downloadDeclaracao(req: Request, res: Response) {
     try {
-      const { museu, anoDeclaracao, tipoArquivo } = req.params
-      const user_id = req.user.id
+      const { museu, anoDeclaracao, tipoArquivo } = req.params;
+      const user_id = req.user.id;
+  
+      // Verifique a declaração para o usuário
       const declaracao = await Declaracoes.findOne({
         museu_id: museu,
         anoDeclaracao,
         responsavelEnvio: user_id
-      })
-
+      });
+  
       if (!declaracao) {
         return res.status(404).json({
           message: "Declaração não encontrada para o ano especificado."
-        })
+        });
       }
-
-      let arquivo = null
-      if (tipoArquivo === "arquivistico") {
-        arquivo = declaracao.arquivistico
-      } else if (tipoArquivo === "bibliografico") {
-        arquivo = declaracao.bibliografico
-      } else if (tipoArquivo === "museologico") {
-        arquivo = declaracao.museologico
-      }
-
-      if (!arquivo) {
+  
+    
+      const prefix = `${museu}/${anoDeclaracao}/${tipoArquivo}/`;
+      const bucketName = 'inbcm';
+  
+      // Obtenha o caminho do arquivo mais recente
+      const latestFilePath = await getLatestPathArchive(bucketName, prefix);
+  
+      if (!latestFilePath) {
         return res
           .status(404)
-          .json({ message: "Arquivo não encontrado para o tipo especificado." })
+          .json({ message: "Arquivo não encontrado para o tipo especificado." });
       }
-
-      const filePath = path.join(__dirname, "..", "uploads", arquivo.nome!)
-      const file = fs.createReadStream(filePath)
-
+  
+      // Obtenha o arquivo do MinIO
+      const fileStream = await minioClient.getObject(bucketName, latestFilePath);
+  
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${arquivo.nome}`
-      )
-      res.setHeader("Content-Type", "application/octet-stream")
-
-      file.pipe(res)
+        `attachment; filename=${path.basename(latestFilePath)}`
+      );
+      res.setHeader("Content-Type", "application/octet-stream");
+  
+      // Envie o arquivo como resposta
+      fileStream.pipe(res);
     } catch (error) {
-      console.error("Erro ao baixar arquivo da declaração:", error)
+      console.error("Erro ao baixar arquivo da declaração:", error);
       return res
         .status(500)
-        .json({ message: "Erro ao baixar arquivo da declaração." })
+        .json({ message: "Erro ao baixar arquivo da declaração." });
     }
   }
   async uploadDeclaracao(req: Request, res: Response) {
     const declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(req.params.museu, req.params.anoDeclaracao)
+
     if (declaracaoExistente) {
       return res.status(406).json({
         status: false,
