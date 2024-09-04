@@ -18,7 +18,6 @@ const parsed = {
   MINIO_USE_SSL: process.env.MINIO_USE_SSL ?? "false",
   MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY ?? "",
   MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY ?? "",
-  MINIO_BUCKET_NAME: process.env.MINIO_BUCKET_NAME || 'inbcm'
 }
 
 expand({ parsed, processEnv: parsedEnv })
