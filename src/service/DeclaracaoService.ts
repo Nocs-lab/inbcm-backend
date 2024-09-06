@@ -224,7 +224,8 @@ class DeclaracaoService {
     dataInicio,
     dataFim,
     regiao,
-    uf
+    uf,
+    ultimaDeclaracao = true
   }: {
     anoReferencia: string
     status: string
@@ -232,10 +233,14 @@ class DeclaracaoService {
     dataInicio: number
     dataFim: number
     regiao: string
-    uf: string
+    uf: string,
+    ultimaDeclaracao: boolean,
   }) {
     try {
       let query = Declaracoes.find()
+      if(ultimaDeclaracao || ultimaDeclaracao == null){
+        query = query.where("ultimaDeclaracao").equals(true)
+      }
 
       //Lógica para extrair os tipos de status do model e verificar se foi enviado um status válido para filtrar
       const statusEnum = Declaracoes.schema.path("status")
@@ -291,9 +296,9 @@ class DeclaracaoService {
         query = query.where("museu_id").in(museuIds)
       }
       const result = await query
-        .populate([{ path: "museu_id", model: Museu, select: [""] }])
-        .sort("-dataCriacao")
-        .exec()
+      .populate([{ path: "museu_id", model: Museu, select: [""] }])
+      .sort("-dataCriacao")
+      .exec()
 
       return result.map((d) => {
         const data = d.toJSON()
