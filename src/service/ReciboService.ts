@@ -67,10 +67,13 @@ function formatarDadosRecibo(
     (declaracao.bibliografico?.quantidadeItens || 0) +
     (declaracao.museologico?.quantidadeItens || 0)
 
-  const formatValue = (value: number | undefined): string =>
-    value === undefined || value === 0 ? "---" : value.toString()
+const formatValue = (value: number | undefined): any => {
+      return value === undefined || value === 0 
+        ? { text: "0", color: "red" } 
+        : { text: value.toString() };
+    };
   const tipoDeclaracao = declaracao.retificacao ? "retificadora" : "original"
-
+  
   return {
     anoCalendario: declaracao.anoDeclaracao,
     codigoIdentificador: museu.codIbram,
@@ -90,7 +93,8 @@ function formatarDadosRecibo(
     bensMuseologicos: formatValue(declaracao.museologico?.quantidadeItens),
     bensBibliograficos: formatValue(declaracao.bibliografico?.quantidadeItens),
     bensArquivisticos: formatValue(declaracao.arquivistico?.quantidadeItens),
-    tipoDeclaracao: tipoDeclaracao.toUpperCase()
+    tipoDeclaracao: tipoDeclaracao.toUpperCase(),
+    statusDeclaracao: declaracao.status
   }
 }
 
@@ -156,6 +160,16 @@ async function gerarPDFRecibo(
           text: `DECLARAÇÃO ${dadosFormatados.tipoDeclaracao}`,
           style: "title"
         },
+
+
+        { text: "\n\n" },
+        { text: "\n\n" },
+
+        { text: `Situação: ${dadosFormatados.statusDeclaracao}`,
+          style:{
+            color: "red"
+          },
+         },
         { text: "\n\n" },
         { text: "Identificação do declarante", style: "title" },
         {
