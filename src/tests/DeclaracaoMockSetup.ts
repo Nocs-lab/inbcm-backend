@@ -21,13 +21,17 @@ app.use(mockAuthMiddleware);
 
 const declaracaoController = new DeclaracaoController()
 
-
-
 app.post(
   '/uploads/:museu/:anoDeclaracao',
   uploadMiddleware,
   declaracaoController.uploadDeclaracao
 );
+
+app.put(
+  "/retificar/:museu/:anoDeclaracao/:idDeclaracao",
+  uploadMiddleware,
+  declaracaoController.retificarDeclaracao.bind(declaracaoController)
+)
 
 let mongoServer: MongoMemoryServer;
 let mongoUri: string;
@@ -69,7 +73,7 @@ const setupTestEnvironment = async () => {
       caminho: path.join(__dirname, 'assets/museologico.xlsx'),
     },
   });
- 
+
 };
 
 const teardownTestEnvironment = async () => {
@@ -77,4 +81,4 @@ const teardownTestEnvironment = async () => {
   await mongoServer.stop();
 };
 
-export { app, setupTestEnvironment, teardownTestEnvironment, museuMock,declaracaoMock };
+export { app, setupTestEnvironment, teardownTestEnvironment, museuMock, declaracaoMock, userId };

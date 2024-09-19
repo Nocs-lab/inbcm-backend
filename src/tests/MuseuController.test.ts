@@ -8,7 +8,7 @@ jest.mock('../models', () => ({
 }));
 
 describe('MuseuController', () => {
-  describe('listarMuseus', () => {
+  describe('Deve-se listar todos os museus e retornar status 200.', () => {
     it('retornar status 200', async () => {
       const req = {} as Request;
       const res = {

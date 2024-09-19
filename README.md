@@ -123,6 +123,12 @@ ADMIN_SITE_URL="https://localhost:5173"
   pnpm jest
  ```
 
+  Para rodar os testes unitários e testes de feature com mais detalhes:
+
+ ```bash
+  pnpm jest --verbose
+ ```
+
  Para verificar a cobertura de testes:
 
   ```bash
