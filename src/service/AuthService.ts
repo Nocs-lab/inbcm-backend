@@ -13,12 +13,15 @@ export default class AuthService {
     password: string
     admin: boolean
   }) {
-    const user = await Usuario.findOne({ email, admin })
+    const user = await Usuario.findOne({ email })
 
     if (!user) {
       throw new Error("Usuário não encontrado")
     } else if (!(await argon.verify(user.senha, password))) {
       throw new Error("Senha incorreta")
+    }
+    if (!user.ativo) {
+      throw new Error("Usuário não está ativo.");
     }
 
     const token = jwt.sign(
