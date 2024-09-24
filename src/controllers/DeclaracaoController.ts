@@ -204,13 +204,13 @@ class DeclaracaoController {
   }
   /**
  * Cria uma nova declaração ou retifica uma declaração existente, associando-a a um museu e ao responsável.
- * 
+ *
  * @param {string} req.params.anoDeclaracao - O ano da declaração, fornecido na URL.
  * @param {string} req.params.museu - O ID do museu associado à declaração, fornecido na URL.
  * @param {string} req.params.idDeclaracao - O ID da declaração existente que está sendo retificada, se aplicável.
- * 
+ *
  * @returns {Promise<Response>} - Retorna uma resposta HTTP que contém o status da operação e a declaração criada ou um erro.
- * 
+ *
  * @throws {400} - Se dados obrigatórios estão ausentes ou o museu não é válido.
  * @throws {404} - Se a declaração a ser retificada não for encontrada.
  * @throws {500} - Se ocorrer um erro interno ao processar a declaração.
@@ -219,19 +219,19 @@ class DeclaracaoController {
     try {
       const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params;
       const user_id = req.user.id;
-  
+
       if (!museu_id || !user_id) {
         return res.status(400).json({ success: false, message: "Dados obrigatórios ausentes" });
       }
-  
+
       const museu = await Museu.findOne({ _id: museu_id, usuario: user_id });
       if (!museu) {
         return res.status(400).json({ success: false, message: "Museu inválido" });
       }
-  
+
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       const salt = generateSalt();
-  
+
       const declaracaoExistente = idDeclaracao
         ? await Declaracoes.findOne({
             _id: idDeclaracao,
@@ -240,14 +240,18 @@ class DeclaracaoController {
             museu_id: museu_id,
           }).exec()
         : await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
-  
+
       if (idDeclaracao && !declaracaoExistente) {
         return res.status(404).json({ message: "Não foi encontrada uma declaração anterior para retificar." });
       }
-  
+
+      if (idDeclaracao && (declaracaoExistente?.ultimaDeclaracao == false)) {
+        return res.status(406).json({ message: "Apenas a versão mais recente da declaração pode ser retificada." });
+      }
+
       const ultimaDeclaracao = await Declaracoes.findOne({ museu_id, anoDeclaracao }).sort({ versao: -1 }).exec();
       const novaVersao = (ultimaDeclaracao?.versao || 0) + 1;
-  
+
       const novaDeclaracaoData = await this.declaracaoService.criarDadosDeclaracao(
         museu,
         user_id as unknown as mongoose.Types.ObjectId,
@@ -256,17 +260,17 @@ class DeclaracaoController {
         novaVersao,
         salt
       );
-  
+
       const novaDeclaracao = new Declaracoes(novaDeclaracaoData);
-  
+
       // Atualiza os arquivos associados à nova declaração
       await this.declaracaoService.updateDeclaracao(files["arquivistico"], novaDeclaracao, "arquivistico", declaracaoExistente?.arquivistico || null, novaVersao);
       await this.declaracaoService.updateDeclaracao(files["bibliografico"], novaDeclaracao, "bibliografico", declaracaoExistente?.bibliografico || null, novaVersao);
       await this.declaracaoService.updateDeclaracao(files["museologico"], novaDeclaracao, "museologico", declaracaoExistente?.museologico || null, novaVersao);
-  
+
       novaDeclaracao.ultimaDeclaracao = true;
       await novaDeclaracao.save();
-  
+
       await Declaracoes.updateMany(
         {
           museu_id,
@@ -275,55 +279,55 @@ class DeclaracaoController {
         },
         { ultimaDeclaracao: false }
       );
-  
+
       return res.status(200).json(novaDeclaracao);
     } catch (error) {
       console.error("Erro ao enviar uma declaração:", error);
       return res.status(500).json({ message: "Erro ao enviar uma declaração: ", error });
     }
   }
-  
+
 
   async  downloadDeclaracao(req: Request, res: Response) {
     try {
       const { museu, anoDeclaracao, tipoArquivo } = req.params;
       const user_id = req.user.id;
-  
+
       // Verifique a declaração para o usuário
       const declaracao = await Declaracoes.findOne({
         museu_id: museu,
         anoDeclaracao,
         responsavelEnvio: user_id
       });
-  
+
       if (!declaracao) {
         return res.status(404).json({
           message: "Declaração não encontrada para o ano especificado."
         });
       }
-  
-    
+
+
       const prefix = `${museu}/${anoDeclaracao}/${tipoArquivo}/`;
       const bucketName = 'inbcm';
-  
+
       // Obtenha o caminho do arquivo mais recente
       const latestFilePath = await getLatestPathArchive(bucketName, prefix);
-  
+
       if (!latestFilePath) {
         return res
           .status(404)
           .json({ message: "Arquivo não encontrado para o tipo especificado." });
       }
-  
+
       // Obtenha o arquivo do MinIO
       const fileStream = await minioClient.getObject(bucketName, latestFilePath);
-  
+
       res.setHeader(
         "Content-Disposition",
         `attachment; filename=${path.basename(latestFilePath)}`
       );
       res.setHeader("Content-Type", "application/octet-stream");
-  
+
       // Envie o arquivo como resposta
       fileStream.pipe(res);
     } catch (error) {
@@ -333,6 +337,7 @@ class DeclaracaoController {
         .json({ message: "Erro ao baixar arquivo da declaração." });
     }
   }
+
   async uploadDeclaracao(req: Request, res: Response) {
     const declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(req.params.museu, req.params.anoDeclaracao)
 
