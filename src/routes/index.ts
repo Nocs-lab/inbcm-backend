@@ -1,11 +1,14 @@
 import express from "express"
-import uploadMiddleware from "../middlewares/UploadMiddleware"
 import DeclaracaoController from "../controllers/DeclaracaoController"
 import MuseuController from "../controllers/MuseuController"
 import ReciboController from "../controllers/ReciboController"
-import AuthService from "../service/AuthService"
-import { adminMiddleware, userMiddleware } from "../middlewares/AuthMiddlewares"
+import PermissionController from "../controllers/PermissionController";
+import ProfileController from "../controllers/ProfileController";
+import UsuarioController from "../controllers/UsuarioController"
+import uploadMiddleware from "../middlewares/UploadMiddleware"
 import rateLimit from "express-rate-limit"
+import AuthService from "../service/AuthService"
+import { adminMiddleware, userMiddleware, permissionCheckMiddleware } from "../middlewares/AuthMiddlewares";
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -16,6 +19,27 @@ const routes = express.Router()
 const reciboController = new ReciboController()
 const declaracaoController = new DeclaracaoController()
 const authService = new AuthService()
+
+//Permission
+routes.get('/permissions', PermissionController.getPermissions);
+
+//Profile
+routes.post('/profile', permissionCheckMiddleware('createProfile'),ProfileController.createProfile);
+routes.get('/profiles', userMiddleware, ProfileController.getProfiles);
+routes.get('/profile/:id', permissionCheckMiddleware('getProfileById'), ProfileController.getProfileById);
+routes.put('/profile/:id', permissionCheckMiddleware('updateProfile'), ProfileController.updateProfile);
+routes.delete('/profile/:id', permissionCheckMiddleware('deleteProfile'), ProfileController.deleteProfile);
+routes.post('/profile/addPermissions', permissionCheckMiddleware('addPermissions'), ProfileController.addPermissions);
+
+//Usuário
+routes.post('/user', UsuarioController.registerUsuario);
+routes.get('/users', UsuarioController.getUsuarios);
+routes.get('/usersByProfile/:profileId', UsuarioController.getUsersByProfile);
+routes.get('/user/:id', UsuarioController.getUsuarioPorId);
+routes.put('/user/:id', UsuarioController.atualizarUsuario);
+routes.delete('/user/:id', UsuarioController.deletarUsuario);
+
+
 
 routes.get(
   "/listar-itens/:museuId/:ano/:tipo",
