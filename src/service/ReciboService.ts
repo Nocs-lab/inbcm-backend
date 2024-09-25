@@ -4,7 +4,7 @@ import PdfPrinter from "pdfmake"
 import { IMuseu } from "../models/Museu"
 import { IUsuario } from "../models/Usuario"
 import path from "path"
-import { gerarDataFormatada, gerarHoraFormatada,DataUtils } from "../utils/dataUtils"
+import { DataUtils } from "../utils/dataUtils"
 import { TDocumentDefinitions } from "pdfmake/interfaces"
 
 /**
