@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { Declaracoes, DeclaracaoModel, HistoricoModel } from "../models"
+import { Declaracoes, DeclaracaoModel } from "../models"
 import DeclaracaoService from "../service/DeclaracaoService"
 import { createHash, generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
@@ -342,7 +342,58 @@ class DeclaracaoController {
         .json({ message: "Erro ao baixar arquivo da declaração." });
     }
   }
+  async getTimeLine(req:Request, res:Response) {
+    const { id } = req.params;
 
+    try {
+        const declaracao = await Declaracoes.findById(id);
+        if (!declaracao) {
+            return res.status(404).json({ mensagem: 'Declaração não encontrada' });
+        }
+
+        const timeline = [];
+
+        if (declaracao.dataRecebimento) {
+            timeline.push({
+                data: declaracao.dataRecebimento.toISOString(),
+                evento: "Declaração recebida",
+                id_usuario: declaracao.responsavelEnvio 
+            });
+        }
+
+        if (declaracao.dataEnvioAnalise) {
+            timeline.push({
+                data: declaracao.dataEnvioAnalise.toISOString(),
+                evento: "Declaração enviada para análise",
+                id_usuario: declaracao.responsavelEnvioAnalise
+            });
+        }
+        if (declaracao.dataAnalise) {
+          if (declaracao.analistasResponsaveis && declaracao.analistasResponsaveis.length > 0) {
+              timeline.push({
+                  data: declaracao.dataAnalise.toISOString(),
+                  evento: "Declaração em análise",
+                  id_usuario: declaracao.analistasResponsaveis[0] 
+              });
+          } else {
+              console.warn('Nenhum analista responsável encontrado para a declaração.');
+          }
+      }
+      
+
+        if (declaracao.dataFimAnalise) {
+            timeline.push({
+                data: declaracao.dataFimAnalise.toISOString(),
+                evento: "Declaração em conformidade",
+                id_usuario: declaracao.analistasResponsaveis 
+            });
+        }
+
+        return res.json({ historico: timeline });
+    } catch (error) {
+        return res.status(500).json({ mensagem: 'Erro ao obter timeline' });
+    }
+}
   async uploadDeclaracao(req: Request, res: Response) {
     const declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(req.params.museu, req.params.anoDeclaracao)
 
