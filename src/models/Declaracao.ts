@@ -3,19 +3,6 @@ import { Status } from "../enums/Status"
 import { TipoEnvio } from "../enums/tipoEnvio"
 
 
-export interface IHistorico extends Document {
-  dataRecebimento?:Date;
-  dataMovimentacao: Date;
-  evento: string; 
-  id_usuario: mongoose.Types.ObjectId; 
-}
-
-const historicoSchema = new Schema<IHistorico>({
-  dataRecebimento:{ type: Date, default: Date.now },
-  dataMovimentacao: { type: Date, default: Date.now }, 
-  evento: { type: String, required: true }, 
-  id_usuario: { type: mongoose.Schema.Types.ObjectId, ref: "usuarios", required: true }, 
-});
 
 export interface Arquivo {
   nome?: string
@@ -57,11 +44,10 @@ export interface DeclaracaoModel extends Document {
   dataAtualizacao?: Date
   salt: string
   totalItensDeclarados?: number
-  status: Status
+  status: Status,
   arquivistico: Arquivo
   bibliografico: Arquivo
   museologico: Arquivo,
-  historico: IHistorico[],
   retificacao: boolean
   retificacaoRef: mongoose.Types.ObjectId
   versao: number
@@ -106,7 +92,6 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
     arquivistico: ArquivoSchema,
     bibliografico: ArquivoSchema,
     museologico: ArquivoSchema,
-    historico: [historicoSchema],
     ultimaDeclaracao: { type: Boolean, default: true },
     dataRecebimento: { type: Date },
     dataEnvioAnalise: { type: Date },
@@ -127,4 +112,3 @@ DeclaracaoSchema.pre("save", function (next) {
 })
 
 export const Declaracoes = mongoose.model<DeclaracaoModel>("Declaracoes", DeclaracaoSchema);
-export const HistoricoModel = mongoose.model<IHistorico>("Historico", historicoSchema);
