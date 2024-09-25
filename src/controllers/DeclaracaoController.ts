@@ -1,12 +1,14 @@
 import { Request, Response } from "express"
-import { Declaracoes, DeclaracaoModel } from "../models"
+import { Declaracoes, DeclaracaoModel, HistoricoModel } from "../models"
 import DeclaracaoService from "../service/DeclaracaoService"
 import { createHash, generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
 import path from "path"
 import mongoose from "mongoose"
-import {getLatestPathArchive} from "../utils/minioUtil"
+import { getLatestPathArchive } from "../utils/minioUtil"
 import minioClient from "../db/minioClient"
+import { Status } from "../enums/Status"
+import { DataUtils } from "../utils/dataUtils"
 
 class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -232,13 +234,14 @@ class DeclaracaoController {
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       const salt = generateSalt();
 
+
       const declaracaoExistente = idDeclaracao
         ? await Declaracoes.findOne({
-            _id: idDeclaracao,
-            responsavelEnvio: user_id,
-            anoDeclaracao,
-            museu_id: museu_id,
-          }).exec()
+          _id: idDeclaracao,
+          responsavelEnvio: user_id,
+          anoDeclaracao,
+          museu_id: museu_id,
+        }).exec()
         : await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
 
       if (idDeclaracao && !declaracaoExistente) {
@@ -258,12 +261,13 @@ class DeclaracaoController {
         anoDeclaracao,
         declaracaoExistente,
         novaVersao,
-        salt
+        salt,
+        DataUtils.getCurrentData()
       );
-
+      
       const novaDeclaracao = new Declaracoes(novaDeclaracaoData);
+      
 
-      // Atualiza os arquivos associados à nova declaração
       await this.declaracaoService.updateDeclaracao(files["arquivistico"], novaDeclaracao, "arquivistico", declaracaoExistente?.arquivistico || null, novaVersao);
       await this.declaracaoService.updateDeclaracao(files["bibliografico"], novaDeclaracao, "bibliografico", declaracaoExistente?.bibliografico || null, novaVersao);
       await this.declaracaoService.updateDeclaracao(files["museologico"], novaDeclaracao, "museologico", declaracaoExistente?.museologico || null, novaVersao);
@@ -288,10 +292,11 @@ class DeclaracaoController {
   }
 
 
-  async  downloadDeclaracao(req: Request, res: Response) {
+  async downloadDeclaracao(req: Request, res: Response) {
     try {
       const { museu, anoDeclaracao, tipoArquivo } = req.params;
       const user_id = req.user.id;
+
 
       // Verifique a declaração para o usuário
       const declaracao = await Declaracoes.findOne({
@@ -353,6 +358,90 @@ class DeclaracaoController {
   async retificarDeclaracao(req: Request, res: Response) {
     return this.criarDeclaracao(req, res)
   }
+
+  /**
+  * Lista todos os analistas disponíveis para análise de declarações.
+  * 
+  * Esse método consulta a camada de serviço para obter uma lista de analistas disponíveis e retorna essa lista na resposta.
+  * 
+  * @param {Request} req - O objeto de solicitação (request). Não são esperados parâmetros ou corpo para essa rota.
+  * @param {Response} res - O objeto de resposta (response).
+  *   - Status 200: Retorna um JSON contendo a lista de analistas.
+  *   - Status 500: Retorna uma mensagem de erro caso haja falha na operação.
+  * @returns {Promise<Response>} Retorna uma resposta com a lista de analistas ou uma mensagem de erro.
+  */
+  async listarAnalistas(req: Request, res: Response): Promise<Response> {
+    try {
+
+      const analistas = await this.declaracaoService.listarAnalistas();
+
+
+      return res.status(200).json(analistas);
+    } catch (error) {
+
+      return res.status(500).json({
+        message: "Ocorreu um erro ao listar os analistas. Tente novamente mais tarde.",
+      });
+    }
+  }
+
+  /**
+  * Envia a declaração para análise.
+  * 
+  * Esse método recebe o ID da declaração e uma lista de IDs de analistas, atualiza o status da declaração e registra o evento no histórico.
+  * 
+  * @param {Request} req - O objeto de solicitação (request).
+  *   - `params`: Contém o ID da declaração (`id`) a ser enviada para análise.
+  *   - `body`: Deve conter uma lista de IDs de analistas responsáveis pela análise da declaração (`analistas`).
+  *   - `user`: O objeto do usuário autenticado, contendo o ID do administrador (`adminId`) que está enviando a declaração.
+  * @param {Response} res - O objeto de resposta (response).
+  *   - Status 200: Retorna a declaração enviada para análise.
+  *   - Status 500: Retorna um erro em caso de falha no envio.
+  * @returns {Promise<Response>} Retorna um JSON com a declaração atualizada ou uma mensagem de erro.
+  */
+  async enviarParaAnalise(req: Request, res: Response): Promise<Response> {
+    const { id } = req.params;
+    const { analistas } = req.body;
+    const adminId = req.user?.id;
+
+    try {
+      const declaracao = await this.declaracaoService.enviarParaAnalise(id, analistas, adminId);
+      return res.status(200).json(declaracao);
+    } catch (error) {
+      console.error("Erro ao enviar declaração para análise:", error);
+      return res
+        .status(500)
+        .json({ message: "Erro ao enviar declaração para análise." });
+    }
+  }
+
+  /**
+   * Conclui a análise de uma declaração.
+   * 
+   * Esse método atualiza o status da declaração para "Em Conformidade" ou "Não Conformidade" e registra a conclusão da análise no histórico da declaração.
+   * 
+   * @param {Request} req - O objeto de solicitação (request).
+   *   - `params`: Contém o ID da declaração (`id`) e o ID do analista que concluiu a análise (`idAnalita`).
+   *   - `body`: Deve conter o status final da análise (`status`), que pode ser "Em conformidade" ou "Não conformidade".
+   * @param {Response} res - O objeto de resposta (response).
+   *   - Status 200: Retorna a declaração com o status atualizado e a data de conclusão da análise.
+   *   - Status 500: Retorna um erro caso haja problemas ao concluir a análise.
+   * @returns {Promise<Response>} Retorna um JSON com a declaração atualizada ou uma mensagem de erro.
+   
+   */
+  async concluirAnalise(req: Request, res: Response): Promise<Response> {
+    const { id } = req.params;
+    const { status } = req.body;
+    const { idAnalita } = req.params;
+
+    try {
+      const declaracao = await this.declaracaoService.concluirAnalise(id, status);
+      return res.status(200).json(declaracao);
+    } catch (error) {
+      return res.status(500).json({ message: "Erro ao concluir análise da declaração." });
+    }
+  }
+
 
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
