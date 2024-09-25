@@ -7,8 +7,11 @@ import {
   Arquivistico,
   Bibliografico,
   Museologico,
-  DeclaracaoModel
+  DeclaracaoModel,
+  Usuario,
+  HistoricoModel
 } from "../models"
+import {IUsuario}  from "../models/Usuario"
 import mongoose from "mongoose"
 import {
   validate_museologico,
@@ -17,6 +20,8 @@ import {
 } from "inbcm-xlsx-validator"
 import { createHash, generateSalt } from "../utils/hashUtils"
 import { StringDecoder } from "string_decoder"
+import { Profile } from "../models/Profile"
+import { DataUtils } from "../utils/dataUtils"
 class DeclaracaoService {
   async declaracoesPorStatus() {
     try {
@@ -338,7 +343,8 @@ class DeclaracaoService {
     anoDeclaracao: string,
     declaracaoExistente: any,
     novaVersao: number,
-    salt: string
+    salt: string,
+    dataRecebimento:Date,
 ) {
  
 
@@ -354,6 +360,7 @@ class DeclaracaoService {
             retificacaoRef: declaracaoExistente._id as mongoose.Types.ObjectId,
             versao: novaVersao,
             hashDeclaracao: createHash(declaracaoExistente._id as mongoose.Types.ObjectId, salt),
+            dataRecebimento:dataRecebimento
         }
         : {
             anoDeclaracao,
@@ -364,6 +371,7 @@ class DeclaracaoService {
             versao: novaVersao,
             status: Status.Recebida,
             hashDeclaracao: createHash(new mongoose.Types.ObjectId(), salt),
+            dataRecebimento: dataRecebimento
         };
 }
 
@@ -461,7 +469,82 @@ class DeclaracaoService {
     }
   }
   
+  async listarAnalistas() {
+    
+    const analistaProfile = await Profile.findOne({ name: "analyst" });
 
+    if (!analistaProfile) {
+      throw new Error("Perfil de analista não encontrado.");
+    }
+  
+    const analistas: IUsuario[] = await Usuario.find({ profile: analistaProfile._id });
+    
+    return analistas;
+  }
+  
+  async enviarParaAnalise(id: string, analistas: string[], adminId: string): Promise<void> {
+    const objectId = new mongoose.Types.ObjectId(id);
+    const declaracao = await Declaracoes.findById(objectId);
+  
+    if (!declaracao) {
+      throw new Error("Declaração não encontrada.");
+    }
+  
+    if (declaracao.status !== Status.Recebida) {
+      throw new Error("Declaração não está no estado adequado para envio.");
+    }
+  
+    
+    const analistasList: IUsuario[] = await this.listarAnalistas();
+    const analistasIds = analistasList.map((analista) => analista._id);
+
+  
+    for (const analistaId of analistas) {
+      if (!analistasIds.toString().includes(analistaId)) {
+        throw new Error(`Usuário com ID ${analistaId} não é um analista.`);
+      }
+    }
+  
+    declaracao.analistasResponsaveis = analistas.map((id) => new mongoose.Types.ObjectId(id));
+    declaracao.status = Status.EmAnalise;
+    declaracao.dataEnvioAnalise = DataUtils.getCurrentData()
+    declaracao.responsavelEnvioAnalise = new mongoose.Types.ObjectId(adminId);
+
+  
+    await declaracao.save({ validateBeforeSave: false });
+  }
+  
+  async concluirAnalise(id: string, status: Status): Promise<DeclaracaoModel> {
+    const declaracaoId = new mongoose.Types.ObjectId(id);
+    const declaracao = await Declaracoes.findById(declaracaoId);
+    let evento = ""
+  
+    if (!declaracao) {
+      throw new Error("Declaração não encontrada.");
+    }
+  
+    if (![ Status.EmConformidade, Status.NaoConformidade].includes(status)) {
+      evento
+      throw new Error("Status inválido.");
+    }
+    
+    if (status === Status.EmConformidade) {
+      evento = Status.EmConformidade
+  } else if (status === Status.NaoConformidade) {
+      evento = Status.NaoConformidade
+  }
+    declaracao.status = status; 
+    declaracao.dataFimAnalise = DataUtils.getCurrentData();
+    
+
+    await declaracao.save(); 
+  
+    return declaracao;
+  }
+  
+  
+  
+  
 
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
