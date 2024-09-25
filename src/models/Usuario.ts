@@ -1,6 +1,6 @@
 import mongoose, { Schema, Types, Document } from "mongoose";
 
-interface IUsuario extends Document {
+export interface IUsuario extends Document {
   nome: string;
   email: string;
   museus: string[];

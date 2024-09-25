@@ -2,6 +2,21 @@ import mongoose, { Schema, Document } from "mongoose"
 import { Status } from "../enums/Status"
 import { TipoEnvio } from "../enums/tipoEnvio"
 
+
+export interface IHistorico extends Document {
+  dataRecebimento?:Date;
+  dataMovimentacao: Date;
+  evento: string; 
+  id_usuario: mongoose.Types.ObjectId; 
+}
+
+const historicoSchema = new Schema<IHistorico>({
+  dataRecebimento:{ type: Date, default: Date.now },
+  dataMovimentacao: { type: Date, default: Date.now }, 
+  evento: { type: String, required: true }, 
+  id_usuario: { type: mongoose.Schema.Types.ObjectId, ref: "usuarios", required: true }, 
+});
+
 export interface Arquivo {
   nome?: string
   caminho?: string
@@ -45,13 +60,20 @@ export interface DeclaracaoModel extends Document {
   status: Status
   arquivistico: Arquivo
   bibliografico: Arquivo
-  museologico: Arquivo
+  museologico: Arquivo,
+  historico: IHistorico[],
   retificacao: boolean
   retificacaoRef: mongoose.Types.ObjectId
   versao: number
   createdAt?: Date
   updatedAt?: Date
   ultimaDeclaracao: boolean
+  dataRecebimento?: Date
+  dataEnvioAnalise?: Date
+  responsavelEnvioAnalise?: mongoose.Types.ObjectId
+  analistasResponsaveis?: mongoose.Types.ObjectId[]
+  dataAnalise?: Date
+  dataFimAnalise?: Date
 }
 
 export type ArquivoTypes =
@@ -84,7 +106,14 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
     arquivistico: ArquivoSchema,
     bibliografico: ArquivoSchema,
     museologico: ArquivoSchema,
-    ultimaDeclaracao: { type: Boolean, default: true }
+    historico: [historicoSchema],
+    ultimaDeclaracao: { type: Boolean, default: true },
+    dataRecebimento: { type: Date },
+    dataEnvioAnalise: { type: Date },
+    analistasResponsaveis: [{ type: Schema.Types.ObjectId, ref: "usuarios" }],
+    responsavelEnvioAnalise: { type: Schema.Types.ObjectId, ref: "usuarios" },
+    dataAnalise: { type: Date },
+    dataFimAnalise: { type: Date }
   },
   { timestamps: true, versionKey: false }
 )
@@ -97,8 +126,5 @@ DeclaracaoSchema.pre("save", function (next) {
   next()
 })
 
-export const Declaracoes = mongoose.model<DeclaracaoModel>(
-  "Declaracoes",
-  DeclaracaoSchema
-)
-export default Declaracoes
+export const Declaracoes = mongoose.model<DeclaracaoModel>("Declaracoes", DeclaracaoSchema);
+export const HistoricoModel = mongoose.model<IHistorico>("Historico", historicoSchema);
