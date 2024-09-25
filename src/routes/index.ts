@@ -39,7 +39,7 @@ routes.get('/user/:id', UsuarioController.getUsuarioPorId);
 routes.put('/user/:id', UsuarioController.atualizarUsuario);
 routes.delete('/user/:id', UsuarioController.deletarUsuario);
 
-
+routes.get("/analistas", adminMiddleware,declaracaoController.listarAnalistas.bind(declaracaoController));
 
 routes.get(
   "/listar-itens/:museuId/:ano/:tipo",
@@ -47,6 +47,10 @@ routes.get(
   declaracaoController.listarItensPorTipodeBem.bind(declaracaoController)
 )
 
+routes.put("/declaracoes/:id/analises",adminMiddleware, declaracaoController.enviarParaAnalise.bind(declaracaoController))
+
+
+routes.put("/declaracoes/:id/analises-concluir",adminMiddleware, declaracaoController.concluirAnalise.bind(declaracaoController))
 /**
  * @swagger
  * /api/criarMuseu:
