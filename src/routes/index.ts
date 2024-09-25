@@ -49,6 +49,7 @@ routes.get(
 
 routes.put("/declaracoes/:id/analises",adminMiddleware, declaracaoController.enviarParaAnalise.bind(declaracaoController))
 
+routes.get("/declaracoes/:id/timeline",adminMiddleware,declaracaoController.getTimeLine.bind(declaracaoController))
 
 routes.put("/declaracoes/:id/analises-concluir",adminMiddleware, declaracaoController.concluirAnalise.bind(declaracaoController))
 /**
