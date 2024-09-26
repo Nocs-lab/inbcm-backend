@@ -246,8 +246,13 @@ class DeclaracaoService {
       const statusEnum = Declaracoes.schema.path("status")
       const statusArray = Object.values(statusEnum)[0]
       const statusExistente = statusArray.includes(status)
-      if (statusExistente === true) {
+      const statusCount: Record<string, number> = {};
+      if (statusExistente) {
         query = query.where("status").equals(status)
+      } else { // Cria os campos de count atribuindo 0 para cada status em statusCount
+        statusArray.forEach((statusItem: string) => {
+          statusCount[statusItem] = 0;
+        });
       }
 
       // Filtro para UF
@@ -296,18 +301,46 @@ class DeclaracaoService {
         query = query.where("museu_id").in(museuIds)
       }
       const result = await query
-      .populate([{ path: "museu_id", model: Museu, select: [""] }])
-      .sort("-dataCriacao")
-      .exec()
+        .populate([{ path: "museu_id", model: Museu, select: [""] }])
+        .sort("-dataCriacao")
+        .exec()
 
-      return result.map((d) => {
+      let [bemCount, museologicoCount, bibliograficoCount, arquivisticoCount] = [0, 0, 0, 0];
+
+      const data = result.map((d) => {
         const data = d.toJSON()
         // @ts-expect-error - O campo museu_id é um objeto, não uma string
         data.museu_id.endereco.regiao =
           // @ts-expect-error - O campo museu_id é um objeto, não uma string
           regioesMap[data.museu_id.endereco.uf as keyof typeof regioesMap]
+        if (!statusExistente && data.status in statusCount) {
+          statusCount[data.status] += 1;
+        }
+        // Adicionando contagem dos bens
+        if (data.museologico) {
+          museologicoCount += data.museologico.quantidadeItens || 0;
+        }
+        if (data.bibliografico) {
+          bibliograficoCount += data.bibliografico.quantidadeItens || 0;
+        }
+        if (data.arquivistico) {
+          arquivisticoCount += data.arquivistico.quantidadeItens || 0;
+        }
+        bemCount += (data.museologico?.quantidadeItens || 0) +
+          (data.bibliografico?.quantidadeItens || 0) +
+          (data.arquivistico?.quantidadeItens || 0);
         return data
       })
+
+      return {
+        declaracaoCount: data.length,
+        statusCount,
+        bemCount,
+        museologicoCount,
+        bibliograficoCount,
+        arquivisticoCount,
+        data
+      }
     } catch (error) {
       throw new Error("Erro ao buscar declarações com filtros.")
     }
@@ -340,7 +373,7 @@ class DeclaracaoService {
     novaVersao: number,
     salt: string
 ) {
- 
+
 
     return declaracaoExistente
         ? {
@@ -389,21 +422,21 @@ class DeclaracaoService {
     try {
       if (arquivos && arquivos.length > 0) {
         const novoHashBemCultural = createHashUpdate(
-          arquivos[0].path, 
+          arquivos[0].path,
           arquivos[0].filename
         );
-  
+
         let validate = validate_arquivistico;
         if (tipo === "bibliografico") {
           validate = validate_bibliografico;
         } else if (tipo === "museologico") {
           validate = validate_museologico;
         }
-  
+
         const { data: arquivoData, errors: pendencias } = await validate(
           arquivos[0].buffer
         );
-  
+
         const dadosAlterados: Partial<Arquivo> = {
           nome: arquivos[0].filename,
           status: Status.Recebida,
@@ -412,17 +445,17 @@ class DeclaracaoService {
           quantidadeItens: arquivoData.length,
           versao: novaVersao
         };
-  
+
         novaDeclaracao[tipo] = {
           ...arquivoAnterior,
           ...dadosAlterados
         } as Arquivo;
-  
+
         arquivoData.forEach((item: { [key: string]: unknown }) => {
           item.declaracao_ref = novaDeclaracao._id;
           item.versao = novaVersao;
         });
-  
+
         let Modelo;
         switch (tipo) {
           case "arquivistico":
@@ -437,30 +470,30 @@ class DeclaracaoService {
           default:
             throw new Error("Tipo de declaração inválido");
         }
-  
+
         await Modelo.insertMany(arquivoData);
       } else if (arquivoAnterior) {
         novaDeclaracao[tipo] = { ...arquivoAnterior } as Arquivo;
       }
-  
+
       if (novaDeclaracao.retificacaoRef) {
         const declaracaoAnterior = await Declaracoes.findById(
           novaDeclaracao.retificacaoRef
         ).exec() as DeclaracaoModel | null;
-  
+
         if (declaracaoAnterior) {
           novaDeclaracao.retificacaoRef = declaracaoAnterior._id as mongoose.Types.ObjectId;
           novaDeclaracao.retificacao = true;
         }
       }
-  
+
       await novaDeclaracao.save();
     } catch (error) {
       console.error("Erro ao atualizar a declaração:", error);
       throw new Error("Erro ao atualizar a declaração: " + error);
     }
   }
-  
+
 
 
   /**
