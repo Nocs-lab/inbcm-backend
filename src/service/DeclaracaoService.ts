@@ -9,7 +9,6 @@ import {
   Museologico,
   DeclaracaoModel,
   Usuario,
-  HistoricoModel
 } from "../models"
 import {IUsuario}  from "../models/Usuario"
 import mongoose from "mongoose"
@@ -509,7 +508,7 @@ class DeclaracaoService {
     declaracao.status = Status.EmAnalise;
     declaracao.dataEnvioAnalise = DataUtils.getCurrentData()
     declaracao.responsavelEnvioAnalise = new mongoose.Types.ObjectId(adminId);
-
+    
   
     await declaracao.save({ validateBeforeSave: false });
   }
