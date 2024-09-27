@@ -31,6 +31,16 @@ class DeclaracaoController {
         return res.status(404).json({ message: "Declaração não encontrada." })
       }
       declaracao.status = status
+      if(declaracao.museologico){
+        declaracao.museologico.status= status
+      }
+      if(declaracao.arquivistico){
+        declaracao.arquivistico.status = status
+      }
+      if(declaracao.bibliografico){
+        declaracao.bibliografico.status = status
+      }
+     
       await declaracao.save({ validateBeforeSave: false })
       return res.status(200).json(declaracao)
     } catch (error) {
