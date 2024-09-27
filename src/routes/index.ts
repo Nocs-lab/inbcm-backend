@@ -699,12 +699,13 @@ routes.post("/auth/login", limiter, async (req, res) => {
   })
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    expires: new Date(Date.now() + 60 * 60 * 1000),  
-    maxAge: 60 * 60 * 1000,  
+    expires: new Date(Date.now() + 60 * 60 * 1000), 
+    maxAge: 60 * 60 * 1000, 
     sameSite: "strict",
     secure: true,
     signed: true
-  })
+  });
+  
 
   res.json({
     name: user.nome,
