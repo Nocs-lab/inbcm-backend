@@ -4,7 +4,7 @@ import PdfPrinter from "pdfmake"
 import { IMuseu } from "../models/Museu"
 import { IUsuario } from "../models/Usuario"
 import path from "path"
-import { gerarDataFormatada, gerarHoraFormatada } from "../utils/dataUtils"
+import { DataUtils } from "../utils/dataUtils"
 import { TDocumentDefinitions } from "pdfmake/interfaces"
 
 /**
@@ -84,8 +84,8 @@ function formatarDadosRecibo(
     municipio: museu.endereco.municipio,
     uf: museu.endereco.uf,
     nomeDeclarante: usuario.nome,
-    data: gerarDataFormatada(new Date()),
-    hora: gerarHoraFormatada(new Date()),
+    data: DataUtils.gerarDataFormatada(),
+    hora: DataUtils.gerarHoraFormatada(),
     numeroRecibo: declaracao.hashDeclaracao,
     totalBensDeclarados: formatValue(totalBensDeclarados),
     bensMuseologicos: formatValue(declaracao.museologico?.quantidadeItens),

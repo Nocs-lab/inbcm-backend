@@ -2,6 +2,8 @@ import mongoose, { Schema, Document } from "mongoose"
 import { Status } from "../enums/Status"
 import { TipoEnvio } from "../enums/tipoEnvio"
 
+
+
 export interface Arquivo {
   nome?: string
   caminho?: string
@@ -42,16 +44,22 @@ export interface DeclaracaoModel extends Document {
   dataAtualizacao?: Date
   salt: string
   totalItensDeclarados?: number
-  status: Status
+  status: Status,
   arquivistico: Arquivo
   bibliografico: Arquivo
-  museologico: Arquivo
+  museologico: Arquivo,
   retificacao: boolean
   retificacaoRef: mongoose.Types.ObjectId
   versao: number
   createdAt?: Date
   updatedAt?: Date
   ultimaDeclaracao: boolean
+  dataRecebimento?: Date
+  dataEnvioAnalise?: Date
+  responsavelEnvioAnalise?: mongoose.Types.ObjectId
+  analistasResponsaveis?: mongoose.Types.ObjectId[]
+  dataAnalise?: Date
+  dataFimAnalise?: Date
 }
 
 export type ArquivoTypes =
@@ -84,7 +92,13 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
     arquivistico: ArquivoSchema,
     bibliografico: ArquivoSchema,
     museologico: ArquivoSchema,
-    ultimaDeclaracao: { type: Boolean, default: true }
+    ultimaDeclaracao: { type: Boolean, default: true },
+    dataRecebimento: { type: Date },
+    dataEnvioAnalise: { type: Date },
+    analistasResponsaveis: [{ type: Schema.Types.ObjectId, ref: "usuarios" }],
+    responsavelEnvioAnalise: { type: Schema.Types.ObjectId, ref: "usuarios" },
+    dataAnalise: { type: Date },
+    dataFimAnalise: { type: Date }
   },
   { timestamps: true, versionKey: false }
 )
@@ -97,8 +111,4 @@ DeclaracaoSchema.pre("save", function (next) {
   next()
 })
 
-export const Declaracoes = mongoose.model<DeclaracaoModel>(
-  "Declaracoes",
-  DeclaracaoSchema
-)
-export default Declaracoes
+export const Declaracoes = mongoose.model<DeclaracaoModel>("Declaracoes", DeclaracaoSchema);

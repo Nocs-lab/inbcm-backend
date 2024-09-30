@@ -7,8 +7,10 @@ import {
   Arquivistico,
   Bibliografico,
   Museologico,
-  DeclaracaoModel
+  DeclaracaoModel,
+  Usuario,
 } from "../models"
+import {IUsuario}  from "../models/Usuario"
 import mongoose from "mongoose"
 import {
   validate_museologico,
@@ -17,6 +19,8 @@ import {
 } from "inbcm-xlsx-validator"
 import { createHash, generateSalt } from "../utils/hashUtils"
 import { StringDecoder } from "string_decoder"
+import { Profile } from "../models/Profile"
+import { DataUtils } from "../utils/dataUtils"
 class DeclaracaoService {
   async declaracoesPorStatus() {
     try {
@@ -246,8 +250,13 @@ class DeclaracaoService {
       const statusEnum = Declaracoes.schema.path("status")
       const statusArray = Object.values(statusEnum)[0]
       const statusExistente = statusArray.includes(status)
-      if (statusExistente === true) {
+      const statusCount: Record<string, number> = {};
+      if (statusExistente) {
         query = query.where("status").equals(status)
+      } else { // Cria os campos de count atribuindo 0 para cada status em statusCount
+        statusArray.forEach((statusItem: string) => {
+          statusCount[statusItem] = 0;
+        });
       }
 
       // Filtro para UF
@@ -296,18 +305,46 @@ class DeclaracaoService {
         query = query.where("museu_id").in(museuIds)
       }
       const result = await query
-      .populate([{ path: "museu_id", model: Museu, select: [""] }])
-      .sort("-dataCriacao")
-      .exec()
+        .populate([{ path: "museu_id", model: Museu, select: [""] }])
+        .sort("-dataCriacao")
+        .exec()
 
-      return result.map((d) => {
+      let [bemCount, museologicoCount, bibliograficoCount, arquivisticoCount] = [0, 0, 0, 0];
+
+      const data = result.map((d) => {
         const data = d.toJSON()
         // @ts-expect-error - O campo museu_id é um objeto, não uma string
         data.museu_id.endereco.regiao =
           // @ts-expect-error - O campo museu_id é um objeto, não uma string
           regioesMap[data.museu_id.endereco.uf as keyof typeof regioesMap]
+        if (!statusExistente && data.status in statusCount) {
+          statusCount[data.status] += 1;
+        }
+        // Adicionando contagem dos bens
+        if (data.museologico) {
+          museologicoCount += data.museologico.quantidadeItens || 0;
+        }
+        if (data.bibliografico) {
+          bibliograficoCount += data.bibliografico.quantidadeItens || 0;
+        }
+        if (data.arquivistico) {
+          arquivisticoCount += data.arquivistico.quantidadeItens || 0;
+        }
+        bemCount += (data.museologico?.quantidadeItens || 0) +
+          (data.bibliografico?.quantidadeItens || 0) +
+          (data.arquivistico?.quantidadeItens || 0);
         return data
       })
+
+      return {
+        declaracaoCount: data.length,
+        statusCount,
+        bemCount,
+        museologicoCount,
+        bibliograficoCount,
+        arquivisticoCount,
+        data
+      }
     } catch (error) {
       throw new Error("Erro ao buscar declarações com filtros.")
     }
@@ -338,9 +375,10 @@ class DeclaracaoService {
     anoDeclaracao: string,
     declaracaoExistente: any,
     novaVersao: number,
-    salt: string
+    salt: string,
+    dataRecebimento:Date,
 ) {
- 
+
 
     return declaracaoExistente
         ? {
@@ -354,6 +392,7 @@ class DeclaracaoService {
             retificacaoRef: declaracaoExistente._id as mongoose.Types.ObjectId,
             versao: novaVersao,
             hashDeclaracao: createHash(declaracaoExistente._id as mongoose.Types.ObjectId, salt),
+            dataRecebimento:dataRecebimento
         }
         : {
             anoDeclaracao,
@@ -364,6 +403,7 @@ class DeclaracaoService {
             versao: novaVersao,
             status: Status.Recebida,
             hashDeclaracao: createHash(new mongoose.Types.ObjectId(), salt),
+            dataRecebimento: dataRecebimento
         };
 }
 
@@ -389,21 +429,21 @@ class DeclaracaoService {
     try {
       if (arquivos && arquivos.length > 0) {
         const novoHashBemCultural = createHashUpdate(
-          arquivos[0].path, 
+          arquivos[0].path,
           arquivos[0].filename
         );
-  
+
         let validate = validate_arquivistico;
         if (tipo === "bibliografico") {
           validate = validate_bibliografico;
         } else if (tipo === "museologico") {
           validate = validate_museologico;
         }
-  
+
         const { data: arquivoData, errors: pendencias } = await validate(
           arquivos[0].buffer
         );
-  
+
         const dadosAlterados: Partial<Arquivo> = {
           nome: arquivos[0].filename,
           status: novaDeclaracao.status,
@@ -412,18 +452,16 @@ class DeclaracaoService {
           quantidadeItens: arquivoData.length,
           versao: novaVersao
         };
-        console.log(`Alterando o status do arquivo ${dadosAlterados.status}`)
-  
         novaDeclaracao[tipo] = {
           ...arquivoAnterior,
           ...dadosAlterados
         } as Arquivo;
-  
+
         arquivoData.forEach((item: { [key: string]: unknown }) => {
           item.declaracao_ref = novaDeclaracao._id;
           item.versao = novaVersao;
         });
-  
+
         let Modelo;
         switch (tipo) {
           case "arquivistico":
@@ -438,23 +476,23 @@ class DeclaracaoService {
           default:
             throw new Error("Tipo de declaração inválido");
         }
-  
+
         await Modelo.insertMany(arquivoData);
       } else if (arquivoAnterior) {
         novaDeclaracao[tipo] = { ...arquivoAnterior } as Arquivo;
       }
-  
+
       if (novaDeclaracao.retificacaoRef) {
         const declaracaoAnterior = await Declaracoes.findById(
           novaDeclaracao.retificacaoRef
         ).exec() as DeclaracaoModel | null;
-  
+
         if (declaracaoAnterior) {
           novaDeclaracao.retificacaoRef = declaracaoAnterior._id as mongoose.Types.ObjectId;
           novaDeclaracao.retificacao = true;
         }
       }
-  
+
       await novaDeclaracao.save();
     } catch (error) {
       console.error("Erro ao atualizar a declaração:", error);
@@ -462,7 +500,82 @@ class DeclaracaoService {
     }
   }
   
+  async listarAnalistas() {
+    
+    const analistaProfile = await Profile.findOne({ name: "analyst" });
 
+    if (!analistaProfile) {
+      throw new Error("Perfil de analista não encontrado.");
+    }
+  
+    const analistas: IUsuario[] = await Usuario.find({ profile: analistaProfile._id });
+    
+    return analistas;
+  }
+  
+  async enviarParaAnalise(id: string, analistas: string[], adminId: string): Promise<void> {
+    const objectId = new mongoose.Types.ObjectId(id);
+    const declaracao = await Declaracoes.findById(objectId);
+  
+    if (!declaracao) {
+      throw new Error("Declaração não encontrada.");
+    }
+  
+    if (declaracao.status !== Status.Recebida) {
+      throw new Error("Declaração não está no estado adequado para envio.");
+    }
+  
+    
+    const analistasList: IUsuario[] = await this.listarAnalistas();
+    const analistasIds = analistasList.map((analista) => analista._id);
+
+  
+    for (const analistaId of analistas) {
+      if (!analistasIds.toString().includes(analistaId)) {
+        throw new Error(`Usuário com ID ${analistaId} não é um analista.`);
+      }
+    }
+  
+    declaracao.analistasResponsaveis = analistas.map((id) => new mongoose.Types.ObjectId(id));
+    declaracao.status = Status.EmAnalise;
+    declaracao.dataEnvioAnalise = DataUtils.getCurrentData()
+    declaracao.responsavelEnvioAnalise = new mongoose.Types.ObjectId(adminId);
+    
+  
+    await declaracao.save({ validateBeforeSave: false });
+  }
+  
+  async concluirAnalise(id: string, status: Status): Promise<DeclaracaoModel> {
+    const declaracaoId = new mongoose.Types.ObjectId(id);
+    const declaracao = await Declaracoes.findById(declaracaoId);
+    let evento = ""
+  
+    if (!declaracao) {
+      throw new Error("Declaração não encontrada.");
+    }
+  
+    if (![ Status.EmConformidade, Status.NaoConformidade].includes(status)) {
+      evento
+      throw new Error("Status inválido.");
+    }
+    
+    if (status === Status.EmConformidade) {
+      evento = Status.EmConformidade
+  } else if (status === Status.NaoConformidade) {
+      evento = Status.NaoConformidade
+  }
+    declaracao.status = status; 
+    declaracao.dataFimAnalise = DataUtils.getCurrentData();
+    
+
+    await declaracao.save(); 
+  
+    return declaracao;
+  }
+  
+  
+  
+  
 
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.

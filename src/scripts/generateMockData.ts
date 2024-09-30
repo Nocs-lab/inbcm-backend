@@ -38,17 +38,22 @@ import connect from "../db/conn";
       })
     );
 
-    const analystUser = {
-      nome: fakerPT_BR.person.fullName(),
-      email: 'analyst@gmail.com',
-      senha,
-      admin: false,
-      museus: [],
-      profile: analystProfile._id,
-      ativo: true,
-    };
+    const analysts = await Usuario.insertMany(
+      Array.from({ length: 2 }, () => {
+        const nome = fakerPT_BR.person.fullName();
+        const [firstName, lastName] = nome.split(" ");
 
-    await Usuario.create(analystUser);
+        return {
+          nome,
+          email: fakerPT_BR.internet.email({ firstName, lastName }),
+          senha,
+          admin: false,
+          profile: analystProfile._id,
+          ativo: true,
+        };
+      })
+    );
+
 
     await Museu.insertMany(
       Array.from({ length: 4 }).map((_, index) => ({
