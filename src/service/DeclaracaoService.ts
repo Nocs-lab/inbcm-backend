@@ -446,13 +446,12 @@ class DeclaracaoService {
 
         const dadosAlterados: Partial<Arquivo> = {
           nome: arquivos[0].filename,
-          status: Status.Recebida,
+          status: novaDeclaracao.status,
           hashArquivo: novoHashBemCultural,
           pendencias,
           quantidadeItens: arquivoData.length,
           versao: novaVersao
         };
-
         novaDeclaracao[tipo] = {
           ...arquivoAnterior,
           ...dadosAlterados
