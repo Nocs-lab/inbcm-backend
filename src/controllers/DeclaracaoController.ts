@@ -22,7 +22,26 @@ export class DeclaracaoController {
     this.getDeclaracoesPorRegiao = this.getDeclaracoesPorRegiao.bind(this)
     this.getDeclaracoesPorUF = this.getDeclaracoesPorUF.bind(this)
     this.getDeclaracoesPorStatus = this.getDeclaracoesPorStatus.bind(this)
+    this.getStatusEnum = this.getStatusEnum.bind(this)
+    this.atualizarStatusDeclaracao = this.atualizarStatusDeclaracao.bind(this)
+    this.getDeclaracoes = this.getDeclaracoes.bind(this)
+    this.getDeclaracao = this.getDeclaracao.bind(this)
+    this.getDeclaracaoAno = this.getDeclaracaoAno.bind(this)
+    this.getDeclaracoesPorStatusAno = this.getDeclaracoesPorStatusAno.bind(this)
   }
+
+  async getDeclaracoesPorStatusAno(req: Request, res: Response) {
+    try {
+      const data = await this.declaracaoService.declaracoesPorStatusPorAno()
+      return res.status(200).json(data)
+    } catch (error) {
+      console.error("Erro ao buscar declarações por status e ano:", error)
+      return res
+        .status(500)
+        .json({ message: "Erro ao buscar declarações por status e ano." })
+    }
+  }
+
   async atualizarStatusDeclaracao(req: Request, res: Response) {
     try {
       const { id } = req.params

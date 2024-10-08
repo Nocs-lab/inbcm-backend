@@ -8,7 +8,8 @@ import {
   Bibliografico,
   Museologico,
   DeclaracaoModel,
-  Usuario
+  Usuario,
+  IMuseu
 } from "../models"
 import { IUsuario } from "../models/Usuario"
 import mongoose from "mongoose"
@@ -17,11 +18,66 @@ import {
   validate_arquivistico,
   validate_bibliografico
 } from "inbcm-xlsx-validator"
-import { createHash, generateSalt } from "../utils/hashUtils"
-import { StringDecoder } from "string_decoder"
+import { createHash } from "../utils/hashUtils"
 import { Profile } from "../models/Profile"
 import { DataUtils } from "../utils/dataUtils"
+
 class DeclaracaoService {
+  async declaracoesPorStatusPorAno() {
+    try {
+      const result = await Declaracoes.aggregate([
+        {
+          $group: {
+            _id: {
+              status: "$status",
+              ano: "$anoDeclaracao"
+            },
+            count: { $sum: 1 }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            status: "$_id.status",
+            ano: "$_id.ano",
+            count: "$count"
+          }
+        }
+      ])
+
+      const anos = result
+        .map((item) => item.ano)
+        .filter((value, index, self) => self.indexOf(value) === index)
+
+      const statusEnum = Declaracoes.schema.path("status")
+      const status = Object.values(statusEnum)[0]
+
+      const data = anos.map((ano) => {
+        const statusCount = status.reduce((acc, item) => {
+          const statusItem = result.find(
+            (resultItem) => resultItem.ano === ano && resultItem.status === item
+          )
+          acc.push(statusItem ? statusItem.count : 0)
+          return acc
+        }, [])
+
+        const total = statusCount.reduce((acc, item) => acc + item, 0)
+
+        return [ano, total, ...statusCount]
+      })
+
+      return data
+    } catch (error) {
+      console.error(
+        "Erro ao realizar busca de declarações por status para o dashboard:",
+        error
+      )
+      throw new Error(
+        "Erro ao realizar busca de declarações por status para o dashboard."
+      )
+    }
+  }
+
   async declaracoesPorStatus() {
     try {
       const result = await Declaracoes.aggregate([
@@ -160,7 +216,8 @@ class DeclaracaoService {
                   ],
                   default: "Desconhecida"
                 }
-              }
+              },
+              status: "$status"
             },
             count: { $sum: 1 }
           }
@@ -169,15 +226,38 @@ class DeclaracaoService {
           $project: {
             _id: 0,
             regiao: "$_id.regiao",
+            status: "$_id.status",
             count: "$count"
           }
         }
       ])
 
-      const regioes = result.reduce((acc, item) => {
-        acc[item.regiao] = item.count
-        return acc
-      }, {})
+      let regioes = ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"]
+      const statusEnum = Declaracoes.schema.path("status")
+      const status = Object.values(statusEnum)[0]
+
+      // [[regiao, total, ...status], ...]
+      // Exemplo: [["Norte", 10, 2, 3, 5], ["Nordeste", 15, 4, 6, 5], ...]
+      regioes = regioes.map((regiao) => {
+        const regiaoStatus = result
+          .filter((item) => item.regiao === regiao)
+          .reduce((acc, item) => {
+            acc[item.status] = item.count
+            return acc
+          }, {})
+
+        const total = Object.values(regiaoStatus).reduce(
+          (acc, item) => acc + item,
+          0
+        )
+
+        const statusCount = status.reduce((acc, item) => {
+          acc.push(regiaoStatus[item] || 0)
+          return acc
+        }, [])
+
+        return [regiao, total, ...statusCount]
+      })
 
       return regioes
     } catch (error) {
@@ -373,10 +453,10 @@ class DeclaracaoService {
    * @returns retorna uma nova declaracao ou um erro ao tentar criar uma declaracao
    */
   async criarDadosDeclaracao(
-    museu: mongoose.Types.ObjectId | any,
-    responsavelEnvio: mongoose.Types.ObjectId | string,
+    museu: typeof Museu,
+    responsavelEnvio: IMuseu,
     anoDeclaracao: string,
-    declaracaoExistente: any,
+    declaracaoExistente: DeclaracaoModel,
     novaVersao: number,
     salt: string,
     dataRecebimento: Date

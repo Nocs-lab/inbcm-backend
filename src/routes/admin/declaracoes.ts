@@ -71,24 +71,6 @@ routes.post(
 
 /**
  * @swagger
- * /api/getStatusEnum:
- *   get:
- *     summary: Obtém os valores de enumeração para o status das declarações.
- *     description: Endpoint para obter os valores de enumeração para o status das declarações.
- *     tags:
- *       - Declarações
- *     responses:
- *       '200':
- *         description: Valores de enumeração para o status das declarações obtidos com sucesso.
- */
-routes.get(
-  "/getStatusEnum",
-  adminMiddleware,
-  declaracaoController.getStatusEnum
-)
-
-/**
- * @swagger
  * /api/admin/declaracoes/declaracoesFiltradas:
  *   post:
  *     summary: Obtém declarações com base em filtros.
