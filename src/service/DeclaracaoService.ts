@@ -8,9 +8,9 @@ import {
   Bibliografico,
   Museologico,
   DeclaracaoModel,
-  Usuario,
+  Usuario
 } from "../models"
-import {IUsuario}  from "../models/Usuario"
+import { IUsuario } from "../models/Usuario"
 import mongoose from "mongoose"
 import {
   validate_museologico,
@@ -237,12 +237,12 @@ class DeclaracaoService {
     dataInicio: number
     dataFim: number
     regiao: string
-    uf: string,
-    ultimaDeclaracao: boolean,
+    uf: string
+    ultimaDeclaracao: boolean
   }) {
     try {
       let query = Declaracoes.find()
-      if(ultimaDeclaracao || ultimaDeclaracao == null){
+      if (ultimaDeclaracao || ultimaDeclaracao == null) {
         query = query.where("ultimaDeclaracao").equals(true)
       }
 
@@ -250,13 +250,14 @@ class DeclaracaoService {
       const statusEnum = Declaracoes.schema.path("status")
       const statusArray = Object.values(statusEnum)[0]
       const statusExistente = statusArray.includes(status)
-      const statusCount: Record<string, number> = {};
+      const statusCount: Record<string, number> = {}
       if (statusExistente) {
         query = query.where("status").equals(status)
-      } else { // Cria os campos de count atribuindo 0 para cada status em statusCount
+      } else {
+        // Cria os campos de count atribuindo 0 para cada status em statusCount
         statusArray.forEach((statusItem: string) => {
-          statusCount[statusItem] = 0;
-        });
+          statusCount[statusItem] = 0
+        })
       }
 
       // Filtro para UF
@@ -309,7 +310,8 @@ class DeclaracaoService {
         .sort("-dataCriacao")
         .exec()
 
-      let [bemCount, museologicoCount, bibliograficoCount, arquivisticoCount] = [0, 0, 0, 0];
+      let [bemCount, museologicoCount, bibliograficoCount, arquivisticoCount] =
+        [0, 0, 0, 0]
 
       const data = result.map((d) => {
         const data = d.toJSON()
@@ -318,21 +320,22 @@ class DeclaracaoService {
           // @ts-expect-error - O campo museu_id é um objeto, não uma string
           regioesMap[data.museu_id.endereco.uf as keyof typeof regioesMap]
         if (!statusExistente && data.status in statusCount) {
-          statusCount[data.status] += 1;
+          statusCount[data.status] += 1
         }
         // Adicionando contagem dos bens
         if (data.museologico) {
-          museologicoCount += data.museologico.quantidadeItens || 0;
+          museologicoCount += data.museologico.quantidadeItens || 0
         }
         if (data.bibliografico) {
-          bibliograficoCount += data.bibliografico.quantidadeItens || 0;
+          bibliograficoCount += data.bibliografico.quantidadeItens || 0
         }
         if (data.arquivistico) {
-          arquivisticoCount += data.arquivistico.quantidadeItens || 0;
+          arquivisticoCount += data.arquivistico.quantidadeItens || 0
         }
-        bemCount += (data.museologico?.quantidadeItens || 0) +
+        bemCount +=
+          (data.museologico?.quantidadeItens || 0) +
           (data.bibliografico?.quantidadeItens || 0) +
-          (data.arquivistico?.quantidadeItens || 0);
+          (data.arquivistico?.quantidadeItens || 0)
         return data
       })
 
@@ -376,37 +379,37 @@ class DeclaracaoService {
     declaracaoExistente: any,
     novaVersao: number,
     salt: string,
-    dataRecebimento:Date,
-) {
-
-
+    dataRecebimento: Date
+  ) {
     return declaracaoExistente
-        ? {
-            museu_id: declaracaoExistente.museu_id,
-            museu_nome: declaracaoExistente.museu_nome,
-            anoDeclaracao: declaracaoExistente.anoDeclaracao,
-            responsavelEnvio: declaracaoExistente.responsavelEnvio,
-            totalItensDeclarados: declaracaoExistente.totalItensDeclarados,
-            status: declaracaoExistente.status,
-            retificacao: true,
-            retificacaoRef: declaracaoExistente._id as mongoose.Types.ObjectId,
-            versao: novaVersao,
-            hashDeclaracao: createHash(declaracaoExistente._id as mongoose.Types.ObjectId, salt),
-            dataRecebimento:dataRecebimento
+      ? {
+          museu_id: declaracaoExistente.museu_id,
+          museu_nome: declaracaoExistente.museu_nome,
+          anoDeclaracao: declaracaoExistente.anoDeclaracao,
+          responsavelEnvio: declaracaoExistente.responsavelEnvio,
+          totalItensDeclarados: declaracaoExistente.totalItensDeclarados,
+          status: declaracaoExistente.status,
+          retificacao: true,
+          retificacaoRef: declaracaoExistente._id as mongoose.Types.ObjectId,
+          versao: novaVersao,
+          hashDeclaracao: createHash(
+            declaracaoExistente._id as mongoose.Types.ObjectId,
+            salt
+          ),
+          dataRecebimento: dataRecebimento
         }
-        : {
-            anoDeclaracao,
-            museu_id: museu,
-            museu_nome: museu.nome,
-            responsavelEnvio: responsavelEnvio,
-            retificacao: false,
-            versao: novaVersao,
-            status: Status.Recebida,
-            hashDeclaracao: createHash(new mongoose.Types.ObjectId(), salt),
-            dataRecebimento: dataRecebimento
-        };
-}
-
+      : {
+          anoDeclaracao,
+          museu_id: museu,
+          museu_nome: museu.nome,
+          responsavelEnvio: responsavelEnvio,
+          retificacao: false,
+          versao: novaVersao,
+          status: Status.Recebida,
+          hashDeclaracao: createHash(new mongoose.Types.ObjectId(), salt),
+          dataRecebimento: dataRecebimento
+        }
+  }
 
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
@@ -431,18 +434,18 @@ class DeclaracaoService {
         const novoHashBemCultural = createHashUpdate(
           arquivos[0].path,
           arquivos[0].filename
-        );
+        )
 
-        let validate = validate_arquivistico;
+        let validate = validate_arquivistico
         if (tipo === "bibliografico") {
-          validate = validate_bibliografico;
+          validate = validate_bibliografico
         } else if (tipo === "museologico") {
-          validate = validate_museologico;
+          validate = validate_museologico
         }
 
         const { data: arquivoData, errors: pendencias } = await validate(
           arquivos[0].buffer
-        );
+        )
 
         const dadosAlterados: Partial<Arquivo> = {
           nome: arquivos[0].filename,
@@ -451,131 +454,131 @@ class DeclaracaoService {
           pendencias,
           quantidadeItens: arquivoData.length,
           versao: novaVersao
-        };
+        }
         novaDeclaracao[tipo] = {
           ...arquivoAnterior,
           ...dadosAlterados
-        } as Arquivo;
+        } as Arquivo
 
         arquivoData.forEach((item: { [key: string]: unknown }) => {
-          item.declaracao_ref = novaDeclaracao._id;
-          item.versao = novaVersao;
-        });
+          item.declaracao_ref = novaDeclaracao._id
+          item.versao = novaVersao
+        })
 
-        let Modelo;
+        let Modelo
         switch (tipo) {
           case "arquivistico":
-            Modelo = Arquivistico;
-            break;
+            Modelo = Arquivistico
+            break
           case "bibliografico":
-            Modelo = Bibliografico;
-            break;
+            Modelo = Bibliografico
+            break
           case "museologico":
-            Modelo = Museologico;
-            break;
+            Modelo = Museologico
+            break
           default:
-            throw new Error("Tipo de declaração inválido");
+            throw new Error("Tipo de declaração inválido")
         }
 
-        await Modelo.insertMany(arquivoData);
+        await Modelo.insertMany(arquivoData)
       } else if (arquivoAnterior) {
-        novaDeclaracao[tipo] = { ...arquivoAnterior } as Arquivo;
+        novaDeclaracao[tipo] = { ...arquivoAnterior } as Arquivo
       }
 
       if (novaDeclaracao.retificacaoRef) {
-        const declaracaoAnterior = await Declaracoes.findById(
+        const declaracaoAnterior = (await Declaracoes.findById(
           novaDeclaracao.retificacaoRef
-        ).exec() as DeclaracaoModel | null;
+        ).exec()) as DeclaracaoModel | null
 
         if (declaracaoAnterior) {
-          novaDeclaracao.retificacaoRef = declaracaoAnterior._id as mongoose.Types.ObjectId;
-          novaDeclaracao.retificacao = true;
+          novaDeclaracao.retificacaoRef =
+            declaracaoAnterior._id as mongoose.Types.ObjectId
+          novaDeclaracao.retificacao = true
         }
       }
 
-      await novaDeclaracao.save();
+      await novaDeclaracao.save()
     } catch (error) {
-      console.error("Erro ao atualizar a declaração:", error);
-      throw new Error("Erro ao atualizar a declaração: " + error);
+      console.error("Erro ao atualizar a declaração:", error)
+      throw new Error("Erro ao atualizar a declaração: " + error)
     }
   }
-  
+
   async listarAnalistas() {
-    
-    const analistaProfile = await Profile.findOne({ name: "analyst" });
+    const analistaProfile = await Profile.findOne({ name: "analyst" })
 
     if (!analistaProfile) {
-      throw new Error("Perfil de analista não encontrado.");
+      throw new Error("Perfil de analista não encontrado.")
     }
-  
-    const analistas: IUsuario[] = await Usuario.find({ profile: analistaProfile._id });
-    
-    return analistas;
-  }
-  
-  async enviarParaAnalise(id: string, analistas: string[], adminId: string): Promise<void> {
-    const objectId = new mongoose.Types.ObjectId(id);
-    const declaracao = await Declaracoes.findById(objectId);
-  
-    if (!declaracao) {
-      throw new Error("Declaração não encontrada.");
-    }
-  
-    if (declaracao.status !== Status.Recebida) {
-      throw new Error("Declaração não está no estado adequado para envio.");
-    }
-  
-    
-    const analistasList: IUsuario[] = await this.listarAnalistas();
-    const analistasIds = analistasList.map((analista) => analista._id);
 
-  
+    const analistas: IUsuario[] = await Usuario.find({
+      profile: analistaProfile._id
+    })
+
+    return analistas
+  }
+
+  async enviarParaAnalise(
+    id: string,
+    analistas: string[],
+    adminId: string
+  ): Promise<void> {
+    const objectId = new mongoose.Types.ObjectId(id)
+    const declaracao = await Declaracoes.findById(objectId)
+
+    if (!declaracao) {
+      throw new Error("Declaração não encontrada.")
+    }
+
+    if (declaracao.status !== Status.Recebida) {
+      throw new Error("Declaração não está no estado adequado para envio.")
+    }
+
+    const analistasList: IUsuario[] = await this.listarAnalistas()
+    const analistasIds = analistasList.map((analista) => analista._id)
+
     for (const analistaId of analistas) {
       if (!analistasIds.toString().includes(analistaId)) {
-        throw new Error(`Usuário com ID ${analistaId} não é um analista.`);
+        throw new Error(`Usuário com ID ${analistaId} não é um analista.`)
       }
     }
-  
-    declaracao.analistasResponsaveis = analistas.map((id) => new mongoose.Types.ObjectId(id));
-    declaracao.status = Status.EmAnalise;
+
+    declaracao.analistasResponsaveis = analistas.map(
+      (id) => new mongoose.Types.ObjectId(id)
+    )
+    declaracao.status = Status.EmAnalise
     declaracao.dataEnvioAnalise = DataUtils.getCurrentData()
-    declaracao.responsavelEnvioAnalise = new mongoose.Types.ObjectId(adminId);
-    
-  
-    await declaracao.save({ validateBeforeSave: false });
+    declaracao.responsavelEnvioAnalise = new mongoose.Types.ObjectId(adminId)
+
+    await declaracao.save({ validateBeforeSave: false })
   }
-  
+
   async concluirAnalise(id: string, status: Status): Promise<DeclaracaoModel> {
-    const declaracaoId = new mongoose.Types.ObjectId(id);
-    const declaracao = await Declaracoes.findById(declaracaoId);
+    const declaracaoId = new mongoose.Types.ObjectId(id)
+    const declaracao = await Declaracoes.findById(declaracaoId)
     let evento = ""
-  
+
     if (!declaracao) {
-      throw new Error("Declaração não encontrada.");
+      throw new Error("Declaração não encontrada.")
     }
-  
-    if (![ Status.EmConformidade, Status.NaoConformidade].includes(status)) {
+
+    if (![Status.EmConformidade, Status.NaoConformidade].includes(status)) {
       evento
-      throw new Error("Status inválido.");
+      throw new Error("Status inválido.")
     }
-    
+
     if (status === Status.EmConformidade) {
       evento = Status.EmConformidade
-  } else if (status === Status.NaoConformidade) {
+    } else if (status === Status.NaoConformidade) {
       evento = Status.NaoConformidade
-  }
-    declaracao.status = status; 
-    declaracao.dataFimAnalise = DataUtils.getCurrentData();
-    
+    }
+    declaracao.status = status
+    declaracao.dataFimAnalise = DataUtils.getCurrentData()
 
-    await declaracao.save(); 
-  
-    return declaracao;
+    await declaracao.save()
+
+    return declaracao
   }
-  
-  
-  
-  
 
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
@@ -595,31 +598,31 @@ class DeclaracaoService {
     tipoItem: string
   ) {
     // Verificar se o museu pertence ao usuário específico
-    const museu = await Museu.findOne({ _id: museuId, usuario: userId });
+    const museu = await Museu.findOne({ _id: museuId, usuario: userId })
 
     if (!museu) {
-      throw new Error("Museu inválido ou você não tem permissão para acessá-lo");
+      throw new Error("Museu inválido ou você não tem permissão para acessá-lo")
     }
 
     // Definir o modelo e os campos de projeção com base no tipo de item
-    let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico;
-    let retornoPorItem: string;
+    let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico
+    let retornoPorItem: string
 
     switch (tipoItem) {
       case "arquivistico":
-        Model = Arquivistico;
-        retornoPorItem = "_id coddereferencia titulo nomedoprodutor"; // Defina os campos específicos para arquivistico
-        break;
+        Model = Arquivistico
+        retornoPorItem = "_id coddereferencia titulo nomedoprodutor" // Defina os campos específicos para arquivistico
+        break
       case "bibliografico":
-        Model = Bibliografico;
-        retornoPorItem = "_id nderegistro situacao titulo localdeproducao"; // Defina os campos específicos para bibliografico
-        break;
+        Model = Bibliografico
+        retornoPorItem = "_id nderegistro situacao titulo localdeproducao" // Defina os campos específicos para bibliografico
+        break
       case "museologico":
-        Model = Museologico;
-        retornoPorItem = "_id nderegistro autor situacao denominacao"; // Defina os campos específicos para museologico
-        break;
+        Model = Museologico
+        retornoPorItem = "_id nderegistro autor situacao denominacao" // Defina os campos específicos para museologico
+        break
       default:
-        throw new Error("Tipo de item inválido");
+        throw new Error("Tipo de item inválido")
     }
 
     // Primeira agregação: encontrar a maior versão
@@ -653,7 +656,7 @@ class DeclaracaoService {
     const maxVersao = maxVersaoResult[0]?.maxVersao
 
     if (maxVersao === undefined) {
-      return []; // Se não houver versão encontrada, retornar array vazio
+      return [] // Se não houver versão encontrada, retornar array vazio
     }
 
     // Segunda agregação: buscar os itens do tipo especificado da maior versão encontrada
@@ -664,11 +667,11 @@ class DeclaracaoService {
           museu_id: new mongoose.Types.ObjectId(museuId),
           anoDeclaracao: ano,
           responsavelEnvio: new mongoose.Types.ObjectId(userId)
-        }).select('_id')
+        }).select("_id")
       }
-    }).select(retornoPorItem);
+    }).select(retornoPorItem)
 
-    return result;
+    return result
   }
 }
 

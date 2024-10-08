@@ -1,13 +1,13 @@
-import mongoose, { Schema, Types, Document } from "mongoose";
+import mongoose, { Schema, Types, Document } from "mongoose"
 
 export interface IUsuario extends Document {
-  nome: string;
-  email: string;
-  museus: string[];
-  admin: boolean;
-  senha: string;
-  profile: Types.ObjectId;
-  ativo: boolean;
+  nome: string
+  email: string
+  museus: string[]
+  admin: boolean
+  senha: string
+  profile: Types.ObjectId
+  ativo: boolean
 }
 
 const UsuarioSchema = new Schema<IUsuario>({
@@ -16,8 +16,8 @@ const UsuarioSchema = new Schema<IUsuario>({
   admin: { type: Boolean, default: false },
   senha: { type: String, required: true },
   profile: { type: Schema.Types.ObjectId, required: true, ref: "profiles" },
-  ativo: { type: Boolean, default: true },
-});
+  ativo: { type: Boolean, default: true }
+})
 
 interface IRefreshToken extends Document {
   expiresAt: Date

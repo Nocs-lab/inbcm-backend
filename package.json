@@ -12,7 +12,8 @@
     "create:data": "sucrase-node src/scripts/generateMockData.ts",
     "create:permissions": "sucrase-node src/scripts/setPermissions.ts",
     "list:users": "sucrase-node src/scripts/listUsers.ts",
-    "prepare": "[[ $NODE_ENV == 'development' ]] && husky install || true"
+    "prepare": "[[ $NODE_ENV == 'development' ]] && husky install || true",
+    "lint:fix": "eslint --cache --fix src"
   },
   "keywords": [],
   "author": "",

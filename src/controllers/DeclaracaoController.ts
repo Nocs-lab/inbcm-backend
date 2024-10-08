@@ -1,16 +1,15 @@
 import { Request, Response } from "express"
-import { Declaracoes, DeclaracaoModel } from "../models"
+import { Declaracoes } from "../models"
 import DeclaracaoService from "../service/DeclaracaoService"
-import { createHash, generateSalt } from "../utils/hashUtils"
+import { generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
 import path from "path"
 import mongoose from "mongoose"
 import { getLatestPathArchive } from "../utils/minioUtil"
 import minioClient from "../db/minioClient"
-import { Status } from "../enums/Status"
 import { DataUtils } from "../utils/dataUtils"
 
-class DeclaracaoController {
+export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
 
   constructor() {
@@ -33,16 +32,16 @@ class DeclaracaoController {
         return res.status(404).json({ message: "Declaração não encontrada." })
       }
       declaracao.status = status
-      if(declaracao.museologico){
-        declaracao.museologico.status= status
+      if (declaracao.museologico) {
+        declaracao.museologico.status = status
       }
-      if(declaracao.arquivistico){
+      if (declaracao.arquivistico) {
         declaracao.arquivistico.status = status
       }
-      if(declaracao.bibliografico){
+      if (declaracao.bibliografico) {
         declaracao.bibliografico.status = status
       }
-     
+
       await declaracao.save({ validateBeforeSave: false })
       return res.status(200).json(declaracao)
     } catch (error) {
@@ -139,9 +138,10 @@ class DeclaracaoController {
       }
 
       if (declaracao.ultimaDeclaracao == false) {
-        return res.status(404).json({ message: "Não é possível acessar declaração." })
+        return res
+          .status(404)
+          .json({ message: "Não é possível acessar declaração." })
       }
-
 
       return res.status(200).json(declaracao)
     } catch (error) {
@@ -215,203 +215,245 @@ class DeclaracaoController {
     }
   }
   /**
- * Cria uma nova declaração ou retifica uma declaração existente, associando-a a um museu e ao responsável.
- *
- * @param {string} req.params.anoDeclaracao - O ano da declaração, fornecido na URL.
- * @param {string} req.params.museu - O ID do museu associado à declaração, fornecido na URL.
- * @param {string} req.params.idDeclaracao - O ID da declaração existente que está sendo retificada, se aplicável.
- *
- * @returns {Promise<Response>} - Retorna uma resposta HTTP que contém o status da operação e a declaração criada ou um erro.
- *
- * @throws {400} - Se dados obrigatórios estão ausentes ou o museu não é válido.
- * @throws {404} - Se a declaração a ser retificada não for encontrada.
- * @throws {500} - Se ocorrer um erro interno ao processar a declaração.
- */
+   * Cria uma nova declaração ou retifica uma declaração existente, associando-a a um museu e ao responsável.
+   *
+   * @param {string} req.params.anoDeclaracao - O ano da declaração, fornecido na URL.
+   * @param {string} req.params.museu - O ID do museu associado à declaração, fornecido na URL.
+   * @param {string} req.params.idDeclaracao - O ID da declaração existente que está sendo retificada, se aplicável.
+   *
+   * @returns {Promise<Response>} - Retorna uma resposta HTTP que contém o status da operação e a declaração criada ou um erro.
+   *
+   * @throws {400} - Se dados obrigatórios estão ausentes ou o museu não é válido.
+   * @throws {404} - Se a declaração a ser retificada não for encontrada.
+   * @throws {500} - Se ocorrer um erro interno ao processar a declaração.
+   */
   async criarDeclaracao(req: Request, res: Response) {
     try {
-      const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params;
-      const user_id = req.user.id;
+      const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params
+      const user_id = req.user.id
 
       if (!museu_id || !user_id) {
-        return res.status(400).json({ success: false, message: "Dados obrigatórios ausentes" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Dados obrigatórios ausentes" })
       }
 
-      const museu = await Museu.findOne({ _id: museu_id, usuario: user_id });
+      const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
       if (!museu) {
-        return res.status(400).json({ success: false, message: "Museu inválido" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Museu inválido" })
       }
 
-      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-      const salt = generateSalt();
-
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] }
+      const salt = generateSalt()
 
       const declaracaoExistente = idDeclaracao
         ? await Declaracoes.findOne({
-          _id: idDeclaracao,
-          responsavelEnvio: user_id,
-          anoDeclaracao,
-          museu_id: museu_id,
-        }).exec()
-        : await this.declaracaoService.verificarDeclaracaoExistente(museu_id, anoDeclaracao);
+            _id: idDeclaracao,
+            responsavelEnvio: user_id,
+            anoDeclaracao,
+            museu_id: museu_id
+          }).exec()
+        : await this.declaracaoService.verificarDeclaracaoExistente(
+            museu_id,
+            anoDeclaracao
+          )
 
       if (idDeclaracao && !declaracaoExistente) {
-        return res.status(404).json({ message: "Não foi encontrada uma declaração anterior para retificar." });
+        return res.status(404).json({
+          message: "Não foi encontrada uma declaração anterior para retificar."
+        })
       }
 
-      if (idDeclaracao && (declaracaoExistente?.ultimaDeclaracao == false)) {
-        return res.status(406).json({ message: "Apenas a versão mais recente da declaração pode ser retificada." });
+      if (idDeclaracao && declaracaoExistente?.ultimaDeclaracao == false) {
+        return res.status(406).json({
+          message:
+            "Apenas a versão mais recente da declaração pode ser retificada."
+        })
       }
 
-      const ultimaDeclaracao = await Declaracoes.findOne({ museu_id, anoDeclaracao }).sort({ versao: -1 }).exec();
-      const novaVersao = (ultimaDeclaracao?.versao || 0) + 1;
+      const ultimaDeclaracao = await Declaracoes.findOne({
+        museu_id,
+        anoDeclaracao
+      })
+        .sort({ versao: -1 })
+        .exec()
+      const novaVersao = (ultimaDeclaracao?.versao || 0) + 1
 
-      const novaDeclaracaoData = await this.declaracaoService.criarDadosDeclaracao(
-        museu,
-        user_id as unknown as mongoose.Types.ObjectId,
-        anoDeclaracao,
-        declaracaoExistente,
-        novaVersao,
-        salt,
-        DataUtils.getCurrentData()
-      );
-      
-      const novaDeclaracao = new Declaracoes(novaDeclaracaoData);
-      
+      const novaDeclaracaoData =
+        await this.declaracaoService.criarDadosDeclaracao(
+          museu,
+          user_id as unknown as mongoose.Types.ObjectId,
+          anoDeclaracao,
+          declaracaoExistente,
+          novaVersao,
+          salt,
+          DataUtils.getCurrentData()
+        )
 
-      await this.declaracaoService.updateDeclaracao(files["arquivistico"], novaDeclaracao, "arquivistico", declaracaoExistente?.arquivistico || null, novaVersao);
-      await this.declaracaoService.updateDeclaracao(files["bibliografico"], novaDeclaracao, "bibliografico", declaracaoExistente?.bibliografico || null, novaVersao);
-      await this.declaracaoService.updateDeclaracao(files["museologico"], novaDeclaracao, "museologico", declaracaoExistente?.museologico || null, novaVersao);
+      const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
 
-      novaDeclaracao.ultimaDeclaracao = true;
-      await novaDeclaracao.save();
+      await this.declaracaoService.updateDeclaracao(
+        files["arquivistico"],
+        novaDeclaracao,
+        "arquivistico",
+        declaracaoExistente?.arquivistico || null,
+        novaVersao
+      )
+      await this.declaracaoService.updateDeclaracao(
+        files["bibliografico"],
+        novaDeclaracao,
+        "bibliografico",
+        declaracaoExistente?.bibliografico || null,
+        novaVersao
+      )
+      await this.declaracaoService.updateDeclaracao(
+        files["museologico"],
+        novaDeclaracao,
+        "museologico",
+        declaracaoExistente?.museologico || null,
+        novaVersao
+      )
+
+      novaDeclaracao.ultimaDeclaracao = true
+      await novaDeclaracao.save()
 
       await Declaracoes.updateMany(
         {
           museu_id,
           anoDeclaracao,
-          _id: { $ne: novaDeclaracao._id },
+          _id: { $ne: novaDeclaracao._id }
         },
         { ultimaDeclaracao: false }
-      );
+      )
 
-      return res.status(200).json(novaDeclaracao);
+      return res.status(200).json(novaDeclaracao)
     } catch (error) {
-      console.error("Erro ao enviar uma declaração:", error);
-      return res.status(500).json({ message: "Erro ao enviar uma declaração: ", error });
+      console.error("Erro ao enviar uma declaração:", error)
+      return res
+        .status(500)
+        .json({ message: "Erro ao enviar uma declaração: ", error })
     }
   }
 
-
   async downloadDeclaracao(req: Request, res: Response) {
     try {
-      const { museu, anoDeclaracao, tipoArquivo } = req.params;
-      const user_id = req.user.id;
-
+      const { museu, anoDeclaracao, tipoArquivo } = req.params
+      const user_id = req.user.id
 
       // Verifique a declaração para o usuário
       const declaracao = await Declaracoes.findOne({
         museu_id: museu,
         anoDeclaracao,
         responsavelEnvio: user_id
-      });
+      })
 
       if (!declaracao) {
         return res.status(404).json({
           message: "Declaração não encontrada para o ano especificado."
-        });
+        })
       }
 
-
-      const prefix = `${museu}/${anoDeclaracao}/${tipoArquivo}/`;
-      const bucketName = 'inbcm';
+      const prefix = `${museu}/${anoDeclaracao}/${tipoArquivo}/`
+      const bucketName = "inbcm"
 
       // Obtenha o caminho do arquivo mais recente
-      const latestFilePath = await getLatestPathArchive(bucketName, prefix);
+      const latestFilePath = await getLatestPathArchive(bucketName, prefix)
 
       if (!latestFilePath) {
         return res
           .status(404)
-          .json({ message: "Arquivo não encontrado para o tipo especificado." });
+          .json({ message: "Arquivo não encontrado para o tipo especificado." })
       }
 
       // Obtenha o arquivo do MinIO
-      const fileStream = await minioClient.getObject(bucketName, latestFilePath);
+      const fileStream = await minioClient.getObject(bucketName, latestFilePath)
 
       res.setHeader(
         "Content-Disposition",
         `attachment; filename=${path.basename(latestFilePath)}`
-      );
-      res.setHeader("Content-Type", "application/octet-stream");
+      )
+      res.setHeader("Content-Type", "application/octet-stream")
 
       // Envie o arquivo como resposta
-      fileStream.pipe(res);
+      fileStream.pipe(res)
     } catch (error) {
-      console.error("Erro ao baixar arquivo da declaração:", error);
+      console.error("Erro ao baixar arquivo da declaração:", error)
       return res
         .status(500)
-        .json({ message: "Erro ao baixar arquivo da declaração." });
+        .json({ message: "Erro ao baixar arquivo da declaração." })
     }
   }
-  async getTimeLine(req:Request, res:Response) {
-    const { id } = req.params;
+  async getTimeLine(req: Request, res: Response) {
+    const { id } = req.params
 
     try {
-        const declaracao = await Declaracoes.findById(id);
-        if (!declaracao) {
-            return res.status(404).json({ mensagem: 'Declaração não encontrada' });
-        }
-
-        const timeline = [];
-
-        if (declaracao.dataRecebimento) {
-            timeline.push({
-                data: declaracao.dataRecebimento.toISOString(),
-                evento: "Declaração recebida",
-                id_usuario: declaracao.responsavelEnvio 
-            });
-        }
-
-        if (declaracao.dataEnvioAnalise) {
-            timeline.push({
-                data: declaracao.dataEnvioAnalise.toISOString(),
-                evento: "Declaração enviada para análise",
-                id_usuario: declaracao.responsavelEnvioAnalise
-            });
-        }
-        if (declaracao.dataAnalise) {
-          if (declaracao.analistasResponsaveis && declaracao.analistasResponsaveis.length > 0) {
-              timeline.push({
-                  data: declaracao.dataAnalise.toISOString(),
-                  evento: "Declaração em análise",
-                  id_usuario: declaracao.analistasResponsaveis[0] 
-              });
-          } else {
-              console.warn('Nenhum analista responsável encontrado para a declaração.');
-          }
+      const declaracao = await Declaracoes.findById(id)
+      if (!declaracao) {
+        return res.status(404).json({ mensagem: "Declaração não encontrada" })
       }
-      
 
-        if (declaracao.dataFimAnalise) {
-            timeline.push({
-                data: declaracao.dataFimAnalise.toISOString(),
-                evento: "Declaração em conformidade",
-                id_usuario: declaracao.analistasResponsaveis 
-            });
+      const timeline = []
+
+      if (declaracao.dataRecebimento) {
+        timeline.push({
+          data: declaracao.dataRecebimento.toISOString(),
+          evento: "Declaração recebida",
+          id_usuario: declaracao.responsavelEnvio
+        })
+      }
+
+      if (declaracao.dataEnvioAnalise) {
+        timeline.push({
+          data: declaracao.dataEnvioAnalise.toISOString(),
+          evento: "Declaração enviada para análise",
+          id_usuario: declaracao.responsavelEnvioAnalise
+        })
+      }
+      if (declaracao.dataAnalise) {
+        if (
+          declaracao.analistasResponsaveis &&
+          declaracao.analistasResponsaveis.length > 0
+        ) {
+          timeline.push({
+            data: declaracao.dataAnalise.toISOString(),
+            evento: "Declaração em análise",
+            id_usuario: declaracao.analistasResponsaveis[0]
+          })
+        } else {
+          console.warn(
+            "Nenhum analista responsável encontrado para a declaração."
+          )
         }
+      }
 
-        return res.json({ historico: timeline });
+      if (declaracao.dataFimAnalise) {
+        timeline.push({
+          data: declaracao.dataFimAnalise.toISOString(),
+          evento: "Declaração em conformidade",
+          id_usuario: declaracao.analistasResponsaveis
+        })
+      }
+
+      return res.json({ historico: timeline })
     } catch (error) {
-        return res.status(500).json({ mensagem: 'Erro ao obter timeline' });
+      return res.status(500).json({ mensagem: "Erro ao obter timeline" })
     }
-}
+  }
   async uploadDeclaracao(req: Request, res: Response) {
-    const declaracaoExistente = await this.declaracaoService.verificarDeclaracaoExistente(req.params.museu, req.params.anoDeclaracao)
+    const declaracaoExistente =
+      await this.declaracaoService.verificarDeclaracaoExistente(
+        req.params.museu,
+        req.params.anoDeclaracao
+      )
 
     if (declaracaoExistente) {
       return res.status(406).json({
         status: false,
-        message: 'Já existe declaração para museu e ano referência informados. Para alterar a declaração é preciso retificá-la.'
-      });
+        message:
+          "Já existe declaração para museu e ano referência informados. Para alterar a declaração é preciso retificá-la."
+      })
     }
     return this.criarDeclaracao(req, res)
   }
@@ -421,66 +463,68 @@ class DeclaracaoController {
   }
 
   /**
-  * Lista todos os analistas disponíveis para análise de declarações.
-  * 
-  * Esse método consulta a camada de serviço para obter uma lista de analistas disponíveis e retorna essa lista na resposta.
-  * 
-  * @param {Request} req - O objeto de solicitação (request). Não são esperados parâmetros ou corpo para essa rota.
-  * @param {Response} res - O objeto de resposta (response).
-  *   - Status 200: Retorna um JSON contendo a lista de analistas.
-  *   - Status 500: Retorna uma mensagem de erro caso haja falha na operação.
-  * @returns {Promise<Response>} Retorna uma resposta com a lista de analistas ou uma mensagem de erro.
-  */
+   * Lista todos os analistas disponíveis para análise de declarações.
+   *
+   * Esse método consulta a camada de serviço para obter uma lista de analistas disponíveis e retorna essa lista na resposta.
+   *
+   * @param {Request} req - O objeto de solicitação (request). Não são esperados parâmetros ou corpo para essa rota.
+   * @param {Response} res - O objeto de resposta (response).
+   *   - Status 200: Retorna um JSON contendo a lista de analistas.
+   *   - Status 500: Retorna uma mensagem de erro caso haja falha na operação.
+   * @returns {Promise<Response>} Retorna uma resposta com a lista de analistas ou uma mensagem de erro.
+   */
   async listarAnalistas(req: Request, res: Response): Promise<Response> {
     try {
+      const analistas = await this.declaracaoService.listarAnalistas()
 
-      const analistas = await this.declaracaoService.listarAnalistas();
-
-
-      return res.status(200).json(analistas);
+      return res.status(200).json(analistas)
     } catch (error) {
-
       return res.status(500).json({
-        message: "Ocorreu um erro ao listar os analistas. Tente novamente mais tarde.",
-      });
+        message:
+          "Ocorreu um erro ao listar os analistas. Tente novamente mais tarde."
+      })
     }
   }
 
   /**
-  * Envia a declaração para análise.
-  * 
-  * Esse método recebe o ID da declaração e uma lista de IDs de analistas, atualiza o status da declaração e registra o evento no histórico.
-  * 
-  * @param {Request} req - O objeto de solicitação (request).
-  *   - `params`: Contém o ID da declaração (`id`) a ser enviada para análise.
-  *   - `body`: Deve conter uma lista de IDs de analistas responsáveis pela análise da declaração (`analistas`).
-  *   - `user`: O objeto do usuário autenticado, contendo o ID do administrador (`adminId`) que está enviando a declaração.
-  * @param {Response} res - O objeto de resposta (response).
-  *   - Status 200: Retorna a declaração enviada para análise.
-  *   - Status 500: Retorna um erro em caso de falha no envio.
-  * @returns {Promise<Response>} Retorna um JSON com a declaração atualizada ou uma mensagem de erro.
-  */
+   * Envia a declaração para análise.
+   *
+   * Esse método recebe o ID da declaração e uma lista de IDs de analistas, atualiza o status da declaração e registra o evento no histórico.
+   *
+   * @param {Request} req - O objeto de solicitação (request).
+   *   - `params`: Contém o ID da declaração (`id`) a ser enviada para análise.
+   *   - `body`: Deve conter uma lista de IDs de analistas responsáveis pela análise da declaração (`analistas`).
+   *   - `user`: O objeto do usuário autenticado, contendo o ID do administrador (`adminId`) que está enviando a declaração.
+   * @param {Response} res - O objeto de resposta (response).
+   *   - Status 200: Retorna a declaração enviada para análise.
+   *   - Status 500: Retorna um erro em caso de falha no envio.
+   * @returns {Promise<Response>} Retorna um JSON com a declaração atualizada ou uma mensagem de erro.
+   */
   async enviarParaAnalise(req: Request, res: Response): Promise<Response> {
-    const { id } = req.params;
-    const { analistas } = req.body;
-    const adminId = req.user?.id;
+    const { id } = req.params
+    const { analistas } = req.body
+    const adminId = req.user?.id
 
     try {
-      const declaracao = await this.declaracaoService.enviarParaAnalise(id, analistas, adminId);
-      return res.status(200).json(declaracao);
+      const declaracao = await this.declaracaoService.enviarParaAnalise(
+        id,
+        analistas,
+        adminId
+      )
+      return res.status(200).json(declaracao)
     } catch (error) {
-      console.error("Erro ao enviar declaração para análise:", error);
+      console.error("Erro ao enviar declaração para análise:", error)
       return res
         .status(500)
-        .json({ message: "Erro ao enviar declaração para análise." });
+        .json({ message: "Erro ao enviar declaração para análise." })
     }
   }
 
   /**
    * Conclui a análise de uma declaração.
-   * 
+   *
    * Esse método atualiza o status da declaração para "Em Conformidade" ou "Não Conformidade" e registra a conclusão da análise no histórico da declaração.
-   * 
+   *
    * @param {Request} req - O objeto de solicitação (request).
    *   - `params`: Contém o ID da declaração (`id`) e o ID do analista que concluiu a análise (`idAnalita`).
    *   - `body`: Deve conter o status final da análise (`status`), que pode ser "Em conformidade" ou "Não conformidade".
@@ -488,21 +532,24 @@ class DeclaracaoController {
    *   - Status 200: Retorna a declaração com o status atualizado e a data de conclusão da análise.
    *   - Status 500: Retorna um erro caso haja problemas ao concluir a análise.
    * @returns {Promise<Response>} Retorna um JSON com a declaração atualizada ou uma mensagem de erro.
-   
+
    */
   async concluirAnalise(req: Request, res: Response): Promise<Response> {
-    const { id } = req.params;
-    const { status } = req.body;
-    const { idAnalita } = req.params;
+    const { id } = req.params
+    const { status } = req.body
 
     try {
-      const declaracao = await this.declaracaoService.concluirAnalise(id, status);
-      return res.status(200).json(declaracao);
+      const declaracao = await this.declaracaoService.concluirAnalise(
+        id,
+        status
+      )
+      return res.status(200).json(declaracao)
     } catch (error) {
-      return res.status(500).json({ message: "Erro ao concluir análise da declaração." });
+      return res
+        .status(500)
+        .json({ message: "Erro ao concluir análise da declaração." })
     }
   }
-
 
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
