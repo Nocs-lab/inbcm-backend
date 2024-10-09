@@ -8,6 +8,7 @@ import mongoose from "mongoose"
 import { getLatestPathArchive } from "../utils/minioUtil"
 import minioClient from "../db/minioClient"
 import { DataUtils } from "../utils/dataUtils"
+import { Profile } from "../models/Profile"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -524,6 +525,8 @@ export class DeclaracaoController {
     const { analistas } = req.body
     const adminId = req.user?.id
 
+    
+
     try {
       const declaracao = await this.declaracaoService.enviarParaAnalise(
         id,
@@ -570,6 +573,75 @@ export class DeclaracaoController {
     }
   }
 
+  async getDeclaracoesAgrupadasPorAnalista(req: Request, res: Response) {
+    try {
+        const { anos } = req.query;
+        const anosFiltro = anos ? parseInt(anos as string) : 5;
+
+        const anoLimite = new Date().getFullYear() - anosFiltro; // Obtém o ano limite
+
+        // Busca declarações criadas nos últimos X anos
+        const resultado = await Declaracoes.aggregate([
+            {
+                $match: {
+                    anoDeclaracao: { $gte: anoLimite.toString() }, // Compara com o ano limite como string
+                    analistasResponsaveis: { $exists: true, $not: { $size: 0 } } // Verifica se há analistas responsáveis
+                }
+            },
+            {
+                $unwind: "$analistasResponsaveis"
+            },
+            {
+                $group: {
+                    _id: {
+                        analista: "$analistasResponsaveis",
+                        anoDeclaracao: "$anoDeclaracao" // Agrupa pelo ano da declaração também
+                    },
+                    quantidadeDeclaracoes: { $sum: 1 }
+                }
+            },
+            {
+                $lookup: {
+                    from: "usuarios",
+                    localField: "_id.analista",
+                    foreignField: "_id",
+                    as: "analista"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$analista",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    analista: {
+                        _id: "$analista._id",
+                        nome: "$analista.nome",
+                        email: "$analista.email"
+                    },
+                    anoDeclaracao: "$_id.anoDeclaracao", // Inclui o ano da declaração do agrupamento
+                    quantidadeDeclaracoes: 1
+                }
+            }
+        ]);
+
+        res.status(200).json(resultado);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Erro ao buscar declarações agrupadas por analista" });
+    }
+}
+
+
+  
+  
+
+  
+  
+  
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
    * @param {string} req.params.museuId - O ID do museu.
