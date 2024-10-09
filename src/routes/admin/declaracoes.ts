@@ -31,6 +31,8 @@ routes.get(
   declaracaoController.listarAnalistas.bind(declaracaoController)
 )
 
+
+
 routes.put(
   "/:id/analises",
   adminMiddleware,
@@ -51,7 +53,7 @@ routes.put(
 
 /**
  * @swagger
- * /api/admin/decvlaracoes/declaracoesFiltradas:
+ * /api/admin/declaracoes/declaracoesFiltradas:
  *   get:
  *     summary: Obtém declarações com base em filtros.
  *     description: Endpoint para buscar declarações com base em filtros especificados.
@@ -121,6 +123,27 @@ routes.put(
   "/atualizarStatus/:id",
   adminMiddleware,
   declaracaoController.atualizarStatusDeclaracao
+)
+
+/**
+ * @swagger
+ * /api/admin/declaracoes/analistas-filtrados:
+ *   get:
+ *     summary: Obtém a quantidade de declarações agrupadas por analista.
+ *     description: Este endpoint retorna a quantidade de declarações atribuídas a cada analista, agrupadas pelo analista responsável, filtradas pelos últimos X anos.
+ *     tags:
+ *       - Declarações
+ *     parameters:
+ *       - in: query
+ *         name: anos
+ *         schema:
+ *           type: integer
+ *           example: 5
+ *         description: Filtro de tempo para buscar declarações dos últimos X anos. O valor padrão é 5 anos se não for informado.
+ */
+
+routes.get(
+  "/analistas-filtrados",adminMiddleware,declaracaoController.getDeclaracoesAgrupadasPorAnalista.bind(declaracaoController)
 )
 
 export default routes
