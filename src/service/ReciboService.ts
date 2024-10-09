@@ -92,9 +92,13 @@ function formatarDadosRecibo(
     bensBibliograficos: formatValue(declaracao.bibliografico?.quantidadeItens),
     bensArquivisticos: formatValue(declaracao.arquivistico?.quantidadeItens),
     tipoDeclaracao: tipoDeclaracao.toUpperCase(),
-    statusDeclaracao: declaracao.status
+    statusDeclaracao: declaracao.status,
+    statusArquivoArquivistico: declaracao.arquivistico?.status || "---",
+    statusArquivoMuseologico: declaracao.museologico?.status || "---",
+    statusArquivoBibliografico: declaracao.bibliografico?.status || "---"
   }
-}
+  }
+
 
 /**
  * Gera o PDF do recibo com base no ID da declaração.
@@ -163,10 +167,15 @@ async function gerarPDFRecibo(
         { text: "\n\n" },
 
         {
-          text: [
-            { text: "Situação: ", bold: true },
-            { text: `${dadosFormatados.statusDeclaracao}` }
-          ]
+          table: {
+            widths: ["*", "*", "*"],
+            body: [
+              [
+                { text: 'Situação da declaração', bold: true, fillColor: '#D9D9D9' }, 
+                { text: dadosFormatados.statusDeclaracao, fillColor: '#F5F5F5' }  
+              ]
+            ]
+          }
         },
         { text: "\n\n" },
         { text: "Identificação do declarante", style: "title" },
@@ -213,30 +222,46 @@ async function gerarPDFRecibo(
             }
           }
         },
-        { text: "\nBens declarados", style: "sectionHeader" },
+        { 
+          text: "\nBens declarados", 
+          style: "sectionHeader" 
+        },
         {
           table: {
             headerRows: 1,
-            widths: ["*", "*"],
+            widths: ["*", "*","*"],  
             body: [
               [
-                { text: "Bens museológicos", style: "tableHeader" },
-                { text: dadosFormatados.bensMuseologicos, style: "tableData" }
+                { text: "Acervo", style: "tableHeader", fillColor: "#D9D9D9" },  
+                { text: "Situação", style: "tableHeader", fillColor: "#D9D9D9" }, 
+                { text: "Quantidade de itens", style: "tableHeader", fillColor: "#D9D9D9" }  
               ],
               [
-                { text: "Bens bibliográficos", style: "tableHeader" },
-                { text: dadosFormatados.bensBibliograficos, style: "tableData" }
-              ],
-              [
-                { text: "Bens arquivísticos", style: "tableHeader" },
-                { text: dadosFormatados.bensArquivisticos, style: "tableData" }
-              ],
-              [
-                { text: "TOTAL DE BENS DECLARADOS", style: "tableHeader" },
-                {
-                  text: dadosFormatados.totalBensDeclarados,
+                { text: "Museológico", style: "tableData",alignment:"left"}, 
+                {text: dadosFormatados.statusArquivoMuseologico ? dadosFormatados.statusArquivoMuseologico : "---",
+                  alignment: dadosFormatados.statusArquivoMuseologico === undefined || dadosFormatados.statusArquivoMuseologico === "---" ? "center" : "left",
                   style: "tableData"
-                }
+                },
+                { text: dadosFormatados.bensMuseologicos || "0", style: "tableData" }
+              ],
+              [
+                { text: "Bibliográfico", style: "tableData",alignment:"left" }, 
+                {text: dadosFormatados.statusArquivoBibliografico ? dadosFormatados.statusArquivoBibliografico : "---",
+                  alignment: dadosFormatados.statusArquivoBibliografico === undefined || dadosFormatados.statusArquivoBibliografico === "---" ? "center" : "left",
+                  style: "tableData"},
+                { text: dadosFormatados.bensBibliograficos || "0", style: "tableData" }
+              ],
+              [
+                { text: "Arquivístico", style: "tableData",alignment:"left" },  
+                {text: dadosFormatados.statusArquivoArquivistico ? dadosFormatados.statusArquivoArquivistico : "---",
+                  alignment: dadosFormatados.statusArquivoArquivistico === undefined || dadosFormatados.statusArquivoArquivistico === "---" ? "center" : "left",
+                  style: "tableData"},  
+                { text: dadosFormatados.bensArquivisticos || "0", style: "tableData" }
+              ],
+              [
+                { text: "TOTAL DE ITENS DECLARADOS", colSpan: 2, style: "tableHeader", bold: true, alignment: "center" },  
+                {},
+                { text: dadosFormatados.totalBensDeclarados || "500", style: "tableData", bold: true } 
               ]
             ]
           }
