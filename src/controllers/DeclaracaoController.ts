@@ -8,6 +8,7 @@ import mongoose from "mongoose"
 import { getLatestPathArchive } from "../utils/minioUtil"
 import minioClient from "../db/minioClient"
 import { DataUtils } from "../utils/dataUtils"
+import { Profile } from "../models/Profile"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -269,15 +270,15 @@ export class DeclaracaoController {
 
       const declaracaoExistente = idDeclaracao
         ? await Declaracoes.findOne({
-            _id: idDeclaracao,
-            responsavelEnvio: user_id,
-            anoDeclaracao,
-            museu_id: museu_id
-          }).exec()
+          _id: idDeclaracao,
+          responsavelEnvio: user_id,
+          anoDeclaracao,
+          museu_id: museu_id
+        }).exec()
         : await this.declaracaoService.verificarDeclaracaoExistente(
-            museu_id,
-            anoDeclaracao
-          )
+          museu_id,
+          anoDeclaracao
+        )
 
       if (idDeclaracao && !declaracaoExistente) {
         return res.status(404).json({
@@ -524,6 +525,8 @@ export class DeclaracaoController {
     const { analistas } = req.body
     const adminId = req.user?.id
 
+
+
     try {
       const declaracao = await this.declaracaoService.enviarParaAnalise(
         id,
@@ -569,6 +572,93 @@ export class DeclaracaoController {
         .json({ message: "Erro ao concluir análise da declaração." })
     }
   }
+  /**
+ * Obtém a quantidade de declarações agrupadas por analista, considerando um filtro de tempo (anos).
+ * 
+ * Este método realiza uma consulta agregada no banco de dados MongoDB para agrupar declarações 
+ * por analista e ano da declaração, limitando as declarações aos últimos X anos, conforme definido 
+ * pelo parâmetro da query. Além disso,retorna a quantidade de declarações associadas.
+ * 
+ * @param {Request} req - O objeto da requisição HTTP. Pode conter:
+ *   @param {string} req.query.anos - O número de anos a ser considerado no filtro (opcional). Se omitido, o filtro padrão é 5 anos.
+ * 
+ * @param {Response} res - O objeto de resposta HTTP que será utilizado para retornar os dados processados.
+ *   A resposta será um JSON contendo:
+ *   - analista: Objeto com as informações do analista (nome, email, etc).
+ *   - anoDeclaracao: O ano da declaração.
+ *   - quantidadeDeclaracoes: A quantidade de declarações feitas por aquele analista naquele ano.
+ * 
+ * @return {Promise<void>} Retorna uma Promise que, ao ser resolvida, envia a resposta HTTP em formato JSON.
+ * Em caso de erro, retorna uma mensagem de erro com status 500.
+ */
+  async getDeclaracoesAgrupadasPorAnalista(req: Request, res: Response) {
+    try {
+      const { anos } = req.query;
+      const anosFiltro = anos ? parseInt(anos as string) : 5;
+
+      const anoLimite = new Date().getFullYear() - anosFiltro;
+
+
+      const resultado = await Declaracoes.aggregate([
+        {
+          $match: {
+            anoDeclaracao: { $gte: anoLimite.toString() },
+            analistasResponsaveis: { $exists: true, $not: { $size: 0 } }
+          }
+        },
+        {
+          $unwind: "$analistasResponsaveis"
+        },
+        {
+          $group: {
+            _id: {
+              analista: "$analistasResponsaveis",
+              anoDeclaracao: "$anoDeclaracao"
+            },
+            quantidadeDeclaracoes: { $sum: 1 }
+          }
+        },
+        {
+          $lookup: {
+            from: "usuarios",
+            localField: "_id.analista",
+            foreignField: "_id",
+            as: "analista"
+          }
+        },
+        {
+          $unwind: {
+            path: "$analista",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            analista: {
+              _id: "$analista._id",
+              nome: "$analista.nome",
+              email: "$analista.email"
+            },
+            anoDeclaracao: "$_id.anoDeclaracao",
+            quantidadeDeclaracoes: 1
+          }
+        }
+      ]);
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Erro ao buscar declarações agrupadas por analista" });
+    }
+  }
+
+
+
+
+
+
+
 
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
