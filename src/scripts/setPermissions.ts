@@ -1,8 +1,8 @@
-import connect from "../db/conn";
-import { Permission } from "../models/Permission";
+import connect from "../db/conn"
+import { Permission } from "../models/Permission"
 
 const setPermissions = async () => {
-  await connect();
+  await connect()
 
   const permissions = [
     {
@@ -33,28 +33,31 @@ const setPermissions = async () => {
     {
       name: "addPermissions",
       label: "Adicionar Permissões",
-      description: "Permite adicionar ou modificar permissões em perfis de usuário"
+      description:
+        "Permite adicionar ou modificar permissões em perfis de usuário"
     }
-  ];
+  ]
 
   try {
     for (const permission of permissions) {
       // Verifica pelo nome se a permissão já existe
-      const existingPermission = await Permission.findOne({ name: permission.name });
+      const existingPermission = await Permission.findOne({
+        name: permission.name
+      })
 
       if (!existingPermission) {
-        await Permission.create(permission);
-        console.log(`Permissão "${permission.name}" criada com sucesso!`);
+        await Permission.create(permission)
+        console.log(`Permissão "${permission.name}" criada com sucesso!`)
       } else {
-        console.log(`Permissão "${permission.name}" já existe. Ignorando...`);
+        console.log(`Permissão "${permission.name}" já existe. Ignorando...`)
       }
     }
 
-    process.exit(0);
+    process.exit(0)
   } catch (error) {
-    console.error("Erro ao criar permissões:", error);
-    process.exit(1);
+    console.error("Erro ao criar permissões:", error)
+    process.exit(1)
   }
-};
+}
 
-setPermissions();
+setPermissions()

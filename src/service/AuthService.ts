@@ -6,8 +6,7 @@ import config from "../config"
 export default class AuthService {
   async login({
     email,
-    password,
-    admin
+    password
   }: {
     email: string
     password: string
@@ -21,7 +20,7 @@ export default class AuthService {
       throw new Error("Senha incorreta")
     }
     if (!user.ativo) {
-      throw new Error("Usuário não está ativo.");
+      throw new Error("Usuário não está ativo.")
     }
 
     const token = jwt.sign(
