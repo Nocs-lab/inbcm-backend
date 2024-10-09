@@ -1,10 +1,10 @@
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Schema, Document, Types } from "mongoose"
 
 interface IProfile extends Document {
-  name: string;
-  description?: string;
-  permissions: Types.ObjectId[];
-  isProtected: boolean;
+  name: string
+  description?: string
+  permissions: Types.ObjectId[]
+  isProtected: boolean
 }
 
 const ProfileSchema: Schema = new Schema({
@@ -13,11 +13,11 @@ const ProfileSchema: Schema = new Schema({
     required: true,
     unique: true,
     minlength: 4,
-    maxlength: 30,
+    maxlength: 30
   },
   description: { type: String },
-  permissions: [{ type: Schema.Types.ObjectId, ref: 'permissions' }],
+  permissions: [{ type: Schema.Types.ObjectId, ref: "permissions" }],
   isProtected: { type: Boolean, default: false, select: false }
-});
+})
 
-export const Profile = mongoose.model<IProfile>('profiles', ProfileSchema);
+export const Profile = mongoose.model<IProfile>("profiles", ProfileSchema)

@@ -68,10 +68,10 @@ function formatarDadosRecibo(
     (declaracao.museologico?.quantidadeItens || 0)
 
   const formatValue = (value: number | undefined): string =>
-    value === undefined || value === 0 ? "0": value.toString()
-  
+    value === undefined || value === 0 ? "0" : value.toString()
+
   const tipoDeclaracao = declaracao.retificacao ? "retificadora" : "original"
-  
+
   return {
     anoCalendario: declaracao.anoDeclaracao,
     codigoIdentificador: museu.codIbram,
@@ -162,7 +162,6 @@ async function gerarPDFRecibo(
           text: `DECLARAÇÃO ${dadosFormatados.tipoDeclaracao}`,
           style: "title"
         },
-
 
         { text: "\n\n" },
         { text: "\n\n" },
