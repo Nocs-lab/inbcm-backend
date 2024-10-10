@@ -205,7 +205,7 @@ routes.get(
 
 /**
  * @swagger
- * /api/declaracoes:
+ * /api/public/declaracoes:
  *   get:
  *     summary: Obtém todas as declarações do usuário.
  *     description: Endpoint para obter todas as declarações pertencentes ao usuário autenticado.
@@ -217,11 +217,11 @@ routes.get(
  *       '500':
  *         description: Erro ao buscar declarações.
  */
-routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracoes)
+routes.get("/", userMiddleware, declaracaoController.getDeclaracoes)
 
 /**
  * @swagger
- * /api/declaracoes/{id}:
+ * /api/public/declaracoes/{id}:
  *   get:
  *     summary: Obtém uma declaração pelo ID.
  *     description: Endpoint para obter uma declaração específica pelo seu ID.
@@ -242,11 +242,7 @@ routes.get("/declaracoes", userMiddleware, declaracaoController.getDeclaracoes)
  *       '500':
  *         description: Erro ao buscar declaração.
  */
-routes.get(
-  "/declaracoes/:id",
-  userMiddleware,
-  declaracaoController.getDeclaracao
-)
+routes.get("/:id", userMiddleware, declaracaoController.getDeclaracao)
 
 /**
  * @swagger
@@ -280,7 +276,7 @@ routes.get(
  *         description: Erro ao buscar declarações.
  */
 routes.get(
-  "/declaracoes/:museu/:anoDeclaracao",
+  "/:museu/:anoDeclaracao",
   userMiddleware,
   declaracaoController.getDeclaracaoAno
 )
