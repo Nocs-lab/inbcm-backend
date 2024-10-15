@@ -29,6 +29,7 @@ export class DeclaracaoController {
     this.getDeclaracao = this.getDeclaracao.bind(this)
     this.getDeclaracaoAno = this.getDeclaracaoAno.bind(this)
     this.getDeclaracoesPorStatusAno = this.getDeclaracoesPorStatusAno.bind(this)
+    this.getDeclaracaoAgrupada = this.getDeclaracaoAgrupada.bind(this)
   }
 
   async getDeclaracoesPorStatusAno(req: Request, res: Response) {
@@ -42,6 +43,20 @@ export class DeclaracaoController {
         .json({ message: "Erro ao buscar declarações por status e ano." })
     }
   }
+
+  async getDeclaracaoAgrupada(req: Request, res: Response) {
+    try {
+      const anoDeclaracao = Array.isArray(req.query.anoDeclaracao) ? req.query.anoDeclaracao[0] : req.query.anoDeclaracao;
+
+      const declaracoes = await this.declaracaoService.declaracaoAgrupada(anoDeclaracao as string | undefined);
+
+      return res.status(200).json(declaracoes);
+    } catch (error) {
+      console.error("Erro ao buscar declarações agrupadas:", error);
+      return res.status(500).json({ message: "Erro ao buscar declarações agrupadas." });
+    }
+  }
+
 
   async atualizarStatusDeclaracao(req: Request, res: Response) {
     try {
@@ -574,20 +589,20 @@ export class DeclaracaoController {
   }
   /**
  * Obtém a quantidade de declarações agrupadas por analista, considerando um filtro de tempo (anos).
- * 
- * Este método realiza uma consulta agregada no banco de dados MongoDB para agrupar declarações 
- * por analista e ano da declaração, limitando as declarações aos últimos X anos, conforme definido 
+ *
+ * Este método realiza uma consulta agregada no banco de dados MongoDB para agrupar declarações
+ * por analista e ano da declaração, limitando as declarações aos últimos X anos, conforme definido
  * pelo parâmetro da query. Além disso,retorna a quantidade de declarações associadas.
- * 
+ *
  * @param {Request} req - O objeto da requisição HTTP. Pode conter:
  *   @param {string} req.query.anos - O número de anos a ser considerado no filtro (opcional). Se omitido, o filtro padrão é 5 anos.
- * 
+ *
  * @param {Response} res - O objeto de resposta HTTP que será utilizado para retornar os dados processados.
  *   A resposta será um JSON contendo:
  *   - analista: Objeto com as informações do analista (nome, email, etc).
  *   - anoDeclaracao: O ano da declaração.
  *   - quantidadeDeclaracoes: A quantidade de declarações feitas por aquele analista naquele ano.
- * 
+ *
  * @return {Promise<void>} Retorna uma Promise que, ao ser resolvida, envia a resposta HTTP em formato JSON.
  * Em caso de erro, retorna uma mensagem de erro com status 500.
  */

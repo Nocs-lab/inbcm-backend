@@ -23,6 +23,7 @@ import { Profile } from "../models/Profile"
 import { DataUtils } from "../utils/dataUtils"
 
 class DeclaracaoService {
+
   async declaracoesPorStatusPorAno() {
     try {
       const result = await Declaracoes.aggregate([
@@ -75,6 +76,48 @@ class DeclaracaoService {
       throw new Error(
         "Erro ao realizar busca de declarações por status para o dashboard."
       )
+    }
+  }
+
+  async declaracaoAgrupada(anoDeclaracao?: string) {
+    try {
+      const matchStage: Record<string, any> = {};
+
+      // Se anoDeclaracao foi fornecido, adiciona o filtro ao matchStage
+      if (anoDeclaracao) {
+        matchStage.anoDeclaracao = anoDeclaracao;
+      }
+
+      const declaracoesAgrupadas = await Declaracoes.aggregate([
+        {
+          $lookup: {
+            from: "museus",
+            localField: "museu_id",
+            foreignField: "_id",
+            as: "museu"
+          }
+        },
+        { $unwind: { path: "$museu", preserveNullAndEmptyArrays: true } },
+        { $match: matchStage },
+        {
+          $group: {
+            _id: { $ifNull: ["$museu.endereco.uf", "Sem Estado"] }, // Agrupa por estado (UF), usa "Sem Estado" se não houver UF
+            totalDeclaracoes: { $sum: 1 } // Contagem de declarações por estado
+          }
+        }
+      ]);
+
+      // Converter o resultado da agregação em um objeto de chave-valor
+      const resultadoAgrupado = declaracoesAgrupadas.reduce((acc, item) => {
+        acc[item._id] = item.totalDeclaracoes;
+        return acc;
+      }, {} as Record<string, number>);
+
+      return resultadoAgrupado;
+
+    } catch (error) {
+      console.error("Erro ao agrupar declarações:", error);
+      throw new Error("Erro ao buscar declarações agrupadas.");
     }
   }
 
