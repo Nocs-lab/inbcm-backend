@@ -283,5 +283,88 @@ routes.get(
   userMiddleware,
   declaracaoController.getDeclaracaoAno
 )
+/**
+ * @swagger
+ * /api/public/declaracoes/{museuId}/itens/{anoInicio}/{anoFim}:
+ *   get:
+ *     summary: Retorna a quantidade de itens de um museu, agrupada por ano e tipo de acervo
+ *     description: Retorna a quantidade de itens declarados por ano e por tipo de acervo (arquivístico, bibliográfico, museológico) em um intervalo de anos para um museu específico.
+ *     tags:
+ *       - Declarações
+ *     parameters:
+ *       - in: path
+ *         name: museuId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: O ID do museu para o qual os dados devem ser recuperados
+ *       - in: path
+ *         name: anoInicio
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: O ano de início do intervalo
+ *       - in: path
+ *         name: anoFim
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: O ano final do intervalo
+ *     responses:
+ *       200:
+ *         description: Retorna a quantidade de itens agrupados por ano e tipo de acervo
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 anoDeclaracao:
+ *                   type: integer
+ *                   description: O ano da declaração
+ *                 tipoAcervo:
+ *                   type: string
+ *                   description: O tipo do acervo (arquivístico, bibliográfico, museológico)
+ *                 totalItens:
+ *                   type: integer
+ *                   description: O total de itens declarados para o ano e tipo de acervo
+ *             example:
+ *               - anoDeclaracao: 2022
+ *                 tipoAcervo: arquivistico
+ *                 totalItens: 30
+ *               - anoDeclaracao: 2023
+ *                 tipoAcervo: bibliografico
+ *                 totalItens: 15
+ *       400:
+ *         description: Parâmetros insuficientes ou museu inválido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: O status da operação
+ *                 message:
+ *                   type: string
+ *                   description: A mensagem de erro
+ *             example:
+ *               success: false
+ *               message: "Museu inválido ou não pertence ao usuário"
+ *       500:
+ *         description: Erro no processamento da requisição
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: Mensagem de erro
+ *                 error:
+ *                   type: string
+ *                   description: Detalhes do erro
+ */
+routes.get("/:museuId/itens/:anoInicio/:anoFim", userMiddleware, declaracaoController.getItensPorAnoETipo);
+
 
 export default routes
