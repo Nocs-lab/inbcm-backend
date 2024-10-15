@@ -31,10 +31,10 @@ const filePathBibliografico3itens = path.join(
   "./assets/bibliografico3itens.xlsx"
 )
 
-describe("POST /uploads/:museu/:anoDeclaracao", () => {
+describe("POST /public/declaracoes/uploads/:museu/:anoDeclaracao", () => {
   it("Deve enviar um arquivo Excel museológico, arquivistico e bibliográfico e verificar se a resposta recebe status code 200 e contém os dados corretos do museu, ano da declaração e status", async () => {
     const response = await request(app)
-      .post(`/uploads/${museuMock._id}/2024`)
+      .post(`/public/declaracoes/uploads/${museuMock._id}/2024`)
       .set("Authorization", `Bearer mocked-token`)
       .attach("museologico", filePathMuseologico2itens)
       .attach("arquivistico", filePathArquivistico4itens)
@@ -53,7 +53,7 @@ describe("POST /uploads/:museu/:anoDeclaracao", () => {
 
   it("Deve retornar erro 406 se tentar criar uma declaração com ano referência e museu já utilizados", async () => {
     const response = await request(app)
-      .post(`/uploads/${museuMock._id}/2024`)
+      .post(`/public/declaracoes/uploads/${museuMock._id}/2024`)
       .set("Authorization", `Bearer mocked-token`)
       .attach("museologico", filePathMuseologico2itens)
       .expect(406)
