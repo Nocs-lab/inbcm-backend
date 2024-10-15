@@ -634,18 +634,16 @@ class DeclaracaoService {
   }
   
   async getItensPorAnoETipo(museuId: string, anoInicio: number, anoFim: number) {
-    
     const declaracoesExistentes = await Declaracoes.find({
       museu_id: new mongoose.Types.ObjectId(museuId),
-      anoDeclaracao: { $gte: anoInicio.toString(), $lte: anoFim.toString()},
+      anoDeclaracao: { $gte: anoInicio.toString(), $lte: anoFim.toString() },
       ultimaDeclaracao: true
     });
-
+  
     if (declaracoesExistentes.length === 0) {
       throw new Error(`Nenhuma declaração encontrada para o museu ${museuId} entre ${anoInicio} e ${anoFim}`);
     }
-
-   
+  
     const agregacao = await Declaracoes.aggregate([
       {
         $match: {
@@ -656,40 +654,34 @@ class DeclaracaoService {
       },
       {
         $group: {
-          _id: {
-            anoDeclaracao: "$anoDeclaracao",
-            tipoAcervo: {
-              $cond: {
-                if: { $gt: [{ $size: { $ifNull: ["$arquivistico", []] } }, 0] },
-                then: "arquivistico",
-                else: {
-                  $cond: {
-                    if: { $gt: [{ $size: { $ifNull: ["$bibliografico", []] } }, 0] },
-                    then: "bibliografico",
-                    else: "museologico"
-                  }
-                }
-              }
-            }
-          },
-          totalItens: {
-            $sum: {
-              $add: [
-                { $ifNull: [{ $sum: "$arquivistico.quantidadeItens" }, 0] },
-                { $ifNull: [{ $sum: "$bibliografico.quantidadeItens" }, 0] },
-                { $ifNull: [{ $sum: "$museologico.quantidadeItens" }, 0] }
-              ]
-            }
-          }
+          _id: "$anoDeclaracao",
+          totalArquivistico: { $sum: { $ifNull: ["$arquivistico.quantidadeItens", 0] } },
+          totalBibliografico: { $sum: { $ifNull: ["$bibliografico.quantidadeItens", 0] } },
+          totalMuseologico: { $sum: { $ifNull: ["$museologico.quantidadeItens", 0] } }
         }
       },
       {
-        $sort: { "_id.anoDeclaracao": 1 }
-      }
+        $project: {
+          _id: 0,
+          anoDeclaracao: "$_id",
+          totalArquivistico: 1,
+          totalBibliografico: 1,
+          totalMuseologico: 1,
+          totalDeItensDeclaracao: { 
+            $add: [
+              "$totalArquivistico",
+              "$totalBibliografico",
+              "$totalMuseologico"
+            ]
+          }
+        }
+      },
+      { $sort: { anoDeclaracao: 1 } }
     ]);
-
+  
     return agregacao;
   }
+
   async concluirAnalise(id: string, status: Status): Promise<DeclaracaoModel> {
     const declaracaoId = new mongoose.Types.ObjectId(id)
     const declaracao = await Declaracoes.findById(declaracaoId)
