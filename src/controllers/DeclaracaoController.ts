@@ -661,6 +661,15 @@ export class DeclaracaoController {
   async getItensPorAnoETipo(req: Request, res: Response): Promise<Response> {
     try {
       const { museuId, anoInicio, anoFim } = req.params;
+      const user_id = req.user.id
+
+
+      const museu = await Museu.findOne({ _id: museuId, usuario: user_id })
+      if (!museu) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Museu inválido" })
+      }
 
      
       if (!museuId || !anoInicio || !anoFim) {
