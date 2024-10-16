@@ -23,6 +23,7 @@ import { Profile } from "../models/Profile"
 import { DataUtils } from "../utils/dataUtils"
 
 class DeclaracaoService {
+
   async declaracoesPorStatusPorAno() {
     try {
       const result = await Declaracoes.aggregate([
@@ -53,7 +54,7 @@ class DeclaracaoService {
       const status = Object.values(statusEnum)[0]
 
       const data = anos.map((ano) => {
-        const statusCount = status.reduce((acc, item) => {
+        const statusCount = status.reduce((acc: number[], item: number) => {
           const statusItem = result.find(
             (resultItem) => resultItem.ano === ano && resultItem.status === item
           )
@@ -61,7 +62,7 @@ class DeclaracaoService {
           return acc
         }, [])
 
-        const total = statusCount.reduce((acc, item) => acc + item, 0)
+        const total = statusCount.reduce((acc: number, item: number) => acc + item, 0)
 
         return [ano, total, ...statusCount]
       })
@@ -75,6 +76,48 @@ class DeclaracaoService {
       throw new Error(
         "Erro ao realizar busca de declarações por status para o dashboard."
       )
+    }
+  }
+
+  async declaracaoAgrupada(anoDeclaracao?: string) {
+    try {
+      const matchStage: Record<string, any> = {};
+
+      // Se anoDeclaracao foi fornecido, adiciona o filtro ao matchStage
+      if (anoDeclaracao) {
+        matchStage.anoDeclaracao = anoDeclaracao;
+      }
+
+      const declaracoesAgrupadas = await Declaracoes.aggregate([
+        {
+          $lookup: {
+            from: "museus",
+            localField: "museu_id",
+            foreignField: "_id",
+            as: "museu"
+          }
+        },
+        { $unwind: { path: "$museu", preserveNullAndEmptyArrays: true } },
+        { $match: matchStage },
+        {
+          $group: {
+            _id: { $ifNull: ["$museu.endereco.uf", "Sem Estado"] }, // Agrupa por estado (UF), usa "Sem Estado" se não houver UF
+            totalDeclaracoes: { $sum: 1 } // Contagem de declarações por estado
+          }
+        }
+      ]);
+
+      // Converter o resultado da agregação em um objeto de chave-valor
+      const resultadoAgrupado = declaracoesAgrupadas.reduce((acc, item) => {
+        acc[item._id] = item.totalDeclaracoes;
+        return acc;
+      }, {} as Record<string, number>);
+
+      return resultadoAgrupado;
+
+    } catch (error) {
+      console.error("Erro ao agrupar declarações:", error);
+      throw new Error("Erro ao buscar declarações agrupadas.");
     }
   }
 
@@ -232,13 +275,13 @@ class DeclaracaoService {
         }
       ])
 
-      let regioes = ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"]
+      const regioes: string[] = ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"]
       const statusEnum = Declaracoes.schema.path("status")
       const status = Object.values(statusEnum)[0]
 
       // [[regiao, total, ...status], ...]
       // Exemplo: [["Norte", 10, 2, 3, 5], ["Nordeste", 15, 4, 6, 5], ...]
-      regioes = regioes.map((regiao) => {
+      const resultados = regioes.map((regiao) => {
         const regiaoStatus = result
           .filter((item) => item.regiao === regiao)
           .reduce((acc, item) => {
@@ -246,12 +289,12 @@ class DeclaracaoService {
             return acc
           }, {})
 
-        const total = Object.values(regiaoStatus).reduce(
-          (acc, item) => acc + item,
-          0
-        )
+          const total = (Object.values(regiaoStatus) as number[]).reduce(
+            (acc: number, item: number) => acc + item,
+            0
+          );
 
-        const statusCount = status.reduce((acc, item) => {
+        const statusCount = status.reduce((acc: number[], item: number) => {
           acc.push(regiaoStatus[item] || 0)
           return acc
         }, [])
@@ -259,7 +302,7 @@ class DeclaracaoService {
         return [regiao, total, ...statusCount]
       })
 
-      return regioes
+      return resultados
     } catch (error) {
       console.error(
         "Erro ao realizar busca de declarações por região para o dashboard:",
@@ -452,7 +495,8 @@ class DeclaracaoService {
    *
    * @returns retorna uma nova declaracao ou um erro ao tentar criar uma declaracao
    */
-  async criarDadosDeclaracao(
+
+async criarDadosDeclaracao(
     museu: IMuseu,
     responsavelEnvio: mongoose.Types.ObjectId | string,
     anoDeclaracao: string,

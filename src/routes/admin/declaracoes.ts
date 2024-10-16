@@ -73,6 +73,28 @@ routes.post(
 
 /**
  * @swagger
+ * /api/admin/declaracoes/getDeclaracaoAgrupada:
+ *   get:
+ *     summary: Obtém declarações agrupadas por estado.
+ *     description: Endpoint para agrupar declaracoes por estado através de um ano referência, caso seja enviado por parâmetro.
+ *     tags:
+ *       - Declarações
+ *     responses:
+ *       '200':
+ *         description: Declarações agrupadas obtidas com sucesso.
+ *       '500':
+ *         description: Erro ao buscar declarações agrupadas.
+ */
+routes.get(
+  "/getDeclaracaoAgrupada",
+  adminMiddleware,
+  declaracaoController.getDeclaracaoAgrupada
+)
+
+
+
+/**
+ * @swagger
  * /api/admin/declaracoes/declaracoesFiltradas:
  *   post:
  *     summary: Obtém declarações com base em filtros.
