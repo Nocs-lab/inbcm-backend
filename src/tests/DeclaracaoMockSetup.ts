@@ -26,13 +26,13 @@ app.use(mockAuthMiddleware)
 const declaracaoController = new DeclaracaoController()
 
 app.post(
-  "/uploads/:museu/:anoDeclaracao",
+  "/public/declaracoes/uploads/:museu/:anoDeclaracao",
   uploadMiddleware,
   declaracaoController.uploadDeclaracao
 )
 
 app.put(
-  "/retificar/:museu/:anoDeclaracao/:idDeclaracao",
+  "/public/declaracoes/retificar/:museu/:anoDeclaracao/:idDeclaracao",
   uploadMiddleware,
   declaracaoController.retificarDeclaracao.bind(declaracaoController)
 )
