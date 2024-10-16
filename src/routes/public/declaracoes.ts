@@ -87,7 +87,7 @@ routes.post(
 
 /**
  * @swagger
- * /api//public/declaracoes/retificar/{museu}/{anoDeclaracao}/{idDeclaracao}:
+ * /api/public/declaracoes/retificar/{museu}/{anoDeclaracao}/{idDeclaracao}:
  *   put:
  *     summary: Retifica uma declaração existente.
  *     description: Endpoint para retificar uma declaração existente para o museu especificado.
