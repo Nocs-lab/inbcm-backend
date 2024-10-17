@@ -84,8 +84,8 @@ function formatarDadosRecibo(
     municipio: museu.endereco.municipio,
     uf: museu.endereco.uf,
     nomeDeclarante: usuario.nome,
-    data: DataUtils.gerarDataFormatada(),
-    hora: DataUtils.gerarHoraFormatada(),
+    data: DataUtils.gerarDataFormatada(declaracao.dataRecebimento),
+    hora: DataUtils.gerarHoraFormatada(declaracao.dataRecebimento),
     numeroRecibo: declaracao.hashDeclaracao,
     totalBensDeclarados: formatValue(totalBensDeclarados),
     bensMuseologicos: formatValue(declaracao.museologico?.quantidadeItens),
@@ -154,8 +154,9 @@ async function gerarPDFRecibo(
             ]
           }
         },
+        {text: "\n\n"},
         {
-          text: "\nRECIBO DE ENTREGA DE DECLARAÇÃO DE AJUSTE ANUAL\n",
+          text: "INVENTÁRIO NACIONAL DE BENS CULTURAIS MUSEALIZADOS\nRECIBO DE ENTREGA DE DECLARAÇÃO DE AJUSTE ANUAL\n",
           style: "title"
         },
         {
@@ -167,16 +168,28 @@ async function gerarPDFRecibo(
         { text: "\n\n" },
 
         {
-          table: {
-            widths: ["*", "*", "*"],
-            body: [
-              [
-                { text: 'Situação da declaração', bold: true, fillColor: '#D9D9D9' }, 
-                { text: dadosFormatados.statusDeclaracao, fillColor: '#F5F5F5' }  
+            table: {
+              widths: ["33%", "67%"],  
+              body: [
+                [
+                  { 
+                    text: 'Situação da declaração', 
+                    bold: true, 
+                    fillColor: '#D9D9D9', 
+                    border: [true, true, true, true],  
+                  }, 
+                  { 
+                    text: dadosFormatados.statusDeclaracao, 
+                    fillColor: '#F5F5F5',  
+                    border: [true, true, true, true], 
+                  }  
+                ]
               ]
-            ]
-          }
-        },
+            },
+            layout: {  
+              defaultBorder: true,  
+            }
+          },
         { text: "\n\n" },
         { text: "Identificação do declarante", style: "title" },
         {
@@ -232,31 +245,24 @@ async function gerarPDFRecibo(
             widths: ["*", "*","*"],  
             body: [
               [
-                { text: "Acervo", style: "tableHeader", fillColor: "#D9D9D9" },  
-                { text: "Situação", style: "tableHeader", fillColor: "#D9D9D9" }, 
-                { text: "Quantidade de itens", style: "tableHeader", fillColor: "#D9D9D9" }  
+                { text: "Acervo", style: "tableHeader", fillColor: "#D9D9D9",alignment:"center" },  
+                { text: "Situação", style: "tableHeader", fillColor: "#D9D9D9",alignment:"center" }, 
+                { text: "Quantidade de itens", style: "tableHeader", fillColor: "#D9D9D9",alignment:"center"}  
               ],
               [
                 { text: "Museológico", style: "tableData",alignment:"left"}, 
-                {text: dadosFormatados.statusArquivoMuseologico ? dadosFormatados.statusArquivoMuseologico : "---",
-                  alignment: dadosFormatados.statusArquivoMuseologico === undefined || dadosFormatados.statusArquivoMuseologico === "---" ? "center" : "left",
-                  style: "tableData"
-                },
-                { text: dadosFormatados.bensMuseologicos || "0", style: "tableData" }
+                {text: dadosFormatados.statusArquivoMuseologico,alignment:"left",style: "tableData"},
+                { text: dadosFormatados.bensMuseologicos || "0", style: "tableData",alignment:"right"}
               ],
               [
                 { text: "Bibliográfico", style: "tableData",alignment:"left" }, 
-                {text: dadosFormatados.statusArquivoBibliografico ? dadosFormatados.statusArquivoBibliografico : "---",
-                  alignment: dadosFormatados.statusArquivoBibliografico === undefined || dadosFormatados.statusArquivoBibliografico === "---" ? "center" : "left",
-                  style: "tableData"},
-                { text: dadosFormatados.bensBibliograficos || "0", style: "tableData" }
+                {text: dadosFormatados.statusArquivoBibliografico , style: "tableData",alignment:"left"},
+                { text: dadosFormatados.bensBibliograficos || "0", style: "tableData",alignment:"right"}
               ],
               [
                 { text: "Arquivístico", style: "tableData",alignment:"left" },  
-                {text: dadosFormatados.statusArquivoArquivistico ? dadosFormatados.statusArquivoArquivistico : "---",
-                  alignment: dadosFormatados.statusArquivoArquivistico === undefined || dadosFormatados.statusArquivoArquivistico === "---" ? "center" : "left",
-                  style: "tableData"},  
-                { text: dadosFormatados.bensArquivisticos || "0", style: "tableData" }
+                {text: dadosFormatados.statusArquivoArquivistico , style: "tableData",alignment:"left"},  
+                { text: dadosFormatados.bensArquivisticos || "0", style: "tableData",alignment:"right" }
               ],
               [
                 { text: "TOTAL DE ITENS DECLARADOS", colSpan: 2, style: "tableHeader", bold: true, alignment: "center" },  
@@ -276,7 +282,9 @@ async function gerarPDFRecibo(
           style: "footerText"
         },
         { text: "\n\n" },
-        { text: dadosFormatados.numeroRecibo, style: "footerReceipt" }
+        { text: dadosFormatados.numeroRecibo, style: "footerReceipt" },
+         { text: "\n\n\n\n\n\n\n\n\n\n" },
+        {text: ` Recibo emitido em ${DataUtils.gerarDataFormatada()} ás ${DataUtils.gerarHoraFormatada()}`,fontSize:11}
       ],
 
       styles: {

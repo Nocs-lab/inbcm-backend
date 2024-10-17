@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { Declaracoes } from "../models"
+import { Declaracoes, Usuario } from "../models"
 import DeclaracaoService from "../service/DeclaracaoService"
 import { generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
@@ -320,6 +320,11 @@ export class DeclaracaoController {
         .exec()
       const novaVersao = (ultimaDeclaracao?.versao || 0) + 1
 
+      const responsavelEnvio = await Usuario.findById(user_id).select("nome");
+      if (!responsavelEnvio) {
+        return res.status(404).json({ message: "Usuário responsável pelo envio não encontrado." });
+      }
+
       const novaDeclaracaoData =
         await this.declaracaoService.criarDadosDeclaracao(
           museu,
@@ -328,10 +333,12 @@ export class DeclaracaoController {
           declaracaoExistente,
           novaVersao,
           salt,
-          DataUtils.getCurrentData()
+          DataUtils.getCurrentData(),
+          responsavelEnvio.nome,
         )
 
       const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
+     
 
       await this.declaracaoService.updateDeclaracao(
         files["arquivistico"],
@@ -357,6 +364,7 @@ export class DeclaracaoController {
 
       novaDeclaracao.ultimaDeclaracao = true
       await novaDeclaracao.save()
+      
 
       await Declaracoes.updateMany(
         {
