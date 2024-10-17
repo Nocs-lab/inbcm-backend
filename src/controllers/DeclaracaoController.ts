@@ -29,6 +29,7 @@ export class DeclaracaoController {
     this.getDeclaracao = this.getDeclaracao.bind(this)
     this.getDeclaracaoAno = this.getDeclaracaoAno.bind(this)
     this.getDeclaracoesPorStatusAno = this.getDeclaracoesPorStatusAno.bind(this)
+    this.getItensMuseu = this.getItensMuseu.bind(this)
     this.getDeclaracaoAgrupada = this.getDeclaracaoAgrupada.bind(this)
   }
 
@@ -670,7 +671,27 @@ export class DeclaracaoController {
 
 
 
+  async getItensMuseu(req: Request, res: Response): Promise<Response> {
+    try {
+      const { museu: museu_id } = req.params;
 
+  
+      if (!museu_id) {
+        return res.status(400).json({ message: "Parâmetro museuId é obrigatório" });
+      }
+  
+      const agregacao = await this.declaracaoService.getItensMuseu(museu_id);
+  
+      return res.status(200).json(agregacao);
+    } catch (error) {
+      if (error instanceof Error) {
+        return res.status(500).json({ message: "Erro ao processar a requisição", error });
+      }
+      
+      return res.status(500).json({ message: "Erro desconhecido ao processar a requisição" });
+    }
+  }
+  
 
 
 

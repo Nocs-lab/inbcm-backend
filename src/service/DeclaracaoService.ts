@@ -628,7 +628,53 @@ async criarDadosDeclaracao(
       throw new Error("Erro ao atualizar a declaração: " + error)
     }
   }
-
+  async getItensMuseu(museuId: string) {
+    const declaracoesExistentes = await Declaracoes.find({
+      museu_id: new mongoose.Types.ObjectId(museuId),
+      ultimaDeclaracao: true
+    });
+  
+    if (declaracoesExistentes.length === 0) {
+      throw new Error(`Nenhuma declaração encontrada para o museu ${museuId}`);
+    }
+  
+    const agregacao = await Declaracoes.aggregate([
+      {
+        $match: {
+          museu_id: new mongoose.Types.ObjectId(museuId),
+          ultimaDeclaracao: true
+        }
+      },
+      {
+        $group: {
+          _id: "$anoDeclaracao",
+          totalArquivistico: { $sum: { $ifNull: ["$arquivistico.quantidadeItens", 0] } },
+          totalBibliografico: { $sum: { $ifNull: ["$bibliografico.quantidadeItens", 0] } },
+          totalMuseologico: { $sum: { $ifNull: ["$museologico.quantidadeItens", 0] } }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          anoDeclaracao: "$_id",
+          totalArquivistico: 1,
+          totalBibliografico: 1,
+          totalMuseologico: 1,
+          totalDeItensDeclaracao: { 
+            $add: [
+              "$totalArquivistico",
+              "$totalBibliografico",
+              "$totalMuseologico"
+            ]
+          }
+        }
+      },
+      { $sort: { anoDeclaracao: 1 } }
+    ]);
+  
+    return agregacao;
+  }
+  
   async listarAnalistas() {
     const analistaProfile = await Profile.findOne({ name: "analyst" })
 

@@ -119,5 +119,58 @@ routes.get(
   adminMiddleware,
   declaracaoController.getDeclaracoesPorStatus
 )
+/**
+ * @swagger
+ * /api/admin/dashboard/museu-itens/{museu}:
+ *   get:
+ *     summary: Retorna a quantidade de itens de declarações agrupados por ano e tipo para um museu específico.
+ *     tags:
+ *       - Dashboard
+ *     parameters:
+ *       - in: path
+ *         name: museu
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do museu para o qual as declarações serão buscadas.
+ *     responses:
+ *       200:
+ *         description: Sucesso ao retornar os itens agrupados por ano e tipo.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   anoDeclaracao:
+ *                     type: string
+ *                     description: O ano da declaração.
+ *                     example: "2021"
+ *                   totalArquivistico:
+ *                     type: integer
+ *                     description: Total de itens arquivísticos.
+ *                     example: 5
+ *                   totalBibliografico:
+ *                     type: integer
+ *                     description: Total de itens bibliográficos.
+ *                     example: 3
+ *                   totalMuseologico:
+ *                     type: integer
+ *                     description: Total de itens museológicos.
+ *                     example: 7
+ *                   totalDeItensDeclaracao:
+ *                     type: integer
+ *                     description: Total de itens somando todos os tipos.
+ *                     example: 15
+ *       400:
+ *         description: Parâmetro museuId não fornecido ou inválido.
+ *       404:
+ *         description: Nenhuma declaração encontrada para o museu fornecido.
+ *       500:
+ *         description: Erro ao processar a requisição.
+ */
+
+routes.get("/museu-itens/:museu",adminMiddleware,declaracaoController.getItensMuseu)
 
 export default routes
