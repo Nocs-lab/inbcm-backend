@@ -639,7 +639,8 @@ class DeclaracaoService {
     novaDeclaracao: DeclaracaoModel,
     tipo: "arquivistico" | "bibliografico" | "museologico",
     arquivoAnterior: Arquivo | null,
-    novaVersao: number
+    novaVersao: number,
+    responsavelEnvioNome: string
   ) {
     try {
       if (arquivos && arquivos.length > 0) {
@@ -708,7 +709,7 @@ class DeclaracaoService {
           novaDeclaracao.retificacao = true
         }
       }
-
+      novaDeclaracao.responsavelEnvioNome = responsavelEnvioNome;
       await novaDeclaracao.save()
     } catch (error) {
       console.error("Erro ao atualizar a declaração:", error)
