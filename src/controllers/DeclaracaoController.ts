@@ -25,10 +25,8 @@ export class DeclaracaoController {
     this.getDeclaracoes = this.getDeclaracoes.bind(this)
     this.getDeclaracao = this.getDeclaracao.bind(this)
     this.getDeclaracaoAno = this.getDeclaracaoAno.bind(this)
-    this.getDeclaracoesPorStatusAno = this.getDeclaracoesPorStatusAno.bind(this)
     this.getItensPorAnoETipo = this.getItensPorAnoETipo.bind(this)
     this.getItensMuseu = this.getItensMuseu.bind(this)
-
     this.getDeclaracaoAgrupada = this.getDeclaracaoAgrupada.bind(this)
     this.getDashboard = this.getDashboard.bind(this)
   }
@@ -165,12 +163,9 @@ export class DeclaracaoController {
   }
 
   async getStatusEnum(req: Request, res: Response) {
-   
-    const statusEnum = Status;
-    const statusFiltrado = Object.values(statusEnum).filter(
-      (status) => status !== Status.NaoEnviado && status !== Status.Indefinido
-    );
-    return res.status(200).json(statusFiltrado);
+    const statusEnum = Declaracoes.schema.path("status")
+    const status = Object.values(statusEnum)[0]
+    return res.status(200).json(status)
   }
  
 
