@@ -8,6 +8,9 @@ import mongoose from "mongoose"
 import { getLatestPathArchive } from "../utils/minioUtil"
 import minioClient from "../db/minioClient"
 import { DataUtils } from "../utils/dataUtils"
+import { Profile } from "../models/Profile"
+import { Status } from "../enums/Status"
+
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -22,6 +25,10 @@ export class DeclaracaoController {
     this.getDeclaracoes = this.getDeclaracoes.bind(this)
     this.getDeclaracao = this.getDeclaracao.bind(this)
     this.getDeclaracaoAno = this.getDeclaracaoAno.bind(this)
+    this.getDeclaracoesPorStatusAno = this.getDeclaracoesPorStatusAno.bind(this)
+    this.getItensPorAnoETipo = this.getItensPorAnoETipo.bind(this)
+    this.getItensMuseu = this.getItensMuseu.bind(this)
+
     this.getDeclaracaoAgrupada = this.getDeclaracaoAgrupada.bind(this)
     this.getDashboard = this.getDashboard.bind(this)
   }
@@ -158,10 +165,14 @@ export class DeclaracaoController {
   }
 
   async getStatusEnum(req: Request, res: Response) {
-    const statusEnum = Declaracoes.schema.path("status")
-    const status = Object.values(statusEnum)[0]
-    return res.status(200).json(status)
+   
+    const statusEnum = Status;
+    const statusFiltrado = Object.values(statusEnum).filter(
+      (status) => status !== Status.NaoEnviado && status !== Status.Indefinido
+    );
+    return res.status(200).json(statusFiltrado);
   }
+ 
 
   /*
    * Retorna a quantidade de declarações agrupadas por analista, filtradas pelos últimos X anos.
@@ -405,7 +416,7 @@ export class DeclaracaoController {
       const prefix = `${museu}/${anoDeclaracao}/${tipoArquivo}/`
       const bucketName = "inbcm"
 
-      // Obtenha o caminho do arquivo mais recente
+      
       const latestFilePath = await getLatestPathArchive(bucketName, prefix)
 
       if (!latestFilePath) {
@@ -414,7 +425,7 @@ export class DeclaracaoController {
           .json({ message: "Arquivo não encontrado para o tipo especificado." })
       }
 
-      // Obtenha o arquivo do MinIO
+      
       const fileStream = await minioClient.getObject(bucketName, latestFilePath)
 
       res.setHeader(
@@ -423,7 +434,6 @@ export class DeclaracaoController {
       )
       res.setHeader("Content-Type", "application/octet-stream")
 
-      // Envie o arquivo como resposta
       fileStream.pipe(res)
     } catch (error) {
       console.error("Erro ao baixar arquivo da declaração:", error)
@@ -668,7 +678,69 @@ export class DeclaracaoController {
             quantidadeDeclaracoes: 1
           }
         }
-      ])
+
+      ]);
+
+      res.status(200).json(resultado);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Erro ao buscar declarações agrupadas por analista" });
+    }
+  }
+
+  async getItensPorAnoETipo(req: Request, res: Response): Promise<Response> {
+    try {
+      const { museuId, anoInicio, anoFim } = req.params;
+      const user_id = req.user.id
+
+
+      const museu = await Museu.findOne({ _id: museuId, usuario: user_id })
+      if (!museu) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Museu inválido" })
+      }
+
+     
+      if (!museuId || !anoInicio || !anoFim) {
+        return res.status(400).json({ message: "Parâmetros insuficientes" });
+      }
+
+      
+      const anoInicioNum = parseInt(anoInicio, 10);
+      const anoFimNum = parseInt(anoFim, 10);
+
+     
+      if (isNaN(anoInicioNum) || isNaN(anoFimNum)) {
+        return res.status(400).json({ message: "Anos inválidos fornecidos" });
+      }
+
+      if (anoInicioNum > anoFimNum) {
+        return res.status(400).json({ message: "Ano de início deve ser menor ou igual ao ano de fim" });
+      }
+
+      
+      const agregacao = await this.declaracaoService.getItensPorAnoETipo(museuId, anoInicioNum, anoFimNum);
+
+      
+      return res.status(200).json(agregacao);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.startsWith('Nenhuma declaração encontrada')) {
+          return res.status(404).json({ message: error.message });
+        }
+      }
+      
+      return res.status(500).json({ message: "Erro ao processar a requisição", error }); 
+    }
+  }
+
+
+
+  async getItensMuseu(req: Request, res: Response): Promise<Response> {
+    try {
+      const { museu: museu_id } = req.params;
+
 
       res.status(200).json(resultado)
     } catch (error) {

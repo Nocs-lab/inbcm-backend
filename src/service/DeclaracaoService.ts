@@ -832,7 +832,57 @@ class DeclaracaoService {
     return declaracaoComNomes;
   }
   
+
+  async getItensPorAnoETipo(museuId: string, anoInicio: number, anoFim: number) {
+    const declaracoesExistentes = await Declaracoes.find({
+      museu_id: new mongoose.Types.ObjectId(museuId),
+      anoDeclaracao: { $gte: anoInicio.toString(), $lte: anoFim.toString() },
+      ultimaDeclaracao: true
+    });
   
+    if (declaracoesExistentes.length === 0) {
+      throw new Error(`Nenhuma declaração encontrada para o museu ${museuId} entre ${anoInicio} e ${anoFim}`);
+    }
+  
+    const agregacao = await Declaracoes.aggregate([
+      {
+        $match: {
+          museu_id: new mongoose.Types.ObjectId(museuId),
+          anoDeclaracao: { $gte: anoInicio.toString(), $lte: anoFim.toString() },
+          ultimaDeclaracao: true
+        }
+      },
+      {
+        $group: {
+          _id: "$anoDeclaracao",
+          totalArquivistico: { $sum: { $ifNull: ["$arquivistico.quantidadeItens", 0] } },
+          totalBibliografico: { $sum: { $ifNull: ["$bibliografico.quantidadeItens", 0] } },
+          totalMuseologico: { $sum: { $ifNull: ["$museologico.quantidadeItens", 0] } }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          anoDeclaracao: "$_id",
+          totalArquivistico: 1,
+          totalBibliografico: 1,
+          totalMuseologico: 1,
+          totalDeItensDeclaracao: { 
+            $add: [
+              "$totalArquivistico",
+              "$totalBibliografico",
+              "$totalMuseologico"
+            ]
+          }
+        }
+      },
+      { $sort: { anoDeclaracao: 1 } }
+    ]);
+  
+    return agregacao;
+  }
+
+
   async concluirAnalise(id: string, status: Status): Promise<DeclaracaoModel> {
     const declaracaoId = new mongoose.Types.ObjectId(id)
     const declaracao = await Declaracoes.findById(declaracaoId)
