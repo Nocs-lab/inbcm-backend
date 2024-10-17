@@ -495,6 +495,7 @@ class DeclaracaoService {
    *
    * @returns retorna uma nova declaracao ou um erro ao tentar criar uma declaracao
    */
+
 async criarDadosDeclaracao(
     museu: IMuseu,
     responsavelEnvio: mongoose.Types.ObjectId | string,
@@ -533,7 +534,8 @@ async criarDadosDeclaracao(
           dataRecebimento: dataRecebimento
         }
   }
-
+ 
+ 
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *
