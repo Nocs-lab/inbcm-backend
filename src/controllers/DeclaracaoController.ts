@@ -351,21 +351,24 @@ export class DeclaracaoController {
         novaDeclaracao,
         "arquivistico",
         declaracaoExistente?.arquivistico || null,
-        novaVersao
+        novaVersao,
+        responsavelEnvio.nome
       )
       await this.declaracaoService.updateDeclaracao(
         files["bibliografico"],
         novaDeclaracao,
         "bibliografico",
         declaracaoExistente?.bibliografico || null,
-        novaVersao
+        novaVersao,
+        responsavelEnvio.nome
       )
       await this.declaracaoService.updateDeclaracao(
         files["museologico"],
         novaDeclaracao,
         "museologico",
         declaracaoExistente?.museologico || null,
-        novaVersao
+        novaVersao,
+        responsavelEnvio.nome
       )
 
       novaDeclaracao.ultimaDeclaracao = true
