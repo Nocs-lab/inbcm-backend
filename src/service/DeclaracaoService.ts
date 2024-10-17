@@ -538,7 +538,6 @@ async criarDadosDeclaracao(
         }
   }
  
-
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *

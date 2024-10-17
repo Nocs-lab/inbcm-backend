@@ -21,7 +21,7 @@ const ArquivoSchema = new Schema<Arquivo>(
     status: {
       type: String,
       enum: Object.values(Status),
-      default: Status.NaoEnviado
+      default: Status.Recebida
     },
     pendencias: [String],
     quantidadeItens: { type: Number, default: 0 },
