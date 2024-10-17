@@ -495,6 +495,7 @@ class DeclaracaoService {
    *
    * @returns retorna uma nova declaracao ou um erro ao tentar criar uma declaracao
    */
+
 async criarDadosDeclaracao(
     museu: IMuseu,
     responsavelEnvio: mongoose.Types.ObjectId | string,
@@ -502,7 +503,8 @@ async criarDadosDeclaracao(
     declaracaoExistente: DeclaracaoModel | null,
     novaVersao: number,
     salt: string,
-    dataRecebimento: Date
+    dataRecebimento: Date,
+    responsavelEnvioNome:String
   ) {
     return declaracaoExistente
       ? {
@@ -510,6 +512,7 @@ async criarDadosDeclaracao(
           museu_nome: declaracaoExistente.museu_nome,
           anoDeclaracao: declaracaoExistente.anoDeclaracao,
           responsavelEnvio: declaracaoExistente.responsavelEnvio,
+          responsavelEnvioNome: declaracaoExistente.responsavelEnvioNome,
           totalItensDeclarados: declaracaoExistente.totalItensDeclarados,
           status: declaracaoExistente.status,
           retificacao: true,
@@ -526,6 +529,7 @@ async criarDadosDeclaracao(
           museu_id: museu._id,
           museu_nome: museu.nome,
           responsavelEnvio: responsavelEnvio,
+          responsavelEnvioNome: responsavelEnvioNome,
           retificacao: false,
           versao: novaVersao,
           status: Status.Recebida,
@@ -533,7 +537,7 @@ async criarDadosDeclaracao(
           dataRecebimento: dataRecebimento
         }
   }
-
+ 
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *
@@ -626,7 +630,53 @@ async criarDadosDeclaracao(
       throw new Error("Erro ao atualizar a declaração: " + error)
     }
   }
-
+  async getItensMuseu(museuId: string) {
+    const declaracoesExistentes = await Declaracoes.find({
+      museu_id: new mongoose.Types.ObjectId(museuId),
+      ultimaDeclaracao: true
+    });
+  
+    if (declaracoesExistentes.length === 0) {
+      throw new Error(`Nenhuma declaração encontrada para o museu ${museuId}`);
+    }
+  
+    const agregacao = await Declaracoes.aggregate([
+      {
+        $match: {
+          museu_id: new mongoose.Types.ObjectId(museuId),
+          ultimaDeclaracao: true
+        }
+      },
+      {
+        $group: {
+          _id: "$anoDeclaracao",
+          totalArquivistico: { $sum: { $ifNull: ["$arquivistico.quantidadeItens", 0] } },
+          totalBibliografico: { $sum: { $ifNull: ["$bibliografico.quantidadeItens", 0] } },
+          totalMuseologico: { $sum: { $ifNull: ["$museologico.quantidadeItens", 0] } }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          anoDeclaracao: "$_id",
+          totalArquivistico: 1,
+          totalBibliografico: 1,
+          totalMuseologico: 1,
+          totalDeItensDeclaracao: { 
+            $add: [
+              "$totalArquivistico",
+              "$totalBibliografico",
+              "$totalMuseologico"
+            ]
+          }
+        }
+      },
+      { $sort: { anoDeclaracao: 1 } }
+    ]);
+  
+    return agregacao;
+  }
+  
   async listarAnalistas() {
     const analistaProfile = await Profile.findOne({ name: "analyst" })
 
@@ -640,42 +690,64 @@ async criarDadosDeclaracao(
 
     return analistas
   }
-
   async enviarParaAnalise(
     id: string,
     analistas: string[],
     adminId: string
-  ): Promise<void> {
-    const objectId = new mongoose.Types.ObjectId(id)
-    const declaracao = await Declaracoes.findById(objectId)
-
+  ): Promise<Declaracoes> {
+    const objectId = new mongoose.Types.ObjectId(id);
+    const declaracao = await Declaracoes.findById(objectId);
+    
     if (!declaracao) {
-      throw new Error("Declaração não encontrada.")
+      throw new Error("Declaração não encontrada.");
     }
-
+  
     if (declaracao.status !== Status.Recebida) {
-      throw new Error("Declaração não está no estado adequado para envio.")
+      throw new Error("Declaração não está no estado adequado para envio.");
     }
-
-    const analistasList: IUsuario[] = await this.listarAnalistas()
-    const analistasIds = analistasList.map((analista) => analista._id)
-
+  
+    const analistasList: IUsuario[] = await this.listarAnalistas();
+    const analistasIds = analistasList.map((analista) => analista._id.toString());
+  
     for (const analistaId of analistas) {
-      if (!analistasIds.toString().includes(analistaId)) {
-        throw new Error(`Usuário com ID ${analistaId} não é um analista.`)
+      if (!analistasIds.includes(analistaId)) {
+        throw new Error(`Usuário com ID ${analistaId} não é um analista.`);
       }
     }
-
-    declaracao.analistasResponsaveis = analistas.map(
-      (id) => new mongoose.Types.ObjectId(id)
-    )
-    declaracao.status = Status.EmAnalise
-    declaracao.dataEnvioAnalise = DataUtils.getCurrentData()
-    declaracao.responsavelEnvioAnalise = new mongoose.Types.ObjectId(adminId)
-
-    await declaracao.save({ validateBeforeSave: false })
+  
+    declaracao.analistasResponsaveis = analistas.map((id) => new mongoose.Types.ObjectId(id));
+    declaracao.status = Status.EmAnalise;
+    declaracao.dataEnvioAnalise = DataUtils.getCurrentData();
+    declaracao.responsavelEnvioAnalise = new mongoose.Types.ObjectId(adminId);
+  
+   
+    const analistasNomes = await Usuario.find({ _id: { $in: declaracao.analistasResponsaveis } })
+      .select("nome")
+      .lean();
+  
+    const responsavel = await Usuario.findById(adminId).select("nome").lean();
+  
+   
+    declaracao.analistasResponsaveisNome = analistasNomes.map((analista) => analista.nome);
+    declaracao.responsavelEnvioAnaliseNome = responsavel ? responsavel.nome : '';
+  
+    await declaracao.save({ validateBeforeSave: false });
+  
+   
+    const declaracaoComNomes = await Declaracoes.findById(declaracao._id)
+      .populate({ path: "analistasResponsaveis", select: "nome" })
+      .populate({ path: "responsavelEnvioAnalise", select: "nome" })
+      .exec();
+  
+   
+    if (!declaracaoComNomes) {
+      throw new Error("Erro ao obter a declaração com os nomes.");
+    }
+  
+    return declaracaoComNomes;
   }
   
+
   async getItensPorAnoETipo(museuId: string, anoInicio: number, anoFim: number) {
     const declaracoesExistentes = await Declaracoes.find({
       museu_id: new mongoose.Types.ObjectId(museuId),
@@ -724,6 +796,7 @@ async criarDadosDeclaracao(
   
     return agregacao;
   }
+
 
   async concluirAnalise(id: string, status: Status): Promise<DeclaracaoModel> {
     const declaracaoId = new mongoose.Types.ObjectId(id)

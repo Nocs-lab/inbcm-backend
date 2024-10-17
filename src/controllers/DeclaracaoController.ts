@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { Declaracoes } from "../models"
+import { Declaracoes, Usuario } from "../models"
 import DeclaracaoService from "../service/DeclaracaoService"
 import { generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
@@ -31,6 +31,7 @@ export class DeclaracaoController {
     this.getDeclaracaoAno = this.getDeclaracaoAno.bind(this)
     this.getDeclaracoesPorStatusAno = this.getDeclaracoesPorStatusAno.bind(this)
     this.getItensPorAnoETipo = this.getItensPorAnoETipo.bind(this)
+    this.getItensMuseu = this.getItensMuseu.bind(this)
     this.getDeclaracaoAgrupada = this.getDeclaracaoAgrupada.bind(this)
   }
 
@@ -322,6 +323,11 @@ export class DeclaracaoController {
         .exec()
       const novaVersao = (ultimaDeclaracao?.versao || 0) + 1
 
+      const responsavelEnvio = await Usuario.findById(user_id).select("nome");
+      if (!responsavelEnvio) {
+        return res.status(404).json({ message: "Usuário responsável pelo envio não encontrado." });
+      }
+
       const novaDeclaracaoData =
         await this.declaracaoService.criarDadosDeclaracao(
           museu,
@@ -330,10 +336,12 @@ export class DeclaracaoController {
           declaracaoExistente,
           novaVersao,
           salt,
-          DataUtils.getCurrentData()
+          DataUtils.getCurrentData(),
+          responsavelEnvio.nome,
         )
 
       const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
+     
 
       await this.declaracaoService.updateDeclaracao(
         files["arquivistico"],
@@ -359,6 +367,7 @@ export class DeclaracaoController {
 
       novaDeclaracao.ultimaDeclaracao = true
       await novaDeclaracao.save()
+      
 
       await Declaracoes.updateMany(
         {
@@ -722,7 +731,27 @@ export class DeclaracaoController {
 
 
 
+  async getItensMuseu(req: Request, res: Response): Promise<Response> {
+    try {
+      const { museu: museu_id } = req.params;
 
+  
+      if (!museu_id) {
+        return res.status(400).json({ message: "Parâmetro museuId é obrigatório" });
+      }
+  
+      const agregacao = await this.declaracaoService.getItensMuseu(museu_id);
+  
+      return res.status(200).json(agregacao);
+    } catch (error) {
+      if (error instanceof Error) {
+        return res.status(500).json({ message: "Erro ao processar a requisição", error });
+      }
+      
+      return res.status(500).json({ message: "Erro desconhecido ao processar a requisição" });
+    }
+  }
+  
 
 
 
