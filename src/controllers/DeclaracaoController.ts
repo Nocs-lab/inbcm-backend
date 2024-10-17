@@ -8,7 +8,6 @@ import mongoose from "mongoose"
 import { getLatestPathArchive } from "../utils/minioUtil"
 import minioClient from "../db/minioClient"
 import { DataUtils } from "../utils/dataUtils"
-import { Profile } from "../models/Profile"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -18,45 +17,33 @@ export class DeclaracaoController {
     // Faz o bind do contexto atual para as funções
     this.uploadDeclaracao = this.uploadDeclaracao.bind(this)
     this.getDeclaracaoFiltrada = this.getDeclaracaoFiltrada.bind(this)
-    this.getDeclaracoesPorAnoDashboard =
-      this.getDeclaracoesPorAnoDashboard.bind(this)
-    this.getDeclaracoesPorRegiao = this.getDeclaracoesPorRegiao.bind(this)
-    this.getDeclaracoesPorUF = this.getDeclaracoesPorUF.bind(this)
-    this.getDeclaracoesPorStatus = this.getDeclaracoesPorStatus.bind(this)
     this.getStatusEnum = this.getStatusEnum.bind(this)
     this.atualizarStatusDeclaracao = this.atualizarStatusDeclaracao.bind(this)
     this.getDeclaracoes = this.getDeclaracoes.bind(this)
     this.getDeclaracao = this.getDeclaracao.bind(this)
     this.getDeclaracaoAno = this.getDeclaracaoAno.bind(this)
-    this.getDeclaracoesPorStatusAno = this.getDeclaracoesPorStatusAno.bind(this)
     this.getDeclaracaoAgrupada = this.getDeclaracaoAgrupada.bind(this)
-  }
-
-  async getDeclaracoesPorStatusAno(req: Request, res: Response) {
-    try {
-      const data = await this.declaracaoService.declaracoesPorStatusPorAno()
-      return res.status(200).json(data)
-    } catch (error) {
-      console.error("Erro ao buscar declarações por status e ano:", error)
-      return res
-        .status(500)
-        .json({ message: "Erro ao buscar declarações por status e ano." })
-    }
+    this.getDashboard = this.getDashboard.bind(this)
   }
 
   async getDeclaracaoAgrupada(req: Request, res: Response) {
     try {
-      const anoDeclaracao = Array.isArray(req.query.anoDeclaracao) ? req.query.anoDeclaracao[0] : req.query.anoDeclaracao;
+      const anoDeclaracao = Array.isArray(req.query.anoDeclaracao)
+        ? req.query.anoDeclaracao[0]
+        : req.query.anoDeclaracao
 
-      const declaracoes = await this.declaracaoService.declaracaoAgrupada(anoDeclaracao as string | undefined);
+      const declaracoes = await this.declaracaoService.declaracaoAgrupada(
+        anoDeclaracao as string | undefined
+      )
 
-      return res.status(200).json(declaracoes);
+      return res.status(200).json(declaracoes)
     } catch (error) {
-      console.error("Erro ao buscar declarações agrupadas:", error);
-      return res.status(500).json({ message: "Erro ao buscar declarações agrupadas." });
+      console.error("Erro ao buscar declarações agrupadas:", error)
+      return res
+        .status(500)
+        .json({ message: "Erro ao buscar declarações agrupadas." })
     }
   }
-
 
   async atualizarStatusDeclaracao(req: Request, res: Response) {
     try {
@@ -84,55 +71,6 @@ export class DeclaracaoController {
       return res
         .status(500)
         .json({ message: "Erro ao atualizar status da declaração." })
-    }
-  }
-
-  async getDeclaracoesPorStatus(req: Request, res: Response) {
-    try {
-      const declaracoes = await this.declaracaoService.declaracoesPorStatus()
-      return res.status(200).json(declaracoes)
-    } catch (error) {
-      console.error("Erro organizar declarações por status:", error)
-      return res.status(500).json({
-        message: "Erro ao organizar declarações por status para o dashboard."
-      })
-    }
-  }
-
-  async getDeclaracoesPorUF(req: Request, res: Response) {
-    try {
-      const declaracoes = await this.declaracaoService.declaracoesPorUF()
-      return res.status(200).json(declaracoes)
-    } catch (error) {
-      console.error("Erro organizar declarações por UF:", error)
-      return res.status(500).json({
-        message: "Erro ao organizar declarações por UF para o dashboard."
-      })
-    }
-  }
-
-  async getDeclaracoesPorRegiao(req: Request, res: Response) {
-    try {
-      const declaracoes = await this.declaracaoService.declaracoesPorRegiao()
-      return res.status(200).json(declaracoes)
-    } catch (error) {
-      console.error("Erro organizar declarações por região:", error)
-      return res.status(500).json({
-        message: "Erro ao organizar declarações por região para o dashboard."
-      })
-    }
-  }
-
-  async getDeclaracoesPorAnoDashboard(req: Request, res: Response) {
-    try {
-      const declaracoes =
-        await this.declaracaoService.declaracoesPorAnoDashboard()
-      return res.status(200).json(declaracoes)
-    } catch (error) {
-      console.error("Erro organizar declarações por ano:", error)
-      return res.status(500).json({
-        message: "Erro ao organizar declarações por ano para o dashboard."
-      })
     }
   }
 
@@ -225,6 +163,72 @@ export class DeclaracaoController {
     return res.status(200).json(status)
   }
 
+  /*
+   * Retorna a quantidade de declarações agrupadas por analista, filtradas pelos últimos X anos.
+   *
+   * @param {Request}
+   * @param {Response}
+   * @returns {Promise<Response>}
+   * @throws {500} - Se ocorrer um erro interno ao processar a requisição.
+   *
+   */
+  async getDashboard(req: Request, res: Response) {
+    try {
+      const { anos, estados, museu } = req.query
+
+      return res
+        .status(200)
+        .json(
+          await this.declaracaoService.getDashbaordData(
+            estados
+              ? Array.isArray(estados)
+                ? estados.map(String)
+                : [String(estados)]
+              : [
+                  "AC",
+                  "AL",
+                  "AP",
+                  "AM",
+                  "BA",
+                  "CE",
+                  "DF",
+                  "ES",
+                  "GO",
+                  "MA",
+                  "MT",
+                  "MS",
+                  "MG",
+                  "PA",
+                  "PB",
+                  "PR",
+                  "PE",
+                  "PI",
+                  "RJ",
+                  "RN",
+                  "RS",
+                  "RO",
+                  "RR",
+                  "SC",
+                  "SP",
+                  "SE",
+                  "TO"
+                ],
+            anos
+              ? Array.isArray(anos)
+                ? anos.map(String)
+                : [String(anos)]
+              : [],
+            museu ? String(museu) : null
+          )
+        )
+    } catch (error) {
+      console.error("Erro ao buscar declarações por ano:", error)
+      return res
+        .status(500)
+        .json({ message: "Erro ao buscar declarações por ano." })
+    }
+  }
+
   async getDeclaracaoFiltrada(req: Request, res: Response) {
     try {
       const declaracoes = await this.declaracaoService.declaracaoComFiltros(
@@ -285,15 +289,15 @@ export class DeclaracaoController {
 
       const declaracaoExistente = idDeclaracao
         ? await Declaracoes.findOne({
-          _id: idDeclaracao,
-          responsavelEnvio: user_id,
-          anoDeclaracao,
-          museu_id: museu_id
-        }).exec()
+            _id: idDeclaracao,
+            responsavelEnvio: user_id,
+            anoDeclaracao,
+            museu_id: museu_id
+          }).exec()
         : await this.declaracaoService.verificarDeclaracaoExistente(
-          museu_id,
-          anoDeclaracao
-        )
+            museu_id,
+            anoDeclaracao
+          )
 
       if (idDeclaracao && !declaracaoExistente) {
         return res.status(404).json({
@@ -540,8 +544,6 @@ export class DeclaracaoController {
     const { analistas } = req.body
     const adminId = req.user?.id
 
-
-
     try {
       const declaracao = await this.declaracaoService.enviarParaAnalise(
         id,
@@ -588,31 +590,30 @@ export class DeclaracaoController {
     }
   }
   /**
- * Obtém a quantidade de declarações agrupadas por analista, considerando um filtro de tempo (anos).
- *
- * Este método realiza uma consulta agregada no banco de dados MongoDB para agrupar declarações
- * por analista e ano da declaração, limitando as declarações aos últimos X anos, conforme definido
- * pelo parâmetro da query. Além disso,retorna a quantidade de declarações associadas.
- *
- * @param {Request} req - O objeto da requisição HTTP. Pode conter:
- *   @param {string} req.query.anos - O número de anos a ser considerado no filtro (opcional). Se omitido, o filtro padrão é 5 anos.
- *
- * @param {Response} res - O objeto de resposta HTTP que será utilizado para retornar os dados processados.
- *   A resposta será um JSON contendo:
- *   - analista: Objeto com as informações do analista (nome, email, etc).
- *   - anoDeclaracao: O ano da declaração.
- *   - quantidadeDeclaracoes: A quantidade de declarações feitas por aquele analista naquele ano.
- *
- * @return {Promise<void>} Retorna uma Promise que, ao ser resolvida, envia a resposta HTTP em formato JSON.
- * Em caso de erro, retorna uma mensagem de erro com status 500.
- */
+   * Obtém a quantidade de declarações agrupadas por analista, considerando um filtro de tempo (anos).
+   *
+   * Este método realiza uma consulta agregada no banco de dados MongoDB para agrupar declarações
+   * por analista e ano da declaração, limitando as declarações aos últimos X anos, conforme definido
+   * pelo parâmetro da query. Além disso,retorna a quantidade de declarações associadas.
+   *
+   * @param {Request} req - O objeto da requisição HTTP. Pode conter:
+   *   @param {string} req.query.anos - O número de anos a ser considerado no filtro (opcional). Se omitido, o filtro padrão é 5 anos.
+   *
+   * @param {Response} res - O objeto de resposta HTTP que será utilizado para retornar os dados processados.
+   *   A resposta será um JSON contendo:
+   *   - analista: Objeto com as informações do analista (nome, email, etc).
+   *   - anoDeclaracao: O ano da declaração.
+   *   - quantidadeDeclaracoes: A quantidade de declarações feitas por aquele analista naquele ano.
+   *
+   * @return {Promise<void>} Retorna uma Promise que, ao ser resolvida, envia a resposta HTTP em formato JSON.
+   * Em caso de erro, retorna uma mensagem de erro com status 500.
+   */
   async getDeclaracoesAgrupadasPorAnalista(req: Request, res: Response) {
     try {
-      const { anos } = req.query;
-      const anosFiltro = anos ? parseInt(anos as string) : 5;
+      const { anos } = req.query
+      const anosFiltro = anos ? parseInt(anos as string) : 5
 
-      const anoLimite = new Date().getFullYear() - anosFiltro;
-
+      const anoLimite = new Date().getFullYear() - anosFiltro
 
       const resultado = await Declaracoes.aggregate([
         {
@@ -659,21 +660,16 @@ export class DeclaracaoController {
             quantidadeDeclaracoes: 1
           }
         }
-      ]);
+      ])
 
-      res.status(200).json(resultado);
+      res.status(200).json(resultado)
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao buscar declarações agrupadas por analista" });
+      console.error(error)
+      res
+        .status(500)
+        .json({ error: "Erro ao buscar declarações agrupadas por analista" })
     }
   }
-
-
-
-
-
-
-
 
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.

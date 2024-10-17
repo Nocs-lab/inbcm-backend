@@ -31,8 +31,6 @@ routes.get(
   declaracaoController.listarAnalistas.bind(declaracaoController)
 )
 
-
-
 routes.put(
   "/:id/analises",
   adminMiddleware,
@@ -90,8 +88,6 @@ routes.get(
   adminMiddleware,
   declaracaoController.getDeclaracaoAgrupada
 )
-
-
 
 /**
  * @swagger
@@ -165,7 +161,36 @@ routes.put(
  */
 
 routes.get(
-  "/analistas-filtrados",adminMiddleware,declaracaoController.getDeclaracoesAgrupadasPorAnalista.bind(declaracaoController)
+  "/analistas-filtrados",
+  adminMiddleware,
+  declaracaoController.getDeclaracoesAgrupadasPorAnalista.bind(
+    declaracaoController
+  )
 )
+
+/**
+ * @swagger
+ * /api/admin/declaracoes/{id}:
+ *   get:
+ *     summary: Obtém uma declaração pelo ID.
+ *     description: Endpoint para obter uma declaração específica pelo seu ID.
+ *     tags:
+ *       - Declarações
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         description: ID da declaração a ser obtida.
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Declaração obtida com sucesso.
+ *       '404':
+ *         description: Declaração não encontrada para o ID especificado.
+ *       '500':
+ *         description: Erro ao buscar declaração.
+ */
+routes.get("/:id", adminMiddleware, declaracaoController.getDeclaracao)
 
 export default routes
