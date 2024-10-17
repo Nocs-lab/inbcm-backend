@@ -37,6 +37,7 @@ export interface DeclaracaoModel extends Document {
   museu_nome: string
   anoDeclaracao: string
   responsavelEnvio: mongoose.Types.ObjectId
+  responsavelEnvioNome: String
   hashDeclaracao: string
   dataCriacao?: Date
   dataAtualizacao?: Date
@@ -56,6 +57,8 @@ export interface DeclaracaoModel extends Document {
   dataEnvioAnalise?: Date
   responsavelEnvioAnalise?: mongoose.Types.ObjectId
   analistasResponsaveis?: mongoose.Types.ObjectId[]
+  responsavelEnvioAnaliseNome: string,
+  analistasResponsaveisNome: string[]
   dataAnalise?: Date
   dataFimAnalise?: Date
 }
@@ -76,6 +79,10 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
       ref: "usuarios",
       required: true
     },
+    responsavelEnvioNome: {
+      type: String,
+      required: true,
+    },  
     hashDeclaracao: String,
     dataCriacao: { type: Date, default: Date.now() },
     dataAtualizacao: { type: Date, default: Date.now() },
@@ -95,6 +102,8 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
     dataEnvioAnalise: { type: Date },
     analistasResponsaveis: [{ type: Schema.Types.ObjectId, ref: "usuarios" }],
     responsavelEnvioAnalise: { type: Schema.Types.ObjectId, ref: "usuarios" },
+    responsavelEnvioAnaliseNome: { type: String},
+    analistasResponsaveisNome: [{ type: String,}],
     dataAnalise: { type: Date },
     dataFimAnalise: { type: Date }
   },
