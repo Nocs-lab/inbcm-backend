@@ -23,69 +23,376 @@ import { Profile } from "../models/Profile"
 import { DataUtils } from "../utils/dataUtils"
 
 class DeclaracaoService {
-
-  async declaracoesPorStatusPorAno() {
-    try {
-      const result = await Declaracoes.aggregate([
+  async getDashbaordData(
+    estados: string[],
+    anos: string[],
+    museuId: string | null
+  ) {
+    const result = (
+      await Declaracoes.aggregate([
         {
-          $group: {
-            _id: {
-              status: "$status",
-              ano: "$anoDeclaracao"
-            },
-            count: { $sum: 1 }
-          }
-        },
-        {
-          $project: {
-            _id: 0,
-            status: "$_id.status",
-            ano: "$_id.ano",
-            count: "$count"
+          $facet: {
+            declaracoesPorAnoDashboard: [
+              {
+                $group: {
+                  _id: "$anoDeclaracao",
+                  count: { $sum: 1 }
+                }
+              },
+              {
+                $sort: { _id: 1 } // Ordenar por ano, se necessário
+              }
+            ],
+            declaracoesPorStatusPorAno: [
+              {
+                $group: {
+                  _id: {
+                    status: "$status",
+                    ano: "$anoDeclaracao"
+                  },
+                  count: { $sum: 1 }
+                }
+              },
+              {
+                $project: {
+                  _id: 0,
+                  status: "$_id.status",
+                  ano: "$_id.ano",
+                  count: "$count"
+                }
+              }
+            ],
+            declaracoesPorUFs: [
+              {
+                $match: {
+                  anoDeclaracao: { $in: anos }
+                }
+              },
+              {
+                $lookup: {
+                  from: "museus",
+                  localField: "museu_id",
+                  foreignField: "_id",
+                  as: "museu"
+                }
+              },
+              {
+                $unwind: "$museu"
+              },
+              {
+                $group: {
+                  _id: "$museu.endereco.uf",
+                  count: { $sum: 1 }
+                }
+              },
+              {
+                $project: {
+                  _id: 0,
+                  uf: "$_id",
+                  count: "$count"
+                }
+              }
+            ],
+            declaracoesPorRegiao: [
+              {
+                $match: {
+                  anoDeclaracao: { $in: anos }
+                }
+              },
+              {
+                $lookup: {
+                  from: "museus",
+                  localField: "museu_id",
+                  foreignField: "_id",
+                  as: "museu"
+                }
+              },
+              {
+                $unwind: "$museu"
+              },
+              {
+                $group: {
+                  _id: {
+                    regiao: {
+                      $switch: {
+                        branches: [
+                          {
+                            case: {
+                              $in: [
+                                "$museu.endereco.uf",
+                                ["AC", "AP", "AM", "PA", "RO", "RR", "TO"]
+                              ]
+                            },
+                            then: "Norte"
+                          },
+                          {
+                            case: {
+                              $in: [
+                                "$museu.endereco.uf",
+                                [
+                                  "AL",
+                                  "BA",
+                                  "CE",
+                                  "MA",
+                                  "PB",
+                                  "PE",
+                                  "PI",
+                                  "RN",
+                                  "SE"
+                                ]
+                              ]
+                            },
+                            then: "Nordeste"
+                          },
+                          {
+                            case: {
+                              $in: [
+                                "$museu.endereco.uf",
+                                ["DF", "GO", "MT", "MS"]
+                              ]
+                            },
+                            then: "Centro-Oeste"
+                          },
+                          {
+                            case: {
+                              $in: [
+                                "$museu.endereco.uf",
+                                ["ES", "MG", "RJ", "SP"]
+                              ]
+                            },
+                            then: "Sudeste"
+                          },
+                          {
+                            case: {
+                              $in: ["$museu.endereco.uf", ["PR", "RS", "SC"]]
+                            },
+                            then: "Sul"
+                          }
+                        ],
+                        default: "Desconhecida"
+                      }
+                    },
+                    status: "$status"
+                  },
+                  count: { $sum: 1 }
+                }
+              },
+              {
+                $project: {
+                  _id: 0,
+                  regiao: "$_id.regiao",
+                  status: "$_id.status",
+                  count: "$count"
+                }
+              }
+            ],
+            declaracoesAgrupadasPorAnalista: [
+              {
+                $match: {
+                  anoDeclaracao: { $in: anos },
+                  analistasResponsaveis: { $exists: true, $not: { $size: 0 } }
+                }
+              },
+              {
+                $unwind: "$analistasResponsaveis"
+              },
+              {
+                $group: {
+                  _id: {
+                    analista: "$analistasResponsaveis",
+                    anoDeclaracao: "$anoDeclaracao"
+                  },
+                  quantidadeDeclaracoes: { $sum: 1 }
+                }
+              },
+              {
+                $lookup: {
+                  from: "usuarios",
+                  localField: "_id.analista",
+                  foreignField: "_id",
+                  as: "analista"
+                }
+              },
+              {
+                $unwind: {
+                  path: "$analista",
+                  preserveNullAndEmptyArrays: true
+                }
+              },
+              {
+                $project: {
+                  _id: 0,
+                  analista: {
+                    _id: "$analista._id",
+                    nome: "$analista.nome",
+                    email: "$analista.email"
+                  },
+                  anoDeclaracao: "$_id.anoDeclaracao",
+                  quantidadeDeclaracoes: 1
+                }
+              }
+            ],
+            declaracoesCount: [
+              {
+                $match: {
+                  anoDeclaracao: { $in: anos }
+                }
+              },
+              {
+                $count: "count"
+              }
+            ],
+            declaracoesEmConformidade: [
+              {
+                $match: {
+                  anoDeclaracao: { $in: anos },
+                  status: Status.EmConformidade
+                }
+              },
+              {
+                $count: "count"
+              }
+            ],
+            bensCountPorTipo: [
+              {
+                $match: {
+                  anoDeclaracao: { $in: anos },
+                  ...{
+                    ...(museuId && {
+                      museu_id: new mongoose.Types.ObjectId(museuId)
+                    })
+                  }
+                }
+              },
+              {
+                $group: {
+                  _id: null,
+                  museologico: { $sum: "$museologico.quantidadeItens" },
+                  bibliografico: { $sum: "$bibliografico.quantidadeItens" },
+                  arquivistico: { $sum: "$arquivistico.quantidadeItens" }
+                }
+              },
+              {
+                $project: {
+                  _id: 0
+                }
+              }
+            ],
+            bensCountTotal: [
+              {
+                $match: {
+                  anoDeclaracao: { $in: anos }
+                }
+              },
+              {
+                $group: {
+                  _id: null,
+                  total: {
+                    $sum: {
+                      $sum: [
+                        "$museologico.quantidadeItens",
+                        "$bibliografico.quantidadeItens",
+                        "$arquivistico.quantidadeItens"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                $project: {
+                  _id: 0
+                }
+              }
+            ]
           }
         }
       ])
+    )[0] as { [key: string]: { [key: string]: string | number }[] }
 
-      const anos = result
-        .map((item) => item.ano)
-        .filter((value, index, self) => self.indexOf(value) === index)
+    const declaracoesPorStatusPorAno = result.declaracoesPorStatusPorAno
+      .map((item) => item.ano)
+      .filter((value, index, self) => self.indexOf(value) === index)
 
-      const statusEnum = Declaracoes.schema.path("status")
-      const status = Object.values(statusEnum)[0]
+    const statusEnum = Declaracoes.schema.path("status")
+    const status = Object.values(statusEnum)[0]
 
-      const data = anos.map((ano) => {
+    const regioes: string[] = [
+      "Norte",
+      "Nordeste",
+      "Centro-Oeste",
+      "Sudeste",
+      "Sul"
+    ]
+
+    return {
+      status,
+      declaracoesPorAnoDashboard: result.declaracoesPorAnoDashboard.reduce(
+        (acc, item) => {
+          acc[item._id] = item.count
+          return acc
+        },
+        {}
+      ),
+      declaracoesPorStatusPorAno: declaracoesPorStatusPorAno.map((ano) => {
         const statusCount = status.reduce((acc: number[], item: number) => {
-          const statusItem = result.find(
+          const statusItem = result.declaracoesPorStatusPorAno.find(
             (resultItem) => resultItem.ano === ano && resultItem.status === item
           )
-          acc.push(statusItem ? statusItem.count : 0)
+          acc.push(statusItem ? (statusItem.count as number) : 0)
           return acc
         }, [])
 
-        const total = statusCount.reduce((acc: number, item: number) => acc + item, 0)
+        const total = statusCount.reduce(
+          (acc: number, item: number) => acc + item,
+          0
+        )
 
         return [ano, total, ...statusCount]
-      })
+      }),
+      declaracoesPorUFs: result.declaracoesPorUFs.reduce((acc, item) => {
+        acc[item.uf] = item.count
+        return acc
+      }, {}),
+      declaracoesPorRegiao: regioes.map((regiao) => {
+        const regiaoStatus = result.declaracoesPorRegiao
+          .filter((item) => item.regiao === regiao)
+          .reduce((acc, item) => {
+            acc[item.status] = item.count
+            return acc
+          }, {})
 
-      return data
-    } catch (error) {
-      console.error(
-        "Erro ao realizar busca de declarações por status para o dashboard:",
-        error
-      )
-      throw new Error(
-        "Erro ao realizar busca de declarações por status para o dashboard."
-      )
+        const total = (Object.values(regiaoStatus) as number[]).reduce(
+          (acc: number, item: number) => acc + item,
+          0
+        )
+
+        const statusCount = status.reduce((acc: number[], item: number) => {
+          acc.push((regiaoStatus[item] as number) || 0)
+          return acc
+        }, [])
+
+        return [regiao, total, ...statusCount]
+      }),
+      declaracoesAgrupadasPorAnalista: result.declaracoesAgrupadasPorAnalista,
+      declaracoesCount: result.declaracoesCount[0]?.count || 0,
+      declaracoesEmConformidade:
+        result.declaracoesEmConformidade[0]?.count || 0,
+      bensCountPorTipo: result.bensCountPorTipo[0] || {
+        museologico: 0,
+        bibliografico: 0,
+        arquivistico: 0
+      },
+      bensCountTotal: result.bensCountTotal[0]?.total || 0
     }
   }
 
   async declaracaoAgrupada(anoDeclaracao?: string) {
     try {
-      const matchStage: Record<string, any> = {};
+      const matchStage: Record<string, unknown> = {}
 
       // Se anoDeclaracao foi fornecido, adiciona o filtro ao matchStage
       if (anoDeclaracao) {
-        matchStage.anoDeclaracao = anoDeclaracao;
+        matchStage.anoDeclaracao = anoDeclaracao
       }
 
       const declaracoesAgrupadas = await Declaracoes.aggregate([
@@ -105,242 +412,21 @@ class DeclaracaoService {
             totalDeclaracoes: { $sum: 1 } // Contagem de declarações por estado
           }
         }
-      ]);
+      ])
 
       // Converter o resultado da agregação em um objeto de chave-valor
-      const resultadoAgrupado = declaracoesAgrupadas.reduce((acc, item) => {
-        acc[item._id] = item.totalDeclaracoes;
-        return acc;
-      }, {} as Record<string, number>);
-
-      return resultadoAgrupado;
-
-    } catch (error) {
-      console.error("Erro ao agrupar declarações:", error);
-      throw new Error("Erro ao buscar declarações agrupadas.");
-    }
-  }
-
-  async declaracoesPorStatus() {
-    try {
-      const result = await Declaracoes.aggregate([
-        {
-          $group: {
-            _id: "$status",
-            count: { $sum: 1 }
-          }
-        },
-        {
-          $project: {
-            _id: 0,
-            status: "$_id",
-            count: "$count"
-          }
-        }
-      ])
-
-      const statusCounts = result.reduce((acc, item) => {
-        acc[item.status] = item.count
-        return acc
-      }, {})
-
-      return statusCounts
-    } catch (error) {
-      console.error(
-        "Erro ao realizar busca de declarações por status para o dashboard:",
-        error
-      )
-      throw new Error(
-        "Erro ao realizar busca de declarações por status para o dashboard."
-      )
-    }
-  }
-
-  async declaracoesPorUF() {
-    try {
-      const result = await Declaracoes.aggregate([
-        {
-          $lookup: {
-            from: "museus",
-            localField: "museu_id",
-            foreignField: "_id",
-            as: "museu"
-          }
-        },
-        {
-          $unwind: "$museu"
-        },
-        {
-          $group: {
-            _id: "$museu.endereco.uf",
-            count: { $sum: 1 }
-          }
-        },
-        {
-          $project: {
-            _id: 0,
-            uf: "$_id",
-            count: "$count"
-          }
-        }
-      ])
-
-      const ufs = result.reduce((acc, item) => {
-        acc[item.uf] = item.count
-        return acc
-      }, {})
-
-      return ufs
-    } catch (error) {
-      console.error(
-        "Erro ao realizar busca de declarações por UF para o dashboard:",
-        error
-      )
-      throw new Error(
-        "Erro ao realizar busca de declarações por UF para o dashboard."
-      )
-    }
-  }
-
-  async declaracoesPorRegiao() {
-    try {
-      const result = await Declaracoes.aggregate([
-        {
-          $lookup: {
-            from: "museus",
-            localField: "museu_id",
-            foreignField: "_id",
-            as: "museu"
-          }
-        },
-        {
-          $unwind: "$museu"
-        },
-        {
-          $group: {
-            _id: {
-              regiao: {
-                $switch: {
-                  branches: [
-                    {
-                      case: {
-                        $in: [
-                          "$museu.endereco.uf",
-                          ["AC", "AP", "AM", "PA", "RO", "RR", "TO"]
-                        ]
-                      },
-                      then: "Norte"
-                    },
-                    {
-                      case: {
-                        $in: [
-                          "$museu.endereco.uf",
-                          ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"]
-                        ]
-                      },
-                      then: "Nordeste"
-                    },
-                    {
-                      case: {
-                        $in: ["$museu.endereco.uf", ["DF", "GO", "MT", "MS"]]
-                      },
-                      then: "Centro-Oeste"
-                    },
-                    {
-                      case: {
-                        $in: ["$museu.endereco.uf", ["ES", "MG", "RJ", "SP"]]
-                      },
-                      then: "Sudeste"
-                    },
-                    {
-                      case: { $in: ["$museu.endereco.uf", ["PR", "RS", "SC"]] },
-                      then: "Sul"
-                    }
-                  ],
-                  default: "Desconhecida"
-                }
-              },
-              status: "$status"
-            },
-            count: { $sum: 1 }
-          }
-        },
-        {
-          $project: {
-            _id: 0,
-            regiao: "$_id.regiao",
-            status: "$_id.status",
-            count: "$count"
-          }
-        }
-      ])
-
-      const regioes: string[] = ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"]
-      const statusEnum = Declaracoes.schema.path("status")
-      const status = Object.values(statusEnum)[0]
-
-      // [[regiao, total, ...status], ...]
-      // Exemplo: [["Norte", 10, 2, 3, 5], ["Nordeste", 15, 4, 6, 5], ...]
-      const resultados = regioes.map((regiao) => {
-        const regiaoStatus = result
-          .filter((item) => item.regiao === regiao)
-          .reduce((acc, item) => {
-            acc[item.status] = item.count
-            return acc
-          }, {})
-
-          const total = (Object.values(regiaoStatus) as number[]).reduce(
-            (acc: number, item: number) => acc + item,
-            0
-          );
-
-        const statusCount = status.reduce((acc: number[], item: number) => {
-          acc.push(regiaoStatus[item] || 0)
+      const resultadoAgrupado = declaracoesAgrupadas.reduce(
+        (acc, item) => {
+          acc[item._id] = item.totalDeclaracoes
           return acc
-        }, [])
-
-        return [regiao, total, ...statusCount]
-      })
-
-      return resultados
-    } catch (error) {
-      console.error(
-        "Erro ao realizar busca de declarações por região para o dashboard:",
-        error
-      )
-      throw new Error(
-        "Erro ao realizar busca de declarações por região para o dashboard."
-      )
-    }
-  }
-
-  async declaracoesPorAnoDashboard() {
-    try {
-      const result = await Declaracoes.aggregate([
-        {
-          $group: {
-            _id: "$anoDeclaracao",
-            count: { $sum: 1 }
-          }
         },
-        {
-          $sort: { _id: 1 } // Ordenar por ano, se necessário
-        }
-      ])
-
-      // Transformar o resultado em um objeto com anos como chaves
-      const formattedResult = result.reduce((acc, item) => {
-        acc[item._id] = item.count
-        return acc
-      }, {})
-
-      return formattedResult
-    } catch (error) {
-      console.error(
-        "Erro ao buscar declarações por ano para o dashboard:",
-        error
+        {} as Record<string, number>
       )
-      throw new Error("Erro ao buscar declarações por ano para o dashboard.")
+
+      return resultadoAgrupado
+    } catch (error) {
+      console.error("Erro ao agrupar declarações:", error)
+      throw new Error("Erro ao buscar declarações agrupadas.")
     }
   }
 
@@ -495,8 +581,7 @@ class DeclaracaoService {
    *
    * @returns retorna uma nova declaracao ou um erro ao tentar criar uma declaracao
    */
-
-async criarDadosDeclaracao(
+  async criarDadosDeclaracao(
     museu: IMuseu,
     responsavelEnvio: mongoose.Types.ObjectId | string,
     anoDeclaracao: string,
