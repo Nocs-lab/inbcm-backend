@@ -2,10 +2,11 @@ name: Backend Tests
 
 on:
   workflow_dispatch:
-  push:
+  pull_request:
     branches:
       - main
       - development
+    types: [opened]
 
 jobs:
   test:
