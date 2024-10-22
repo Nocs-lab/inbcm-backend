@@ -69,6 +69,7 @@ const setupTestEnvironment = async () => {
     museu_nome: museuMock.nome,
     anoDeclaracao: "2019",
     responsavelEnvio: userId,
+    responsavelEnvioNome: "Teste",
     status: "Recebida",
     retificacao: false,
     totalItensDeclarados: 0,
