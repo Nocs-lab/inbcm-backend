@@ -8,8 +8,6 @@ import mongoose from "mongoose"
 import { getLatestPathArchive } from "../utils/minioUtil"
 import minioClient from "../db/minioClient"
 import { DataUtils } from "../utils/dataUtils"
-import { Profile } from "../models/Profile"
-import { Status } from "../enums/Status"
 
 
 export class DeclaracaoController {
@@ -26,7 +24,6 @@ export class DeclaracaoController {
     this.getDeclaracao = this.getDeclaracao.bind(this)
     this.getDeclaracaoAno = this.getDeclaracaoAno.bind(this)
     this.getItensPorAnoETipo = this.getItensPorAnoETipo.bind(this)
-    this.getItensMuseu = this.getItensMuseu.bind(this)
     this.getDeclaracaoAgrupada = this.getDeclaracaoAgrupada.bind(this)
     this.getDashboard = this.getDashboard.bind(this)
   }
@@ -735,19 +732,7 @@ export class DeclaracaoController {
 
 
 
-  async getItensMuseu(req: Request, res: Response): Promise<Response> {
-    try {
-      const { museu: museu_id } = req.params;
-
-
-      res.status(200).json(resultado)
-    } catch (error) {
-      console.error(error)
-      res
-        .status(500)
-        .json({ error: "Erro ao buscar declarações agrupadas por analista" })
-    }
-  }
+  
 
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
