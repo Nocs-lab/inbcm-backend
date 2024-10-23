@@ -686,50 +686,69 @@ export class DeclaracaoController {
   async getItensPorAnoETipo(req: Request, res: Response): Promise<Response> {
     try {
       const { museuId, anoInicio, anoFim } = req.params;
-      const user_id = req.user.id
-
-
-      const museu = await Museu.findOne({ _id: museuId, usuario: user_id })
-      if (!museu) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Museu inválido" })
-      }
-
+      const user_id = req.user.id;
+  
      
       if (!museuId || !anoInicio || !anoFim) {
-        return res.status(400).json({ message: "Parâmetros insuficientes" });
+        return res.status(400).json({
+          success: false,
+          message: "Parâmetros insuficientes. Forneça id do museu, ano inicio  e ano fim."
+        });
       }
-
-      
+  
       const anoInicioNum = parseInt(anoInicio, 10);
       const anoFimNum = parseInt(anoFim, 10);
-
-     
+  
+      
       if (isNaN(anoInicioNum) || isNaN(anoFimNum)) {
-        return res.status(400).json({ message: "Anos inválidos fornecidos" });
+        return res.status(400).json({
+          success: false,
+          message: "Anos inválidos fornecidos. Certifique-se de enviar valores numéricos."
+        });
       }
-
+  
       if (anoInicioNum > anoFimNum) {
-        return res.status(400).json({ message: "Ano de início deve ser menor ou igual ao ano de fim" });
+        return res.status(400).json({
+          success: false,
+          message: "Ano de início deve ser menor ou igual ao ano de fim."
+        });
       }
-
-      
+  
+    
+      const museu = await Museu.findOne({ _id: museuId, usuario: user_id });
+      if (!museu) {
+        return res.status(404).json({
+          success: false,
+          message: "Museu não encontrado ou usuário não autorizado."
+        });
+      }
+  
+     
       const agregacao = await this.declaracaoService.getItensPorAnoETipo(museuId, anoInicioNum, anoFimNum);
-
-      
-      return res.status(200).json(agregacao);
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.message.startsWith('Nenhuma declaração encontrada')) {
-          return res.status(404).json({ message: error.message });
-        }
+  
+      if (!agregacao || agregacao.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Nenhuma declaração encontrada para os parâmetros fornecidos."
+        });
       }
-      
-      return res.status(500).json({ message: "Erro ao processar a requisição", error }); 
+      return res.status(200).json({
+        success: true,
+        message: "Dados encontrados com sucesso.",
+        data: agregacao
+      });
+  
+    } catch (error) {
+      console.error("Erro ao processar a requisição: ", error);
+  
+      return res.status(500).json({
+        success: false,
+        message: "Erro ao processar a requisição.",
+        error: error instanceof Error ? error.message : "Erro desconhecido"
+      });
     }
   }
-
+  
 
 
   
