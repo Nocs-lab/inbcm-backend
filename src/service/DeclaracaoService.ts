@@ -780,7 +780,7 @@ class DeclaracaoService {
     id: string,
     analistas: string[],
     adminId: string
-  ): Promise<Declaracoes> {
+  ): Promise<DeclaracaoModel | null> {
     const objectId = new mongoose.Types.ObjectId(id);
     const declaracao = await Declaracoes.findById(objectId);
     
@@ -793,7 +793,7 @@ class DeclaracaoService {
     }
   
     const analistasList: IUsuario[] = await this.listarAnalistas();
-    const analistasIds = analistasList.map((analista) => analista._id.toString());
+    const analistasIds = analistasList.map((analista) => analista._id as mongoose.Types.ObjectId).toString();
   
     for (const analistaId of analistas) {
       if (!analistasIds.includes(analistaId)) {

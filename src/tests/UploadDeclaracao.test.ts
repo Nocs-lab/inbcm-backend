@@ -49,6 +49,8 @@ describe("POST /public/declaracoes/uploads/:museu/:anoDeclaracao", () => {
     expect(response.body.museologico.quantidadeItens).toBe(2)
     expect(response.body.arquivistico.quantidadeItens).toBe(4)
     expect(response.body.bibliografico.quantidadeItens).toBe(3)
+
+    declaracaoId = response.body._id
   })
 
   it("Deve retornar erro 406 se tentar criar uma declaração com ano referência e museu já utilizados", async () => {
@@ -57,5 +59,14 @@ describe("POST /public/declaracoes/uploads/:museu/:anoDeclaracao", () => {
       .set("Authorization", `Bearer mocked-token`)
       .attach("museologico", filePathMuseologico2itens)
       .expect(406)
+  })
+})
+
+describe("GET /public/declaracoes/:id", () => {
+  it("Deve buscar uma declaração pelo seu id", async () => {
+    const response = await request(app)
+      .get(`/public/declaracoes/${declaracaoId}`)
+      .set("Authorization", `Bearer mocked-token`)
+      .expect(200)
   })
 })
