@@ -10,6 +10,7 @@ import { DeclaracaoModel, Declaracoes } from "../models"
 import uploadMiddleware from "../middlewares/UploadMiddleware"
 import DeclaracaoController from "../controllers/DeclaracaoController"
 import config from "../config"
+import ReciboController from "../controllers/ReciboController"
 
 const app = express()
 app.use(express.json())
@@ -47,7 +48,8 @@ const setupTestEnvironment = async () => {
       bairro: "Tirol",
       cep: "59020-650",
       municipio: "Natal",
-      uf: "RN"
+      uf: "RN",
+      complemento: "Pitanga"
     },
     usuario: userMock._id
   })
@@ -73,7 +75,7 @@ const mockAuthMiddleware = (
 
 // Declarando as rotas e o controller com o middleware de autenticação mockada
 const declaracaoController = new DeclaracaoController()
-
+const reciboController = new ReciboController()
 app.post(
   "/public/declaracoes/uploads/:museu/:anoDeclaracao",
   mockAuthMiddleware,
@@ -92,6 +94,8 @@ app.get(
   "/public/declaracoes/:id",
   declaracaoController.getDeclaracao
 )
+
+app.get("/public/recibo/:idDeclaracao",mockAuthMiddleware,reciboController.gerarRecibo)
 
 const teardownTestEnvironment = async () => {
   await mongoose.disconnect()
