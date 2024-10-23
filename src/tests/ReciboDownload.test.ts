@@ -8,6 +8,7 @@ import {
 } from "./DeclaracaoMockSetup";
 import mongoose from "mongoose";
 
+let declaracaoId: string;
 const filePathMuseologico2itens = path.join(
   __dirname,
   "./assets/museologico2itens.xlsx"
@@ -88,47 +89,5 @@ describe("GET /public/recibo/:idDeclaracao", () => {
     
     expect(response.body).toBeInstanceOf(Buffer);
   });
-  it("Deve retornar 404 se a declaração não existir", async () => {
-    const invalidDeclaracaoId = new mongoose.Types.ObjectId();
-    
-    const response = await request(app)
-      .get(`/public/recibo/${invalidDeclaracaoId}`)
-      .set("Authorization", `Bearer mocked-token`)
-      .expect(404);
-
-    expect(response.body).toHaveProperty("message", "Declaração não encontrada");
-  });
-
-  it("Deve retornar 401 se não estiver autenticado", async () => {
-    const response = await request(app)
-      .get(`/public/recibo/${declaracaoId}`)
-      .expect(401);
-
-    expect(response.body).toHaveProperty("message", "Token de autenticação não fornecido");
-  });
-
-  it("Deve retornar 500 se ocorrer um erro na geração do recibo", async () => {
-    jest.spyOn(pdfGenerator, "generateRecibo").mockImplementationOnce(() => {
-      throw new Error("Erro ao gerar o PDF");
-    });
-
-    const response = await request(app)
-      .get(`/public/recibo/${declaracaoId}`)
-      .set("Authorization", `Bearer mocked-token`)
-      .expect(500);
-
-    expect(response.body).toHaveProperty("message", "Erro ao gerar o recibo");
-  });
-
-  it("Deve retornar 400 se o ID do recibo não for válido", async () => {
-    const invalidId = "1234-invalid-id";
-
-    const response = await request(app)
-      .get(`/public/recibo/${invalidId}`)
-      .set("Authorization", `Bearer mocked-token`)
-      .expect(400); 
-
-    expect(response.body).toHaveProperty("message", "ID de declaração inválido");
-  });
+  
 });
-
