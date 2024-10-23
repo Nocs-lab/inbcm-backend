@@ -283,7 +283,7 @@ async function gerarPDFRecibo(
         },
         { text: "\n\n" },
         { text: dadosFormatados.numeroRecibo, style: "footerReceipt" },
-         { text: "\n\n\n\n\n\n\n\n\n\n" },
+         { text: "\n\n\n\n\n\n\n\n" },
         {text: ` Recibo emitido em ${DataUtils.gerarDataFormatada()} ás ${DataUtils.gerarHoraFormatada()}`,fontSize:11}
       ],
 
