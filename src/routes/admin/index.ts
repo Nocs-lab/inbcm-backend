@@ -4,12 +4,14 @@ import dashboardRoutes from "./dashboard"
 import declaracoesRoutes from "./declaracoes"
 import museusRoutes from "./museus"
 import profileRoutes from "./profile"
+import permissionsRoutes from "./permission"
 import userRoutes from "./user"
 
 const routes = express.Router()
 
 routes.use("/auth", authRoutes)
 routes.use("/declaracoes", declaracoesRoutes)
+routes.use("/permissions", permissionsRoutes)
 routes.use("/museus", museusRoutes)
 routes.use("/profile", profileRoutes)
 routes.use("/users", userRoutes)

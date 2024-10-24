@@ -93,6 +93,23 @@ app.get(
   declaracaoController.getDeclaracao
 )
 
+app.get(
+  "/public/declaracoes",
+  declaracaoController.getDeclaracoes
+)
+
+app.get(
+  "/admin/dashboard/getStatusEnum",
+  declaracaoController.getStatusEnum
+)
+
+app.get(
+  "/public/declaracoes/:museu/:anoDeclaracao",
+  declaracaoController.getDeclaracaoAno
+)
+
+
+
 const teardownTestEnvironment = async () => {
   await mongoose.disconnect()
   await mongoServer.stop()
