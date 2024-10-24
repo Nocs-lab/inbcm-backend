@@ -66,7 +66,6 @@ class ProfileController {
   }
 
   public async getProfiles(req: Request, res: Response): Promise<Response> {
-    console.log(22)
     try {
       const profiles = await Profile.find()
       return res.status(200).json(profiles)
