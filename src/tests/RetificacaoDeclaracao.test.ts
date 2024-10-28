@@ -68,6 +68,14 @@ describe("POST /public/declaracoes/uploads/:museu/:anoDeclaracao", () => {
 
     declaracaoId = response.body._id
   })
+
+  it("Deve retornar erro 406 se tentar criar uma declaração com ano referência e museu já utilizados", async () => {
+    const response = await request(app)
+      .post(`/public/declaracoes/uploads/${museuMock._id}/2024`)
+      .set("Authorization", `Bearer mocked-token`)
+      .attach("museologico", filePathMuseologico2itens)
+      .expect(406)
+  })
 })
 
 describe("PUT /public/declaracoes/retificar/:museu/:anoDeclaracao/:idDeclaracap", () => {

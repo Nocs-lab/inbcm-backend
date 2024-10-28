@@ -73,7 +73,6 @@ import connect from "../db/conn"
       }))
     )
 
-    console.log("Usuários e museus criados com sucesso!")
     process.exit(0)
   } catch (error) {
     console.error("Erro ao criar usuários ou museus:", error)
