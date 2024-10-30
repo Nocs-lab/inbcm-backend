@@ -21,6 +21,7 @@ import {
 import { createHash } from "../utils/hashUtils"
 import { Profile } from "../models/Profile"
 import { DataUtils } from "../utils/dataUtils"
+import { match } from "assert"
 
 class DeclaracaoService {
   async getDashbaordData(
@@ -30,6 +31,9 @@ class DeclaracaoService {
   ) {
     const result = (
       await Declaracoes.aggregate([
+        {
+          $match: { status: { $ne: "Excluída" } }
+        },
         {
           $facet: {
             declaracoesPorAnoDashboard: [
@@ -44,6 +48,9 @@ class DeclaracaoService {
               }
             ],
             declaracoesPorStatusPorAno: [
+              {
+                $match: { status: { $ne: "Excluída" } }
+              },
               {
                 $group: {
                   _id: {
@@ -313,8 +320,9 @@ class DeclaracaoService {
       .map((item) => item.ano)
       .filter((value, index, self) => self.indexOf(value) === index)
 
-    const statusEnum = Declaracoes.schema.path("status")
-    const status = Object.values(statusEnum)[0]
+      const statusEnum = Declaracoes.schema.path("status")
+      const status = Object.values(statusEnum)[0].filter((s: string) => s !== "Excluída")
+      
 
     const regioes: string[] = [
       "Norte",
@@ -565,10 +573,11 @@ class DeclaracaoService {
   async verificarDeclaracaoExistente(museu: string, anoDeclaracao: string) {
     const declaracaoExistente = await Declaracoes.findOne({
       anoDeclaracao,
-      museu_id: museu
-    })
-
-    return declaracaoExistente
+      museu_id: museu,
+      status: { $ne: Status.Excluida } 
+    });
+  
+    return declaracaoExistente;
   }
 
   /**
@@ -838,7 +847,8 @@ class DeclaracaoService {
     const declaracoesExistentes = await Declaracoes.find({
       museu_id: new mongoose.Types.ObjectId(museuId),
       anoDeclaracao: { $gte: anoInicio.toString(), $lte: anoFim.toString() },
-      ultimaDeclaracao: true
+      ultimaDeclaracao: true,
+      status: {$ne: Status.Excluida}
     });
   
     if (declaracoesExistentes.length === 0) {
@@ -850,7 +860,8 @@ class DeclaracaoService {
         $match: {
           museu_id: new mongoose.Types.ObjectId(museuId),
           anoDeclaracao: { $gte: anoInicio.toString(), $lte: anoFim.toString() },
-          ultimaDeclaracao: true
+          ultimaDeclaracao: true,
+          isExcluded: { $ne: true }
         }
       },
       {
@@ -1003,6 +1014,30 @@ class DeclaracaoService {
     }).select(retornoPorItem)
 
     return result
+  }
+
+   /**
+   * Processa e atualiza uma  declaração,fazendo a deleção lógica.
+   * @param id - String  contendo um  id de da declaracao.
+   */
+   async excluirDeclaracao(id: string): Promise<void> {
+    const declaracaoId = new mongoose.Types.ObjectId(id);
+
+    const resultado = await Declaracoes.updateOne(
+      { _id: declaracaoId, status: Status.Recebida},
+      { $set: {status: Status.Excluida } }
+    );
+
+    if (resultado.matchedCount === 0) {
+      const declaracao = await Declaracoes.findById(declaracaoId);
+      if (declaracao && declaracao.status === Status.Recebida) {
+        throw new Error("Declaração está em período de análise. Não pode ser excluída.");
+      }
+      if(declaracao && declaracao.status == Status.Excluida){
+        throw new Error(`Operação de exclusão já foi realizada para essa declaração ${declaracaoId}`);
+      }
+      throw new Error("Declaração não encontrada.");
+    }
   }
 }
 
