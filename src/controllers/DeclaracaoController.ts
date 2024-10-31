@@ -8,6 +8,7 @@ import mongoose from "mongoose"
 import { getLatestPathArchive } from "../utils/minioUtil"
 import minioClient from "../db/minioClient"
 import { DataUtils } from "../utils/dataUtils"
+import { Status } from "../enums/Status"
 
 
 export class DeclaracaoController {
@@ -26,6 +27,7 @@ export class DeclaracaoController {
     this.getItensPorAnoETipo = this.getItensPorAnoETipo.bind(this)
     this.getDeclaracaoAgrupada = this.getDeclaracaoAgrupada.bind(this)
     this.getDashboard = this.getDashboard.bind(this)
+    this.excluirDeclaracao = this.excluirDeclaracao.bind(this);
   }
 
   async getDeclaracaoAgrupada(req: Request, res: Response) {
@@ -49,33 +51,47 @@ export class DeclaracaoController {
 
   async atualizarStatusDeclaracao(req: Request, res: Response) {
     try {
-      const { id } = req.params
-      const { status } = req.body
-      const declaracao = await Declaracoes.findById(id)
+      const { id } = req.params;
+      const { status } = req.body;
+      
+
+      const declaracao = await Declaracoes.findById(id);
       if (!declaracao) {
-        return res.status(404).json({ message: "Declaração não encontrada." })
+        return res.status(404).json({ message: "Declaração não encontrada." });
       }
-      declaracao.status = status
+      
+      if (declaracao.status === Status.Excluida && status !== Status.Excluida) {
+        const verificaDeclaracao = await Declaracoes.findOne({
+          museu: declaracao.museu_id,
+          anoDeclaracao: declaracao.anoDeclaracao,
+          _id: { $ne: id }  
+        });
+        
+        if (verificaDeclaracao) {
+          throw new Error("Não é possível alterar o status de uma declaração excluída quando já existe outra declaração para o mesmo museu no mesmo ano.");
+        }
+      }
+      
+      // Atualizar o status da declaração e de suas subcategorias, se permitido
+      declaracao.status = status;
       if (declaracao.museologico) {
-        declaracao.museologico.status = status
+        declaracao.museologico.status = status;
       }
       if (declaracao.arquivistico) {
-        declaracao.arquivistico.status = status
+        declaracao.arquivistico.status = status;
       }
       if (declaracao.bibliografico) {
-        declaracao.bibliografico.status = status
+        declaracao.bibliografico.status = status;
       }
-
-      await declaracao.save({ validateBeforeSave: false })
-      return res.status(200).json(declaracao)
+  
+      await declaracao.save({ validateBeforeSave: false });
+      return res.status(200).json(declaracao);
     } catch (error) {
-      console.error("Erro ao atualizar status da declaração:", error)
-      return res
-        .status(500)
-        .json({ message: "Erro ao atualizar status da declaração." })
-    }
+      const statusCode = error instanceof Error && error.message === "Declaração não encontrada." ? 404 : 400;
+      return res.status(statusCode).json({ message: error instanceof Error ? error.message : "Erro ao atualizar status da declaração." });
+     }
   }
-
+  
   // Retorna uma declaração com base no ano e museu
   async getDeclaracaoAno(req: Request, res: Response) {
     try {
@@ -128,10 +144,11 @@ export class DeclaracaoController {
   async getDeclaracoes(req: Request, res: Response) {
     try {
       // Realiza a agregação para obter a última declaração de cada museu em cada ano
-      const result = await Declaracoes.aggregate([
+      const resultado = await Declaracoes.aggregate([
         {
           $match: {
-            responsavelEnvio: new mongoose.Types.ObjectId(req.user.id) // Filtra pelo ID do usuário atual
+            responsavelEnvio: new mongoose.Types.ObjectId(req.user.id),
+            isExcluded: { $ne: true }
           }
         },
         {
@@ -140,19 +157,19 @@ export class DeclaracaoController {
         {
           $group: {
             _id: { museu_id: "$museu_id", anoDeclaracao: "$anoDeclaracao" },
-            latestDeclaracao: { $first: "$$ROOT" } // Seleciona a primeira declaração de cada grupo (a mais recente)
+            latestDeclaracao: { $first: "$$ROOT" } 
           }
         },
         {
-          $replaceRoot: { newRoot: "$latestDeclaracao" } // Substitui o documento raiz pelo documento mais recente de cada grupo
+          $replaceRoot: { newRoot: "$latestDeclaracao" } 
         }
       ])
 
       // Popula os documentos de museu referenciados pelo campo museu_id nas declarações agregadas
-      const populatedResult = await Museu.populate(result, { path: "museu_id" })
+      const declaracoes = await Museu.populate(resultado, { path: "museu_id" })
 
       // Retorna o resultado final
-      return res.status(200).json(populatedResult)
+      return res.status(200).json(declaracoes)
     } catch (error) {
       console.error("Erro ao buscar declarações:", error)
       return res.status(500).json({ message: "Erro ao buscar declarações." })
@@ -254,6 +271,33 @@ export class DeclaracaoController {
       return res
         .status(500)
         .json({ message: "Erro ao buscar declarações pendentes." })
+    }
+  }
+
+  /**
+ * Realiza a operação de exclusão lógica de  uma declaração ao definir a propriedade `isExcluded` como `true`.
+ * A exclusão só é permitida se a declaração tiver o status `Recebida`.
+ * 
+ * @param {string} id - O ID da declaração a ser excluída.
+ * @throws {Error} - Lança um erro se a declaração não for encontrada ou 
+ * se o status da declaração não for `Recebida`.
+ * 
+ * @returns {Promise<void>} - Retorna uma Promise que se resolve em void 
+ * quando a exclusão é concluída.
+ */
+
+  async excluirDeclaracao(req: Request, res: Response): Promise<Response> {
+    try {
+      const { id } = req.params;
+      await this.declaracaoService.excluirDeclaracao(id);
+      return res.status(204).send();
+    } catch (error: any) {
+      if (error.message === "Declaração está em período de análise. Não pode ser excluída.") {
+        return res.status(406).json({ message: error.message });
+      } else if (error.message === "Declaração não encontrada.") {
+        return res.status(404).json({ message: error.message });
+      }
+      return res.status(500).json({ message: "Erro ao excluir declaração." });
     }
   }
   /**
@@ -498,6 +542,7 @@ export class DeclaracaoController {
       await this.declaracaoService.verificarDeclaracaoExistente(
         req.params.museu,
         req.params.anoDeclaracao
+        
       )
 
     if (declaracaoExistente) {
@@ -699,13 +744,7 @@ export class DeclaracaoController {
       const anoInicioNum = parseInt(anoInicio, 10);
       const anoFimNum = parseInt(anoFim, 10);
   
-      
-      if (isNaN(anoInicioNum) || isNaN(anoFimNum)) {
-        return res.status(400).json({
-          success: false,
-          message: "Anos inválidos fornecidos. Certifique-se de enviar valores numéricos."
-        });
-      }
+   
   
       if (anoInicioNum > anoFimNum) {
         return res.status(400).json({
