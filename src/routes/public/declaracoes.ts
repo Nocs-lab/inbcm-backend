@@ -220,7 +220,7 @@ routes.get(
  *       '500':
  *         description: Erro ao buscar declarações.
  */
-routes.get("/", declaracaoController.getDeclaracoes)
+routes.get("/", userMiddleware,declaracaoController.getDeclaracoes)
 
 /**
  * @swagger
