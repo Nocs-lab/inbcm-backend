@@ -320,9 +320,10 @@ class DeclaracaoService {
       .map((item) => item.ano)
       .filter((value, index, self) => self.indexOf(value) === index)
 
-      const statusEnum = Declaracoes.schema.path("status")
-      const status = Object.values(statusEnum)[0].filter((s: string) => s !== "Excluída")
-      
+    const statusEnum = Declaracoes.schema.path("status")
+    const status = Object.values(statusEnum)[0].filter(
+      (s: string) => s !== "Excluída"
+    )
 
     const regioes: string[] = [
       "Norte",
@@ -574,10 +575,10 @@ class DeclaracaoService {
     const declaracaoExistente = await Declaracoes.findOne({
       anoDeclaracao,
       museu_id: museu,
-      status: { $ne: Status.Excluida } 
-    });
-  
-    return declaracaoExistente;
+      status: { $ne: Status.Excluida }
+    })
+
+    return declaracaoExistente
   }
 
   /**
@@ -598,8 +599,9 @@ class DeclaracaoService {
     novaVersao: number,
     salt: string,
     dataRecebimento: Date,
-    responsavelEnvioNome:String
+    responsavelEnvioNome: string
   ) {
+    console.log(responsavelEnvioNome)
     return declaracaoExistente
       ? {
           museu_id: declaracaoExistente.museu_id,
@@ -631,7 +633,7 @@ class DeclaracaoService {
           dataRecebimento: dataRecebimento
         }
   }
- 
+
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *
@@ -718,7 +720,7 @@ class DeclaracaoService {
           novaDeclaracao.retificacao = true
         }
       }
-      novaDeclaracao.responsavelEnvioNome = responsavelEnvioNome;
+      novaDeclaracao.responsavelEnvioNome = responsavelEnvioNome
       await novaDeclaracao.save()
     } catch (error) {
       console.error("Erro ao atualizar a declaração:", error)
@@ -729,12 +731,12 @@ class DeclaracaoService {
     const declaracoesExistentes = await Declaracoes.find({
       museu_id: new mongoose.Types.ObjectId(museuId),
       ultimaDeclaracao: true
-    });
-  
+    })
+
     if (declaracoesExistentes.length === 0) {
-      throw new Error(`Nenhuma declaração encontrada para o museu ${museuId}`);
+      throw new Error(`Nenhuma declaração encontrada para o museu ${museuId}`)
     }
-  
+
     const agregacao = await Declaracoes.aggregate([
       {
         $match: {
@@ -745,9 +747,15 @@ class DeclaracaoService {
       {
         $group: {
           _id: "$anoDeclaracao",
-          totalArquivistico: { $sum: { $ifNull: ["$arquivistico.quantidadeItens", 0] } },
-          totalBibliografico: { $sum: { $ifNull: ["$bibliografico.quantidadeItens", 0] } },
-          totalMuseologico: { $sum: { $ifNull: ["$museologico.quantidadeItens", 0] } }
+          totalArquivistico: {
+            $sum: { $ifNull: ["$arquivistico.quantidadeItens", 0] }
+          },
+          totalBibliografico: {
+            $sum: { $ifNull: ["$bibliografico.quantidadeItens", 0] }
+          },
+          totalMuseologico: {
+            $sum: { $ifNull: ["$museologico.quantidadeItens", 0] }
+          }
         }
       },
       {
@@ -757,7 +765,7 @@ class DeclaracaoService {
           totalArquivistico: 1,
           totalBibliografico: 1,
           totalMuseologico: 1,
-          totalDeItensDeclaracao: { 
+          totalDeItensDeclaracao: {
             $add: [
               "$totalArquivistico",
               "$totalBibliografico",
@@ -767,11 +775,11 @@ class DeclaracaoService {
         }
       },
       { $sort: { anoDeclaracao: 1 } }
-    ]);
-  
-    return agregacao;
+    ])
+
+    return agregacao
   }
-  
+
   async listarAnalistas() {
     const analistaProfile = await Profile.findOne({ name: "analyst" })
 
@@ -790,76 +798,88 @@ class DeclaracaoService {
     analistas: string[],
     adminId: string
   ): Promise<DeclaracaoModel | null> {
-    const objectId = new mongoose.Types.ObjectId(id);
-    const declaracao = await Declaracoes.findById(objectId);
-    
+    const objectId = new mongoose.Types.ObjectId(id)
+    const declaracao = await Declaracoes.findById(objectId)
+
     if (!declaracao) {
-      throw new Error("Declaração não encontrada.");
+      throw new Error("Declaração não encontrada.")
     }
-  
+
     if (declaracao.status !== Status.Recebida) {
-      throw new Error("Declaração não está no estado adequado para envio.");
+      throw new Error("Declaração não está no estado adequado para envio.")
     }
-  
-    const analistasList: IUsuario[] = await this.listarAnalistas();
-    const analistasIds = analistasList.map((analista) => analista._id as mongoose.Types.ObjectId).toString();
-  
+
+    const analistasList: IUsuario[] = await this.listarAnalistas()
+    const analistasIds = analistasList
+      .map((analista) => analista._id as mongoose.Types.ObjectId)
+      .toString()
+
     for (const analistaId of analistas) {
       if (!analistasIds.includes(analistaId)) {
-        throw new Error(`Usuário com ID ${analistaId} não é um analista.`);
+        throw new Error(`Usuário com ID ${analistaId} não é um analista.`)
       }
     }
-  
-    declaracao.analistasResponsaveis = analistas.map((id) => new mongoose.Types.ObjectId(id));
-    declaracao.status = Status.EmAnalise;
-    declaracao.dataEnvioAnalise = DataUtils.getCurrentData();
-    declaracao.responsavelEnvioAnalise = new mongoose.Types.ObjectId(adminId);
-  
-   
-    const analistasNomes = await Usuario.find({ _id: { $in: declaracao.analistasResponsaveis } })
+
+    declaracao.analistasResponsaveis = analistas.map(
+      (id) => new mongoose.Types.ObjectId(id)
+    )
+    declaracao.status = Status.EmAnalise
+    declaracao.dataEnvioAnalise = DataUtils.getCurrentData()
+    declaracao.responsavelEnvioAnalise = new mongoose.Types.ObjectId(adminId)
+
+    const analistasNomes = await Usuario.find({
+      _id: { $in: declaracao.analistasResponsaveis }
+    })
       .select("nome")
-      .lean();
-  
-    const responsavel = await Usuario.findById(adminId).select("nome").lean();
-  
-   
-    declaracao.analistasResponsaveisNome = analistasNomes.map((analista) => analista.nome);
-    declaracao.responsavelEnvioAnaliseNome = responsavel ? responsavel.nome : '';
-  
-    await declaracao.save({ validateBeforeSave: false });
-  
-   
+      .lean()
+
+    const responsavel = await Usuario.findById(adminId).select("nome").lean()
+
+    declaracao.analistasResponsaveisNome = analistasNomes.map(
+      (analista) => analista.nome
+    )
+    declaracao.responsavelEnvioAnaliseNome = responsavel ? responsavel.nome : ""
+
+    await declaracao.save({ validateBeforeSave: false })
+
     const declaracaoComNomes = await Declaracoes.findById(declaracao._id)
       .populate({ path: "analistasResponsaveis", select: "nome" })
       .populate({ path: "responsavelEnvioAnalise", select: "nome" })
-      .exec();
-  
-   
-    if (!declaracaoComNomes) {
-      throw new Error("Erro ao obter a declaração com os nomes.");
-    }
-  
-    return declaracaoComNomes;
-  }
-  
+      .exec()
 
-  async getItensPorAnoETipo(museuId: string, anoInicio: number, anoFim: number) {
+    if (!declaracaoComNomes) {
+      throw new Error("Erro ao obter a declaração com os nomes.")
+    }
+
+    return declaracaoComNomes
+  }
+
+  async getItensPorAnoETipo(
+    museuId: string,
+    anoInicio: number,
+    anoFim: number
+  ) {
     const declaracoesExistentes = await Declaracoes.find({
       museu_id: new mongoose.Types.ObjectId(museuId),
       anoDeclaracao: { $gte: anoInicio.toString(), $lte: anoFim.toString() },
       ultimaDeclaracao: true,
-      status: {$ne: Status.Excluida}
-    });
-  
+      status: { $ne: Status.Excluida }
+    })
+
     if (declaracoesExistentes.length === 0) {
-      throw new Error(`Nenhuma declaração encontrada para o museu ${museuId} entre ${anoInicio} e ${anoFim}`);
+      throw new Error(
+        `Nenhuma declaração encontrada para o museu ${museuId} entre ${anoInicio} e ${anoFim}`
+      )
     }
-  
+
     const agregacao = await Declaracoes.aggregate([
       {
         $match: {
           museu_id: new mongoose.Types.ObjectId(museuId),
-          anoDeclaracao: { $gte: anoInicio.toString(), $lte: anoFim.toString() },
+          anoDeclaracao: {
+            $gte: anoInicio.toString(),
+            $lte: anoFim.toString()
+          },
           ultimaDeclaracao: true,
           isExcluded: { $ne: true }
         }
@@ -867,9 +887,15 @@ class DeclaracaoService {
       {
         $group: {
           _id: "$anoDeclaracao",
-          totalArquivistico: { $sum: { $ifNull: ["$arquivistico.quantidadeItens", 0] } },
-          totalBibliografico: { $sum: { $ifNull: ["$bibliografico.quantidadeItens", 0] } },
-          totalMuseologico: { $sum: { $ifNull: ["$museologico.quantidadeItens", 0] } }
+          totalArquivistico: {
+            $sum: { $ifNull: ["$arquivistico.quantidadeItens", 0] }
+          },
+          totalBibliografico: {
+            $sum: { $ifNull: ["$bibliografico.quantidadeItens", 0] }
+          },
+          totalMuseologico: {
+            $sum: { $ifNull: ["$museologico.quantidadeItens", 0] }
+          }
         }
       },
       {
@@ -879,7 +905,7 @@ class DeclaracaoService {
           totalArquivistico: 1,
           totalBibliografico: 1,
           totalMuseologico: 1,
-          totalDeItensDeclaracao: { 
+          totalDeItensDeclaracao: {
             $add: [
               "$totalArquivistico",
               "$totalBibliografico",
@@ -889,11 +915,10 @@ class DeclaracaoService {
         }
       },
       { $sort: { anoDeclaracao: 1 } }
-    ]);
-  
-    return agregacao;
-  }
+    ])
 
+    return agregacao
+  }
 
   async concluirAnalise(id: string, status: Status): Promise<DeclaracaoModel> {
     const declaracaoId = new mongoose.Types.ObjectId(id)
@@ -1016,27 +1041,31 @@ class DeclaracaoService {
     return result
   }
 
-   /**
+  /**
    * Processa e atualiza uma  declaração,fazendo a deleção lógica.
    * @param id - String  contendo um  id de da declaracao.
    */
-   async excluirDeclaracao(id: string): Promise<void> {
-    const declaracaoId = new mongoose.Types.ObjectId(id);
+  async excluirDeclaracao(id: string): Promise<void> {
+    const declaracaoId = new mongoose.Types.ObjectId(id)
 
     const resultado = await Declaracoes.updateOne(
-      { _id: declaracaoId, status: Status.Recebida},
-      { $set: {status: Status.Excluida } }
-    );
+      { _id: declaracaoId, status: Status.Recebida },
+      { $set: { status: Status.Excluida } }
+    )
 
     if (resultado.matchedCount === 0) {
-      const declaracao = await Declaracoes.findById(declaracaoId);
+      const declaracao = await Declaracoes.findById(declaracaoId)
       if (declaracao && declaracao.status === Status.Recebida) {
-        throw new Error("Declaração está em período de análise. Não pode ser excluída.");
+        throw new Error(
+          "Declaração está em período de análise. Não pode ser excluída."
+        )
       }
-      if(declaracao && declaracao.status == Status.Excluida){
-        throw new Error(`Operação de exclusão já foi realizada para essa declaração ${declaracaoId}`);
+      if (declaracao && declaracao.status == Status.Excluida) {
+        throw new Error(
+          `Operação de exclusão já foi realizada para essa declaração ${declaracaoId}`
+        )
       }
-      throw new Error("Declaração não encontrada.");
+      throw new Error("Declaração não encontrada.")
     }
   }
 }

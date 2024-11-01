@@ -6,7 +6,7 @@ import argon2 from "@node-rs/argon2"
 import jwt from "jsonwebtoken"
 import { Museu, IMuseu } from "../models/Museu"
 import { Usuario, IUsuario } from "../models/Usuario"
-import { DeclaracaoModel, Declaracoes } from "../models"
+import { DeclaracaoModel } from "../models"
 import uploadMiddleware from "../middlewares/UploadMiddleware"
 import DeclaracaoController from "../controllers/DeclaracaoController"
 import config from "../config"
@@ -53,7 +53,6 @@ const setupTestEnvironment = async () => {
     },
     usuario: userMock._id
   })
-
 }
 
 // Middleware de autenticação mockada, utilizando JWT
