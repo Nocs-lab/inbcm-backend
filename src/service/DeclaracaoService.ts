@@ -1022,6 +1022,11 @@ class DeclaracaoService {
    */
    async excluirDeclaracao(id: string): Promise<void> {
     const declaracaoId = new mongoose.Types.ObjectId(id);
+    const declaracao = await Declaracoes.findById(declaracaoId);
+
+    if(declaracao && declaracao.retificacao == true){
+      throw new Error("Declaração retificadas não podem ser excluídas. Para criar uma nova declaração, retifique novamente.");
+    }
 
     const resultado = await Declaracoes.updateOne(
       { _id: declaracaoId, status: Status.Recebida},
@@ -1040,5 +1045,6 @@ class DeclaracaoService {
     }
   }
 }
+
 
 export default DeclaracaoService
