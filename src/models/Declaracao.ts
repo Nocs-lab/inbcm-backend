@@ -52,7 +52,6 @@ export interface DeclaracaoModel extends Document {
   versao: number
   createdAt?: Date
   updatedAt?: Date
-  isExcluded: boolean,
   ultimaDeclaracao: boolean
   dataRecebimento?: Date
   dataEnvioAnalise?: Date
@@ -95,7 +94,6 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
       enum: Object.values(Status),
       default: Status.Recebida
     },
-    isExcluded: {type: Boolean,default:false},
     arquivistico: ArquivoSchema,
     bibliografico: ArquivoSchema,
     museologico: ArquivoSchema,
