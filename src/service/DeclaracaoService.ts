@@ -922,6 +922,10 @@ class DeclaracaoService {
     return declaracao
   }
 
+  async getAnosValidos(qtdAnos: number): Promise<string[]>{
+    const anoAtual = new Date().getFullYear();
+    return Array.from({ length: qtdAnos }, (_, i) => (anoAtual - i).toString());
+  }
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *
