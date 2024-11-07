@@ -880,6 +880,10 @@ class DeclaracaoService {
     return declaracao
   }
 
+  async getAnosValidos(qtdAnos: number): Promise<string[]>{
+    const anoAtual = new Date().getFullYear();
+    return Array.from({ length: qtdAnos }, (_, i) => (anoAtual - i).toString());
+  }
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *
@@ -980,6 +984,11 @@ class DeclaracaoService {
    */
    async excluirDeclaracao(id: string): Promise<void> {
     const declaracaoId = new mongoose.Types.ObjectId(id);
+    const declaracao = await Declaracoes.findById(declaracaoId);
+
+    if(declaracao && declaracao.retificacao == true){
+      throw new Error("Declaração retificadas não podem ser excluídas. Para criar uma nova declaração, retifique novamente.");
+    }
 
     const resultado = await Declaracoes.updateOne(
       { _id: declaracaoId, status: Status.Recebida},
@@ -998,5 +1007,6 @@ class DeclaracaoService {
     }
   }
 }
+
 
 export default DeclaracaoService

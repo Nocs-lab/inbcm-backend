@@ -128,7 +128,7 @@ export class DeclaracaoController {
         {
           $match: {
             responsavelEnvio: new mongoose.Types.ObjectId(req.user.id),
-            isExcluded: { $ne: true }
+            status: { $ne: Status.Excluida }
           }
         },
         {
@@ -276,6 +276,8 @@ export class DeclaracaoController {
         return res.status(406).json({ message: error.message });
       } else if (error.message === "Declaração não encontrada.") {
         return res.status(404).json({ message: error.message });
+      }else if (error.message === "Declaração retificadas não podem ser excluídas. Para criar uma nova declaração, retifique novamente.") {
+        return res.status(403).json({ message: error.message });
       }
       return res.status(500).json({ message: "Erro ao excluir declaração." });
     }
@@ -529,7 +531,7 @@ export class DeclaracaoController {
       return res.status(406).json({
         status: false,
         message:
-          "Já existe declaração para museu e ano referência informados. Para alterar a declaração é preciso retificá-la."
+          "Já existe declaração para museu e ano referência informados. Para alterar a declaração é preciso retificá-la ou excluí-la e declarar novamente."
       })
     }
     return this.criarDeclaracao(req, res)
@@ -774,9 +776,22 @@ export class DeclaracaoController {
       });
     }
   }
+  
+  async getAnosValidos(req: Request, res: Response) {
+    try {
 
-
-
+      const { qtdAnos } = req.params;
+      const anosQuantidade = parseInt(qtdAnos, 10) || 10;
+      console.log(qtdAnos)
+      const anosValidos = this.declaracaoService.getAnosValidos(anosQuantidade);
+  
+      return res.json({ anos: anosValidos });
+    } catch (error) {
+      console.error("Erro ao obter anos válidos:", error);
+      return res.status(500).json({ message: "Erro ao obter anos válidos" });
+    }
+  }
+  
 
 
   /**
