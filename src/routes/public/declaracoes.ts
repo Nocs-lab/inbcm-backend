@@ -220,7 +220,7 @@ routes.get(
  *       '500':
  *         description: Erro ao buscar declarações.
  */
-routes.get("/", userMiddleware, declaracaoController.getDeclaracoes)
+routes.get("/", userMiddleware,declaracaoController.getDeclaracoes)
 
 /**
  * @swagger
@@ -365,6 +365,32 @@ routes.get(
  *                   description: Detalhes do erro
  */
 routes.get("/:museuId/itens/:anoInicio/:anoFim", userMiddleware, declaracaoController.getItensPorAnoETipo);
+
+
+
+/**
+ * @swagger
+ * /api/public/declaracoes/{museuId}:
+ *   delete:
+ *     summary: Realiza a deleção lógica de uma declaração, caso o status seja diferente de "Recebida"
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: O ID da declaração a ser excluída.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       204:
+ *         description: Deleção lógica bem-sucedida, sem conteúdo na resposta.
+ *       406:
+ *         description: A declaração não pode ser excluída porque está em período de análise.
+ *       404:
+ *         description: Declaração não encontrada pelo ID fornecido.
+ *       500:
+ *         description: Erro interno ao tentar excluir a declaração.
+ */
+routes.delete("/:id",userMiddleware,declaracaoController.excluirDeclaracao)
 
 
 export default routes
