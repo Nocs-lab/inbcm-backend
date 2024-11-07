@@ -5,25 +5,7 @@ import { adminMiddleware } from "../../middlewares/AuthMiddlewares"
 const routes = express.Router()
 const declaracaoController = new DeclaracaoController()
 
-/**
- * @swagger
- * /api/admin/declaracoes/pendentes:
- *   get:
- *     summary: Obtém declarações pendentes.
- *     description: Endpoint para obter declarações pendentes para processamento.
- *     tags:
- *       - Declarações
- *     responses:
- *       '200':
- *         description: Declarações pendentes obtidas com sucesso.
- *       '500':
- *         description: Erro ao buscar declarações pendentes.
- */
-routes.get(
-  "/pendentes",
-  adminMiddleware,
-  declaracaoController.getDeclaracaoPendente
-)
+
 
 routes.get(
   "/analistas",
@@ -69,25 +51,7 @@ routes.post(
   declaracaoController.getDeclaracaoFiltrada
 )
 
-/**
- * @swagger
- * /api/admin/declaracoes/getDeclaracaoAgrupada:
- *   get:
- *     summary: Obtém declarações agrupadas por estado.
- *     description: Endpoint para agrupar declaracoes por estado através de um ano referência, caso seja enviado por parâmetro.
- *     tags:
- *       - Declarações
- *     responses:
- *       '200':
- *         description: Declarações agrupadas obtidas com sucesso.
- *       '500':
- *         description: Erro ao buscar declarações agrupadas.
- */
-routes.get(
-  "/getDeclaracaoAgrupada",
-  adminMiddleware,
-  declaracaoController.getDeclaracaoAgrupada
-)
+
 
 /**
  * @swagger

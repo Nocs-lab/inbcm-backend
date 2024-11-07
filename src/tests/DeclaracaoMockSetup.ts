@@ -68,7 +68,7 @@ const mockAuthMiddleware = (
     { expiresIn: "1h" }
   )
   req.headers.authorization = `Bearer ${token}`
-  req.user = { id: (userMock._id as unknown as mongoose.Types.ObjectId).toString(), admin: userMock.admin }
+  req.user = { id: (userMock._id as unknown as mongoose.Types.ObjectId).toString(), admin: false }
 
   next()
 }
@@ -97,10 +97,6 @@ app.get(
 
 app.get("/public/recibo/:idDeclaracao",mockAuthMiddleware,reciboController.gerarRecibo)
 
-app.get(
-  "/public/declaracoes",
-  declaracaoController.getDeclaracoes
-)
 
 app.get(
   "/admin/dashboard/getStatusEnum",
@@ -112,6 +108,10 @@ app.get(
   declaracaoController.getDeclaracaoAno
 )
 
+app.get(
+  "/public/declaracoes",mockAuthMiddleware,
+  declaracaoController.getDeclaracoes
+)
 
 
 
