@@ -25,28 +25,8 @@ export class DeclaracaoController {
     this.getDeclaracao = this.getDeclaracao.bind(this)
     this.getDeclaracaoAno = this.getDeclaracaoAno.bind(this)
     this.getItensPorAnoETipo = this.getItensPorAnoETipo.bind(this)
-    this.getDeclaracaoAgrupada = this.getDeclaracaoAgrupada.bind(this)
     this.getDashboard = this.getDashboard.bind(this)
     this.excluirDeclaracao = this.excluirDeclaracao.bind(this);
-  }
-
-  async getDeclaracaoAgrupada(req: Request, res: Response) {
-    try {
-      const anoDeclaracao = Array.isArray(req.query.anoDeclaracao)
-        ? req.query.anoDeclaracao[0]
-        : req.query.anoDeclaracao
-
-      const declaracoes = await this.declaracaoService.declaracaoAgrupada(
-        anoDeclaracao as string | undefined
-      )
-
-      return res.status(200).json(declaracoes)
-    } catch (error) {
-      console.error("Erro ao buscar declarações agrupadas:", error)
-      return res
-        .status(500)
-        .json({ message: "Erro ao buscar declarações agrupadas." })
-    }
   }
 
   async atualizarStatusDeclaracao(req: Request, res: Response) {
@@ -181,7 +161,7 @@ export class DeclaracaoController {
     const status = Object.values(statusEnum)[0]
     return res.status(200).json(status)
   }
- 
+
 
   /*
    * Retorna a quantidade de declarações agrupadas por analista, filtradas pelos últimos X anos.
@@ -385,7 +365,7 @@ export class DeclaracaoController {
         )
 
       const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
-     
+
 
       await this.declaracaoService.updateDeclaracao(
         files["arquivistico"],
@@ -414,7 +394,7 @@ export class DeclaracaoController {
 
       novaDeclaracao.ultimaDeclaracao = true
       await novaDeclaracao.save()
-      
+
 
       await Declaracoes.updateMany(
         {
@@ -455,7 +435,7 @@ export class DeclaracaoController {
       const prefix = `${museu}/${anoDeclaracao}/${tipoArquivo}/`
       const bucketName = "inbcm"
 
-      
+
       const latestFilePath = await getLatestPathArchive(bucketName, prefix)
 
       if (!latestFilePath) {
@@ -464,7 +444,7 @@ export class DeclaracaoController {
           .json({ message: "Arquivo não encontrado para o tipo especificado." })
       }
 
-      
+
       const fileStream = await minioClient.getObject(bucketName, latestFilePath)
 
       res.setHeader(
@@ -732,28 +712,35 @@ export class DeclaracaoController {
     try {
       const { museuId, anoInicio, anoFim } = req.params;
       const user_id = req.user.id;
-  
-     
+
+
       if (!museuId || !anoInicio || !anoFim) {
         return res.status(400).json({
           success: false,
           message: "Parâmetros insuficientes. Forneça id do museu, ano inicio  e ano fim."
         });
       }
-  
+
       const anoInicioNum = parseInt(anoInicio, 10);
       const anoFimNum = parseInt(anoFim, 10);
-  
-   
-  
+
+
+      if (isNaN(anoInicioNum) || isNaN(anoFimNum)) {
+        return res.status(400).json({
+          success: false,
+          message: "Anos inválidos fornecidos. Certifique-se de enviar valores numéricos."
+        });
+      }
+
+
       if (anoInicioNum > anoFimNum) {
         return res.status(400).json({
           success: false,
           message: "Ano de início deve ser menor ou igual ao ano de fim."
         });
       }
-  
-    
+
+
       const museu = await Museu.findOne({ _id: museuId, usuario: user_id });
       if (!museu) {
         return res.status(404).json({
@@ -761,10 +748,10 @@ export class DeclaracaoController {
           message: "Museu não encontrado ou usuário não autorizado."
         });
       }
-  
-     
+
+
       const agregacao = await this.declaracaoService.getItensPorAnoETipo(museuId, anoInicioNum, anoFimNum);
-  
+
       if (!agregacao || agregacao.length === 0) {
         return res.status(404).json({
           success: false,
@@ -776,10 +763,10 @@ export class DeclaracaoController {
         message: "Dados encontrados com sucesso.",
         data: agregacao
       });
-  
+
     } catch (error) {
       console.error("Erro ao processar a requisição: ", error);
-  
+
       return res.status(500).json({
         success: false,
         message: "Erro ao processar a requisição.",
@@ -787,10 +774,10 @@ export class DeclaracaoController {
       });
     }
   }
-  
 
 
-  
+
+
 
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
