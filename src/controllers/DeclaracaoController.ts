@@ -78,7 +78,8 @@ export class DeclaracaoController {
       const { anoDeclaracao, museu } = req.params
       const declaracao = await Declaracoes.findOne({
         anoDeclaracao,
-        museu_id: museu
+        museu_id: museu,
+        ultimaDeclaracao:true
       })
 
       if (!declaracao) {
