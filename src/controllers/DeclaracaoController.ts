@@ -78,7 +78,8 @@ export class DeclaracaoController {
       const { anoDeclaracao, museu } = req.params
       const declaracao = await Declaracoes.findOne({
         anoDeclaracao,
-        museu_id: museu
+        museu_id: museu,
+        ultimaDeclaracao:true
       })
 
       if (!declaracao) {
@@ -101,7 +102,7 @@ export class DeclaracaoController {
       const { id } = req.params
       const declaracao = await Declaracoes.findById(id).populate({
         path: "museu_id",
-        model: Museu
+        model: Museu,
       })
 
       if (!declaracao) {
@@ -271,13 +272,13 @@ export class DeclaracaoController {
       const { id } = req.params;
       await this.declaracaoService.excluirDeclaracao(id);
       return res.status(204).send();
-    } catch (error: any) {
-      if (error.message === "Declaração está em período de análise. Não pode ser excluída.") {
-        return res.status(406).json({ message: error.message });
-      } else if (error.message === "Declaração não encontrada.") {
-        return res.status(404).json({ message: error.message });
-      }else if (error.message === "Declaração retificadas não podem ser excluídas. Para criar uma nova declaração, retifique novamente.") {
-        return res.status(403).json({ message: error.message });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        if (error.message === "Declaração está em período de análise. Não pode ser excluída.") {
+          return res.status(406).json({ message: error.message });
+        } else if (error.message === "Declaração não encontrada.") {
+          return res.status(404).json({ message: error.message });
+        }
       }
       return res.status(500).json({ message: "Erro ao excluir declaração." });
     }
