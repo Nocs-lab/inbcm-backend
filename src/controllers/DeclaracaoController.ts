@@ -96,30 +96,41 @@ export class DeclaracaoController {
     }
   }
 
-  // Retorna uma declaração com base no id
+ 
   async getDeclaracao(req: Request, res: Response) {
     try {
-      const { id } = req.params
-      const declaracao = await Declaracoes.findById(id).populate({
-        path: "museu_id",
-        model: Museu,
-      })
-
+      const { id } = req.params;
+  
+      const isAdmin = req.user?.admin;
+  
+     
+      const selectFields = isAdmin 
+        ? ''  // Para admins, inclui todos os campos
+        : '-responsavelEnvioAnaliseNome -analistasResponsaveisNome -responsavelEnvioAnalise -analistasResponsaveis';  // Para usuários comuns, omite esses campos
+  
+      
+      const declaracao = await Declaracoes.findById(id)
+        .select(selectFields)
+        .populate({
+          path: "museu_id",
+          model: Museu,
+        });
+  
       if (!declaracao) {
-        return res.status(404).json({ message: "Declaração não encontrada." })
+        return res.status(404).json({ message: "Declaração não encontrada." });
       }
-
-      if (declaracao.ultimaDeclaracao == false) {
-        return res
-          .status(404)
-          .json({ message: "Não é possível acessar declaração." })
+  
+      if (declaracao.ultimaDeclaracao === false) {
+        return res.status(404).json({ message: "Não é possível acessar declaração." });
       }
-
-      return res.status(200).json(declaracao)
+  
+      return res.status(200).json(declaracao);
     } catch (error) {
-      return res.status(500).json({ message: "Erro ao buscar declaração." })
+      console.error("Erro ao buscar declaração:", error);
+      return res.status(500).json({ message: "Erro ao buscar declaração." });
     }
   }
+  
 
   // Retorna todas as declarações do usuário logado
   async getDeclaracoes(req: Request, res: Response) {
