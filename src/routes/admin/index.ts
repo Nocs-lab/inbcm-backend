@@ -6,6 +6,7 @@ import museusRoutes from "./museus"
 import profileRoutes from "./profile"
 import permissionsRoutes from "./permission"
 import userRoutes from "./user"
+import anoDeclaracaoRoutes from "./anodeclaracao"
 
 const routes = express.Router()
 
@@ -16,5 +17,6 @@ routes.use("/museus", museusRoutes)
 routes.use("/profile", profileRoutes)
 routes.use("/users", userRoutes)
 routes.use("/dashboard", dashboardRoutes)
+routes.use("/anoDeclaracao", anoDeclaracaoRoutes)
 
 export default routes
