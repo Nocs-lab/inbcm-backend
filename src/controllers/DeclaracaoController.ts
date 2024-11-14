@@ -9,7 +9,7 @@ import { getLatestPathArchive } from "../utils/minioUtil"
 import minioClient from "../db/minioClient"
 import { DataUtils } from "../utils/dataUtils"
 import { Status } from "../enums/Status"
-
+import { Eventos } from "../enums/Eventos"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -26,52 +26,62 @@ export class DeclaracaoController {
     this.getDeclaracaoAno = this.getDeclaracaoAno.bind(this)
     this.getItensPorAnoETipo = this.getItensPorAnoETipo.bind(this)
     this.getDashboard = this.getDashboard.bind(this)
-    this.excluirDeclaracao = this.excluirDeclaracao.bind(this);
+    this.excluirDeclaracao = this.excluirDeclaracao.bind(this)
+    this.getTimeLine = this.getTimeLine.bind(this)
   }
 
   async atualizarStatusDeclaracao(req: Request, res: Response) {
     try {
-      const { id } = req.params;
-      const { status } = req.body;
-      
+      const { id } = req.params
+      const { status } = req.body
 
-      const declaracao = await Declaracoes.findById(id);
+      const declaracao = await Declaracoes.findById(id)
       if (!declaracao) {
-        return res.status(404).json({ message: "Declaração não encontrada." });
+        return res.status(404).json({ message: "Declaração não encontrada." })
       }
-      
+
       if (declaracao.status === Status.Excluida && status !== Status.Excluida) {
         const verificaDeclaracao = await Declaracoes.findOne({
           museu: declaracao.museu_id,
           anoDeclaracao: declaracao.anoDeclaracao,
-          _id: { $ne: id }  
-        });
-        
+          _id: { $ne: id }
+        })
+
         if (verificaDeclaracao) {
-          throw new Error("Não é possível alterar o status de uma declaração excluída quando já existe outra declaração para o mesmo museu no mesmo ano.");
+          throw new Error(
+            "Não é possível alterar o status de uma declaração excluída quando já existe outra declaração para o mesmo museu no mesmo ano."
+          )
         }
       }
-      
+
       // Atualizar o status da declaração e de suas subcategorias, se permitido
-      declaracao.status = status;
+      declaracao.status = status
       if (declaracao.museologico) {
-        declaracao.museologico.status = status;
+        declaracao.museologico.status = status
       }
       if (declaracao.arquivistico) {
-        declaracao.arquivistico.status = status;
+        declaracao.arquivistico.status = status
       }
       if (declaracao.bibliografico) {
-        declaracao.bibliografico.status = status;
+        declaracao.bibliografico.status = status
       }
-  
-      await declaracao.save({ validateBeforeSave: false });
-      return res.status(200).json(declaracao);
+
+      await declaracao.save({ validateBeforeSave: false })
+      return res.status(200).json(declaracao)
     } catch (error) {
-      const statusCode = error instanceof Error && error.message === "Declaração não encontrada." ? 404 : 400;
-      return res.status(statusCode).json({ message: error instanceof Error ? error.message : "Erro ao atualizar status da declaração." });
-     }
+      const statusCode =
+        error instanceof Error && error.message === "Declaração não encontrada."
+          ? 404
+          : 400
+      return res.status(statusCode).json({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Erro ao atualizar status da declaração."
+      })
+    }
   }
-  
+
   // Retorna uma declaração com base no ano e museu
   async getDeclaracaoAno(req: Request, res: Response) {
     try {
@@ -79,7 +89,7 @@ export class DeclaracaoController {
       const declaracao = await Declaracoes.findOne({
         anoDeclaracao,
         museu_id: museu,
-        ultimaDeclaracao:true
+        ultimaDeclaracao: true
       })
 
       if (!declaracao) {
@@ -102,7 +112,7 @@ export class DeclaracaoController {
       const { id } = req.params
       const declaracao = await Declaracoes.findById(id).populate({
         path: "museu_id",
-        model: Museu,
+        model: Museu
       })
 
       if (!declaracao) {
@@ -138,11 +148,11 @@ export class DeclaracaoController {
         {
           $group: {
             _id: { museu_id: "$museu_id", anoDeclaracao: "$anoDeclaracao" },
-            latestDeclaracao: { $first: "$$ROOT" } 
+            latestDeclaracao: { $first: "$$ROOT" }
           }
         },
         {
-          $replaceRoot: { newRoot: "$latestDeclaracao" } 
+          $replaceRoot: { newRoot: "$latestDeclaracao" }
         }
       ])
 
@@ -162,7 +172,6 @@ export class DeclaracaoController {
     const status = Object.values(statusEnum)[0]
     return res.status(200).json(status)
   }
-
 
   /*
    * Retorna a quantidade de declarações agrupadas por analista, filtradas pelos últimos X anos.
@@ -256,31 +265,34 @@ export class DeclaracaoController {
   }
 
   /**
- * Realiza a operação de exclusão lógica de  uma declaração ao definir a propriedade `isExcluded` como `true`.
- * A exclusão só é permitida se a declaração tiver o status `Recebida`.
- * 
- * @param {string} id - O ID da declaração a ser excluída.
- * @throws {Error} - Lança um erro se a declaração não for encontrada ou 
- * se o status da declaração não for `Recebida`.
- * 
- * @returns {Promise<void>} - Retorna uma Promise que se resolve em void 
- * quando a exclusão é concluída.
- */
+   * Realiza a operação de exclusão lógica de  uma declaração ao definir a propriedade `isExcluded` como `true`.
+   * A exclusão só é permitida se a declaração tiver o status `Recebida`.
+   *
+   * @param {string} id - O ID da declaração a ser excluída.
+   * @throws {Error} - Lança um erro se a declaração não for encontrada ou
+   * se o status da declaração não for `Recebida`.
+   *
+   * @returns {Promise<void>} - Retorna uma Promise que se resolve em void
+   * quando a exclusão é concluída.
+   */
 
   async excluirDeclaracao(req: Request, res: Response): Promise<Response> {
     try {
-      const { id } = req.params;
-      await this.declaracaoService.excluirDeclaracao(id);
-      return res.status(204).send();
+      const { id } = req.params
+      await this.declaracaoService.excluirDeclaracao(id)
+      return res.status(204).send()
     } catch (error: unknown) {
       if (error instanceof Error) {
-        if (error.message === "Declaração está em período de análise. Não pode ser excluída.") {
-          return res.status(406).json({ message: error.message });
+        if (
+          error.message ===
+          "Declaração está em período de análise. Não pode ser excluída."
+        ) {
+          return res.status(406).json({ message: error.message })
         } else if (error.message === "Declaração não encontrada.") {
-          return res.status(404).json({ message: error.message });
+          return res.status(404).json({ message: error.message })
         }
       }
-      return res.status(500).json({ message: "Erro ao excluir declaração." });
+      return res.status(500).json({ message: "Erro ao excluir declaração." })
     }
   }
   /**
@@ -350,9 +362,11 @@ export class DeclaracaoController {
         .exec()
       const novaVersao = (ultimaDeclaracao?.versao || 0) + 1
 
-      const responsavelEnvio = await Usuario.findById(user_id).select("nome");
+      const responsavelEnvio = await Usuario.findById(user_id).select("nome")
       if (!responsavelEnvio) {
-        return res.status(404).json({ message: "Usuário responsável pelo envio não encontrado." });
+        return res
+          .status(404)
+          .json({ message: "Usuário responsável pelo envio não encontrado." })
       }
 
       const novaDeclaracaoData =
@@ -364,11 +378,16 @@ export class DeclaracaoController {
           novaVersao,
           salt,
           DataUtils.getCurrentData(),
-          responsavelEnvio.nome,
+          responsavelEnvio.nome
         )
 
       const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
 
+      novaDeclaracao.timeLine.push({
+        nomeEvento: Eventos.EnvioDeclaracao,
+        dataEvento: DataUtils.getCurrentData(),
+        autorEvento: responsavelEnvio.nome
+      })
 
       await this.declaracaoService.updateDeclaracao(
         files["arquivistico"],
@@ -397,7 +416,6 @@ export class DeclaracaoController {
 
       novaDeclaracao.ultimaDeclaracao = true
       await novaDeclaracao.save()
-
 
       await Declaracoes.updateMany(
         {
@@ -438,7 +456,6 @@ export class DeclaracaoController {
       const prefix = `${museu}/${anoDeclaracao}/${tipoArquivo}/`
       const bucketName = "inbcm"
 
-
       const latestFilePath = await getLatestPathArchive(bucketName, prefix)
 
       if (!latestFilePath) {
@@ -446,7 +463,6 @@ export class DeclaracaoController {
           .status(404)
           .json({ message: "Arquivo não encontrado para o tipo especificado." })
       }
-
 
       const fileStream = await minioClient.getObject(bucketName, latestFilePath)
 
@@ -464,68 +480,50 @@ export class DeclaracaoController {
         .json({ message: "Erro ao baixar arquivo da declaração." })
     }
   }
+
   async getTimeLine(req: Request, res: Response) {
-    const { id } = req.params
-
     try {
-      const declaracao = await Declaracoes.findById(id)
+      const { id } = req.params
+
+      const declaracaoId = new mongoose.Types.ObjectId(id)
+
+      const declaracao = await Declaracoes.findById(declaracaoId, {
+        timeLine: 1
+      }).exec()
+
       if (!declaracao) {
-        return res.status(404).json({ mensagem: "Declaração não encontrada" })
+        return res.status(404).json({ error: "Declaração não encontrada." })
       }
 
-      const timeline = []
+      const isAdmin = req.user?.admin
 
-      if (declaracao.dataRecebimento) {
-        timeline.push({
-          data: declaracao.dataRecebimento.toISOString(),
-          evento: "Declaração recebida",
-          id_usuario: declaracao.responsavelEnvio
-        })
-      }
-
-      if (declaracao.dataEnvioAnalise) {
-        timeline.push({
-          data: declaracao.dataEnvioAnalise.toISOString(),
-          evento: "Declaração enviada para análise",
-          id_usuario: declaracao.responsavelEnvioAnalise
-        })
-      }
-      if (declaracao.dataAnalise) {
+      const processedTimeline = declaracao.timeLine.map((evento) => {
         if (
-          declaracao.analistasResponsaveis &&
-          declaracao.analistasResponsaveis.length > 0
+          !isAdmin &&
+          (evento.nomeEvento === "Envio para análise" ||
+            evento.nomeEvento === "Declaração enviada para o analista")
         ) {
-          timeline.push({
-            data: declaracao.dataAnalise.toISOString(),
-            evento: "Declaração em análise",
-            id_usuario: declaracao.analistasResponsaveis[0]
-          })
-        } else {
-          console.warn(
-            "Nenhum analista responsável encontrado para a declaração."
-          )
+          return {
+            nomeEvento: evento.nomeEvento,
+            dataEvento: evento.dataEvento
+          }
         }
-      }
 
-      if (declaracao.dataFimAnalise) {
-        timeline.push({
-          data: declaracao.dataFimAnalise.toISOString(),
-          evento: "Declaração em conformidade",
-          id_usuario: declaracao.analistasResponsaveis
-        })
-      }
+        return evento
+      })
 
-      return res.json({ historico: timeline })
+      return res.json(processedTimeline)
     } catch (error) {
-      return res.status(500).json({ mensagem: "Erro ao obter timeline" })
+      console.error(error)
+      return res.status(500).json({ error: "Erro ao obter a timeline." })
     }
   }
+
   async uploadDeclaracao(req: Request, res: Response) {
     const declaracaoExistente =
       await this.declaracaoService.verificarDeclaracaoExistente(
         req.params.museu,
         req.params.anoDeclaracao
-        
       )
 
     if (declaracaoExistente) {
@@ -591,6 +589,7 @@ export class DeclaracaoController {
         analistas,
         adminId
       )
+
       return res.status(200).json(declaracao)
     } catch (error) {
       console.error("Erro ao enviar declaração para análise:", error)
@@ -701,99 +700,98 @@ export class DeclaracaoController {
             quantidadeDeclaracoes: 1
           }
         }
+      ])
 
-      ]);
-
-      res.status(200).json(resultado);
+      res.status(200).json(resultado)
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro ao buscar declarações agrupadas por analista" });
+      console.error(error)
+      res
+        .status(500)
+        .json({ error: "Erro ao buscar declarações agrupadas por analista" })
     }
   }
 
   async getItensPorAnoETipo(req: Request, res: Response): Promise<Response> {
     try {
-      const { museuId, anoInicio, anoFim } = req.params;
-      const user_id = req.user.id;
-
+      const { museuId, anoInicio, anoFim } = req.params
+      const user_id = req.user.id
 
       if (!museuId || !anoInicio || !anoFim) {
         return res.status(400).json({
           success: false,
-          message: "Parâmetros insuficientes. Forneça id do museu, ano inicio  e ano fim."
-        });
+          message:
+            "Parâmetros insuficientes. Forneça id do museu, ano inicio  e ano fim."
+        })
       }
 
-      const anoInicioNum = parseInt(anoInicio, 10);
-      const anoFimNum = parseInt(anoFim, 10);
-
+      const anoInicioNum = parseInt(anoInicio, 10)
+      const anoFimNum = parseInt(anoFim, 10)
 
       if (isNaN(anoInicioNum) || isNaN(anoFimNum)) {
         return res.status(400).json({
           success: false,
-          message: "Anos inválidos fornecidos. Certifique-se de enviar valores numéricos."
-        });
+          message:
+            "Anos inválidos fornecidos. Certifique-se de enviar valores numéricos."
+        })
       }
-
 
       if (anoInicioNum > anoFimNum) {
         return res.status(400).json({
           success: false,
           message: "Ano de início deve ser menor ou igual ao ano de fim."
-        });
+        })
       }
 
-
-      const museu = await Museu.findOne({ _id: museuId, usuario: user_id });
+      const museu = await Museu.findOne({ _id: museuId, usuario: user_id })
       if (!museu) {
         return res.status(404).json({
           success: false,
           message: "Museu não encontrado ou usuário não autorizado."
-        });
+        })
       }
 
-
-      const agregacao = await this.declaracaoService.getItensPorAnoETipo(museuId, anoInicioNum, anoFimNum);
+      const agregacao = await this.declaracaoService.getItensPorAnoETipo(
+        museuId,
+        anoInicioNum,
+        anoFimNum
+      )
 
       if (!agregacao || agregacao.length === 0) {
         return res.status(404).json({
           success: false,
-          message: "Nenhuma declaração encontrada para os parâmetros fornecidos."
-        });
+          message:
+            "Nenhuma declaração encontrada para os parâmetros fornecidos."
+        })
       }
       return res.status(200).json({
         success: true,
         message: "Dados encontrados com sucesso.",
         data: agregacao
-      });
-
+      })
     } catch (error) {
-      console.error("Erro ao processar a requisição: ", error);
+      console.error("Erro ao processar a requisição: ", error)
 
       return res.status(500).json({
         success: false,
         message: "Erro ao processar a requisição.",
         error: error instanceof Error ? error.message : "Erro desconhecido"
-      });
+      })
     }
   }
-  
+
   async getAnosValidos(req: Request, res: Response) {
     try {
-
-      const { qtdAnos } = req.params;
-      const anosQuantidade = parseInt(qtdAnos, 10) || 10;
+      const { qtdAnos } = req.params
+      const anosQuantidade = parseInt(qtdAnos, 10) || 10
       console.log(qtdAnos)
-      const anosValidos = this.declaracaoService.getAnosValidos(anosQuantidade);
-  
-      return res.json({ anos: anosValidos });
+      const anosValidos = this.declaracaoService.getAnosValidos(anosQuantidade)
+
+      return res.json({ anos: anosValidos })
     } catch (error) {
-      console.error("Erro ao obter anos válidos:", error);
-      return res.status(500).json({ message: "Erro ao obter anos válidos" });
+      console.error("Erro ao obter anos válidos:", error)
+      return res.status(500).json({ message: "Erro ao obter anos válidos" })
     }
   }
-  
-
 
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
