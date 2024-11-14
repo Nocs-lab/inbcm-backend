@@ -779,17 +779,25 @@ export class DeclaracaoController {
     }
   }
 
-  async getAnosValidos(req: Request, res: Response) {
+  async getAnosValidos(req: Request, res: Response): Promise<void> {
     try {
       const { qtdAnos } = req.params
-      const anosQuantidade = parseInt(qtdAnos, 10) || 10
-      console.log(qtdAnos)
-      const anosValidos = this.declaracaoService.getAnosValidos(anosQuantidade)
 
-      return res.json({ anos: anosValidos })
+      // Define um valor padrão caso `qtdAnos` não seja fornecido ou seja inválido
+      const anosQuantidade = parseInt(qtdAnos, 10) || 10
+
+      // Calcula os anos válidos
+      const anoAtual = new Date().getFullYear()
+      const anosValidos = Array.from(
+        { length: anosQuantidade },
+        (_, index) => anoAtual - index
+      )
+
+      // Envia a lista de anos válidos na resposta
+      res.json({ anos: anosValidos })
     } catch (error) {
       console.error("Erro ao obter anos válidos:", error)
-      return res.status(500).json({ message: "Erro ao obter anos válidos" })
+      res.status(500).json({ message: "Erro ao obter anos válidos" })
     }
   }
 
