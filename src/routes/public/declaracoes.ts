@@ -11,7 +11,43 @@ routes.get(
   userMiddleware,
   declaracaoController.listarItensPorTipodeBem.bind(declaracaoController)
 )
-
+/**
+ * @swagger
+ * /public/declaracoes/anosValidos/{qtdAnos}:
+ *   get:
+ *     summary: Retorna uma lista de anos válidos a partir do ano atual
+ *     description: Gera uma lista de anos válidos com base no ano atual e no parâmetro `qtdAnos`, que define a quantidade de anos na lista.
+ *     parameters:
+ *       - in: path
+ *         name: qtdAnos
+ *         required: true
+ *         description: A quantidade de anos que deseja listar, a partir do ano atual.
+ *         schema:
+ *           type: integer
+ *           example: 10
+ *     responses:
+ *       200:
+ *         description: Lista de anos válidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 anos:
+ *                   type: array
+ *                   items:
+ *                     type: integer
+ *                   example: [2024, 2023, 2022, 2021, 2020]
+ *       400:
+ *         description: Parâmetro inválido (quando `qtdAnos` não é um número)
+ *       500:
+ *         description: Erro interno ao processar a solicitação
+ */
+routes.get(
+  "/anos-validos/:qtdAnos",
+  userMiddleware,
+  declaracaoController.getAnosValidos.bind(declaracaoController)
+)
 /**
  * @swagger
  * /api/public/declaracoes/uploads/{museu}/{anoDeclaracao}:
