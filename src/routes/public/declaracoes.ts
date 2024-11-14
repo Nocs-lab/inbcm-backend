@@ -220,7 +220,7 @@ routes.get(
  *       '500':
  *         description: Erro ao buscar declarações.
  */
-routes.get("/", userMiddleware,declaracaoController.getDeclaracoes)
+routes.get("/", userMiddleware, declaracaoController.getDeclaracoes)
 
 /**
  * @swagger
@@ -364,9 +364,11 @@ routes.get(
  *                   type: string
  *                   description: Detalhes do erro
  */
-routes.get("/:museuId/itens/:anoInicio/:anoFim", userMiddleware, declaracaoController.getItensPorAnoETipo);
-
-
+routes.get(
+  "/:museuId/itens/:anoInicio/:anoFim",
+  userMiddleware,
+  declaracaoController.getItensPorAnoETipo
+)
 
 /**
  * @swagger
@@ -390,7 +392,6 @@ routes.get("/:museuId/itens/:anoInicio/:anoFim", userMiddleware, declaracaoContr
  *       500:
  *         description: Erro interno ao tentar excluir a declaração.
  */
-routes.delete("/:id",userMiddleware,declaracaoController.excluirDeclaracao)
-
+routes.delete("/:id", userMiddleware, declaracaoController.excluirDeclaracao)
 
 export default routes

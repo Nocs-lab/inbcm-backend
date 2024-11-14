@@ -4,6 +4,7 @@ import declaracoesRoutes from "./declaracoes"
 import museusRoutes from "./museus"
 import permissionsRoutes from "./permissions"
 import reciboRoutes from "./recibo"
+import timeLineRoutes from "./timeline"
 
 const routes = express.Router()
 
@@ -12,5 +13,6 @@ routes.use("/declaracoes", declaracoesRoutes)
 routes.use("/museus", museusRoutes)
 routes.use("/permissions", permissionsRoutes)
 routes.use("/recibo", reciboRoutes)
+routes.use("/timeline", timeLineRoutes)
 
 export default routes
