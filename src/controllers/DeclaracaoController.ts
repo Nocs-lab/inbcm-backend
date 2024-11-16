@@ -33,25 +33,25 @@ export class DeclaracaoController {
     try {
       const { id } = req.params;
       const { status } = req.body;
-      
+
 
       const declaracao = await Declaracoes.findById(id);
       if (!declaracao) {
         return res.status(404).json({ message: "Declaração não encontrada." });
       }
-      
+
       if (declaracao.status === Status.Excluida && status !== Status.Excluida) {
         const verificaDeclaracao = await Declaracoes.findOne({
           museu: declaracao.museu_id,
           anoDeclaracao: declaracao.anoDeclaracao,
-          _id: { $ne: id }  
+          _id: { $ne: id }
         });
-        
+
         if (verificaDeclaracao) {
           throw new Error("Não é possível alterar o status de uma declaração excluída quando já existe outra declaração para o mesmo museu no mesmo ano.");
         }
       }
-      
+
       // Atualizar o status da declaração e de suas subcategorias, se permitido
       declaracao.status = status;
       if (declaracao.museologico) {
@@ -63,7 +63,7 @@ export class DeclaracaoController {
       if (declaracao.bibliografico) {
         declaracao.bibliografico.status = status;
       }
-  
+
       await declaracao.save({ validateBeforeSave: false });
       return res.status(200).json(declaracao);
     } catch (error) {
@@ -71,7 +71,7 @@ export class DeclaracaoController {
       return res.status(statusCode).json({ message: error instanceof Error ? error.message : "Erro ao atualizar status da declaração." });
      }
   }
-  
+
   // Retorna uma declaração com base no ano e museu
   async getDeclaracaoAno(req: Request, res: Response) {
     try {
@@ -96,41 +96,41 @@ export class DeclaracaoController {
     }
   }
 
- 
+
   async getDeclaracao(req: Request, res: Response) {
     try {
       const { id } = req.params;
-  
+
       const isAdmin = req.user?.admin;
-  
-     
-      const selectFields = isAdmin 
+
+
+      const selectFields = isAdmin
         ? ''  // Para admins, inclui todos os campos
         : '-responsavelEnvioAnaliseNome -analistasResponsaveisNome -responsavelEnvioAnalise -analistasResponsaveis';  // Para usuários comuns, omite esses campos
-  
-      
+
+
       const declaracao = await Declaracoes.findById(id)
         .select(selectFields)
         .populate({
           path: "museu_id",
           model: Museu,
         });
-  
+
       if (!declaracao) {
         return res.status(404).json({ message: "Declaração não encontrada." });
       }
-  
+
       if (declaracao.ultimaDeclaracao === false) {
         return res.status(404).json({ message: "Não é possível acessar declaração." });
       }
-  
+
       return res.status(200).json(declaracao);
     } catch (error) {
       console.error("Erro ao buscar declaração:", error);
       return res.status(500).json({ message: "Erro ao buscar declaração." });
     }
   }
-  
+
 
   // Retorna todas as declarações do usuário logado
   async getDeclaracoes(req: Request, res: Response) {
@@ -149,11 +149,11 @@ export class DeclaracaoController {
         {
           $group: {
             _id: { museu_id: "$museu_id", anoDeclaracao: "$anoDeclaracao" },
-            latestDeclaracao: { $first: "$$ROOT" } 
+            latestDeclaracao: { $first: "$$ROOT" }
           }
         },
         {
-          $replaceRoot: { newRoot: "$latestDeclaracao" } 
+          $replaceRoot: { newRoot: "$latestDeclaracao" }
         }
       ])
 
@@ -186,51 +186,32 @@ export class DeclaracaoController {
    */
   async getDashboard(req: Request, res: Response) {
     try {
-      const { anos, estados, museu } = req.query
+      const { anos, estados, museu, cidades } = req.query
 
       return res
         .status(200)
         .json(
-          await this.declaracaoService.getDashbaordData(
+          await this.declaracaoService.getDashboardData(
             estados
               ? Array.isArray(estados)
                 ? estados.map(String)
                 : [String(estados)]
               : [
-                  "AC",
-                  "AL",
-                  "AP",
-                  "AM",
-                  "BA",
-                  "CE",
-                  "DF",
-                  "ES",
-                  "GO",
-                  "MA",
-                  "MT",
-                  "MS",
-                  "MG",
-                  "PA",
-                  "PB",
-                  "PR",
-                  "PE",
-                  "PI",
-                  "RJ",
-                  "RN",
-                  "RS",
-                  "RO",
-                  "RR",
-                  "SC",
-                  "SP",
-                  "SE",
-                  "TO"
+                  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
+                  "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
+                  "RS", "RO", "RR", "SC", "SP", "SE", "TO"
                 ],
             anos
               ? Array.isArray(anos)
                 ? anos.map(String)
                 : [String(anos)]
               : [],
-            museu ? String(museu) : null
+            museu ? String(museu) : null,
+            cidades
+              ? Array.isArray(cidades)
+                ? cidades.map(String)
+                : [String(cidades)]
+              : []
           )
         )
     } catch (error) {
@@ -240,6 +221,7 @@ export class DeclaracaoController {
         .json({ message: "Erro ao buscar declarações por ano." })
     }
   }
+
 
   async getDeclaracaoFiltrada(req: Request, res: Response) {
     try {
@@ -269,12 +251,12 @@ export class DeclaracaoController {
   /**
  * Realiza a operação de exclusão lógica de  uma declaração ao definir a propriedade `isExcluded` como `true`.
  * A exclusão só é permitida se a declaração tiver o status `Recebida`.
- * 
+ *
  * @param {string} id - O ID da declaração a ser excluída.
- * @throws {Error} - Lança um erro se a declaração não for encontrada ou 
+ * @throws {Error} - Lança um erro se a declaração não for encontrada ou
  * se o status da declaração não for `Recebida`.
- * 
- * @returns {Promise<void>} - Retorna uma Promise que se resolve em void 
+ *
+ * @returns {Promise<void>} - Retorna uma Promise que se resolve em void
  * quando a exclusão é concluída.
  */
 
@@ -536,7 +518,7 @@ export class DeclaracaoController {
       await this.declaracaoService.verificarDeclaracaoExistente(
         req.params.museu,
         req.params.anoDeclaracao
-        
+
       )
 
     if (declaracaoExistente) {
@@ -788,7 +770,7 @@ export class DeclaracaoController {
       });
     }
   }
-  
+
   async getAnosValidos(req: Request, res: Response) {
     try {
 
@@ -796,14 +778,14 @@ export class DeclaracaoController {
       const anosQuantidade = parseInt(qtdAnos, 10) || 10;
       console.log(qtdAnos)
       const anosValidos = this.declaracaoService.getAnosValidos(anosQuantidade);
-  
+
       return res.json({ anos: anosValidos });
     } catch (error) {
       console.error("Erro ao obter anos válidos:", error);
       return res.status(500).json({ message: "Erro ao obter anos válidos" });
     }
   }
-  
+
 
 
   /**

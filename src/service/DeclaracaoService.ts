@@ -24,16 +24,53 @@ import { DataUtils } from "../utils/dataUtils"
 import { match } from "assert"
 
 class DeclaracaoService {
-  async getDashbaordData(
+
+  async getDashboardData(
     estados: string[],
     anos: string[],
-    museuId: string | null
+    museuId: string | null,
+    cidades: string[], // Novo parâmetro para cidades
   ) {
     const result = (
       await Declaracoes.aggregate([
         {
-          $match: { status: { $ne: "Excluída" } }
+          $match: {
+            status: { $ne: "Excluída" }, // Filtra pelo status
+            anoDeclaracao: { $in: anos }, // Filtra pelos anos passados no array
+            ...(museuId && {
+              museu_id: new mongoose.Types.ObjectId(museuId) // Adiciona o filtro de museuId quando presente
+            })
+          }
         },
+        {
+          $lookup: {
+            from: "museus",
+            localField: "museu_id",
+            foreignField: "_id",
+            as: "museu"
+          }
+        },
+        {
+          $unwind: "$museu"
+        },
+        ...(estados.length
+          ? [
+              {
+                $match: {
+                  "museu.endereco.uf": { $in: estados } // Filtro por estado
+                }
+              }
+            ]
+          : []),
+        ...(cidades.length
+          ? [
+              {
+                $match: {
+                  "museu.endereco.municipio": { $in: cidades } // Filtro por cidade
+                }
+              }
+            ]
+          : []),
         {
           $facet: {
             declaracoesPorAnoDashboard: [
@@ -70,22 +107,6 @@ class DeclaracaoService {
               }
             ],
             declaracoesPorUFs: [
-              {
-                $match: {
-                  anoDeclaracao: { $in: anos }
-                }
-              },
-              {
-                $lookup: {
-                  from: "museus",
-                  localField: "museu_id",
-                  foreignField: "_id",
-                  as: "museu"
-                }
-              },
-              {
-                $unwind: "$museu"
-              },
               {
                 $group: {
                   _id: "$museu.endereco.uf",
@@ -322,7 +343,7 @@ class DeclaracaoService {
 
       const statusEnum = Declaracoes.schema.path("status")
       const status = Object.values(statusEnum)[0].filter((s: string) => s !== "Excluída")
-      
+
 
     const regioes: string[] = [
       "Norte",
@@ -532,9 +553,9 @@ class DeclaracaoService {
     const declaracaoExistente = await Declaracoes.findOne({
       anoDeclaracao,
       museu_id: museu,
-      status: { $ne: Status.Excluida } 
+      status: { $ne: Status.Excluida }
     });
-  
+
     return declaracaoExistente;
   }
 
@@ -986,7 +1007,7 @@ class DeclaracaoService {
     const declaracaoId = new mongoose.Types.ObjectId(id);
     const declaracao = await Declaracoes.findById(declaracaoId);
 
- 
+
 
     const resultado = await Declaracoes.updateOne(
       { _id: declaracaoId, status: Status.Recebida},
