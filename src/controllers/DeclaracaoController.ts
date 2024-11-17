@@ -33,25 +33,25 @@ export class DeclaracaoController {
     try {
       const { id } = req.params;
       const { status } = req.body;
-      
+
 
       const declaracao = await Declaracoes.findById(id);
       if (!declaracao) {
         return res.status(404).json({ message: "Declaração não encontrada." });
       }
-      
+
       if (declaracao.status === Status.Excluida && status !== Status.Excluida) {
         const verificaDeclaracao = await Declaracoes.findOne({
           museu: declaracao.museu_id,
           anoDeclaracao: declaracao.anoDeclaracao,
-          _id: { $ne: id }  
+          _id: { $ne: id }
         });
-        
+
         if (verificaDeclaracao) {
           throw new Error("Não é possível alterar o status de uma declaração excluída quando já existe outra declaração para o mesmo museu no mesmo ano.");
         }
       }
-      
+
       // Atualizar o status da declaração e de suas subcategorias, se permitido
       declaracao.status = status;
       if (declaracao.museologico) {
@@ -63,7 +63,7 @@ export class DeclaracaoController {
       if (declaracao.bibliografico) {
         declaracao.bibliografico.status = status;
       }
-  
+
       await declaracao.save({ validateBeforeSave: false });
       return res.status(200).json(declaracao);
     } catch (error) {
@@ -71,7 +71,7 @@ export class DeclaracaoController {
       return res.status(statusCode).json({ message: error instanceof Error ? error.message : "Erro ao atualizar status da declaração." });
      }
   }
-  
+
   // Retorna uma declaração com base no ano e museu
   async getDeclaracaoAno(req: Request, res: Response) {
     try {
@@ -149,11 +149,11 @@ export class DeclaracaoController {
         {
           $group: {
             _id: { museu_id: "$museu_id", anoDeclaracao: "$anoDeclaracao" },
-            latestDeclaracao: { $first: "$$ROOT" } 
+            latestDeclaracao: { $first: "$$ROOT" }
           }
         },
         {
-          $replaceRoot: { newRoot: "$latestDeclaracao" } 
+          $replaceRoot: { newRoot: "$latestDeclaracao" }
         }
       ])
 
@@ -255,26 +255,16 @@ export class DeclaracaoController {
     }
   }
 
-  async getDeclaracaoPendente(req: Request, res: Response) {
-    try {
-      const declaracoes = await Declaracoes.find({ pendente: true })
-      return res.status(200).json(declaracoes)
-    } catch (error) {
-      return res
-        .status(500)
-        .json({ message: "Erro ao buscar declarações pendentes." })
-    }
-  }
 
   /**
  * Realiza a operação de exclusão lógica de  uma declaração ao definir a propriedade `isExcluded` como `true`.
  * A exclusão só é permitida se a declaração tiver o status `Recebida`.
- * 
+ *
  * @param {string} id - O ID da declaração a ser excluída.
- * @throws {Error} - Lança um erro se a declaração não for encontrada ou 
+ * @throws {Error} - Lança um erro se a declaração não for encontrada ou
  * se o status da declaração não for `Recebida`.
- * 
- * @returns {Promise<void>} - Retorna uma Promise que se resolve em void 
+ *
+ * @returns {Promise<void>} - Retorna uma Promise que se resolve em void
  * quando a exclusão é concluída.
  */
 
@@ -536,7 +526,7 @@ export class DeclaracaoController {
       await this.declaracaoService.verificarDeclaracaoExistente(
         req.params.museu,
         req.params.anoDeclaracao
-        
+
       )
 
     if (declaracaoExistente) {
@@ -788,23 +778,6 @@ export class DeclaracaoController {
       });
     }
   }
-  
-  async getAnosValidos(req: Request, res: Response) {
-    try {
-
-      const { qtdAnos } = req.params;
-      const anosQuantidade = parseInt(qtdAnos, 10) || 10;
-      console.log(qtdAnos)
-      const anosValidos = this.declaracaoService.getAnosValidos(anosQuantidade);
-  
-      return res.json({ anos: anosValidos });
-    } catch (error) {
-      console.error("Erro ao obter anos válidos:", error);
-      return res.status(500).json({ message: "Erro ao obter anos válidos" });
-    }
-  }
-  
-
 
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.

@@ -140,3 +140,12 @@ describe("PUT /public/declaracoes/retificar/:museu/:anoDeclaracao/:idDeclaracap"
     expect(response.status).toBe(406)
   })
 })
+
+describe("DELETE /api/public/declaracoes/:id", () => {
+  it("Deve excluir uma declaração com sucesso e retornar status 204", async () => {
+    const response = await request(app)
+      .delete(`/api/public/declaracoes/${declaracaoId}`)
+      .set("Authorization", `Bearer mocked-token`)
+      .expect(204)
+  })
+})

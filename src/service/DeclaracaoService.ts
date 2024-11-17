@@ -322,7 +322,7 @@ class DeclaracaoService {
 
       const statusEnum = Declaracoes.schema.path("status")
       const status = Object.values(statusEnum)[0].filter((s: string) => s !== "Excluída")
-      
+
 
     const regioes: string[] = [
       "Norte",
@@ -532,9 +532,9 @@ class DeclaracaoService {
     const declaracaoExistente = await Declaracoes.findOne({
       anoDeclaracao,
       museu_id: museu,
-      status: { $ne: Status.Excluida } 
+      status: { $ne: Status.Excluida }
     });
-  
+
     return declaracaoExistente;
   }
 
@@ -880,10 +880,6 @@ class DeclaracaoService {
     return declaracao
   }
 
-  async getAnosValidos(qtdAnos: number): Promise<string[]>{
-    const anoAtual = new Date().getFullYear();
-    return Array.from({ length: qtdAnos }, (_, i) => (anoAtual - i).toString());
-  }
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *
@@ -986,7 +982,7 @@ class DeclaracaoService {
     const declaracaoId = new mongoose.Types.ObjectId(id);
     const declaracao = await Declaracoes.findById(declaracaoId);
 
- 
+
 
     const resultado = await Declaracoes.updateOne(
       { _id: declaracaoId, status: Status.Recebida},

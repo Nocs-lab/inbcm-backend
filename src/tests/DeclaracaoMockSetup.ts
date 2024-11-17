@@ -113,6 +113,43 @@ app.get(
   declaracaoController.getDeclaracoes
 )
 
+app.delete(
+  "/api/public/declaracoes/:id",mockAuthMiddleware,
+  declaracaoController.excluirDeclaracao
+)
+
+app.put(
+  "/api/admin/declaracoes/atualizarStatus/:id",mockAuthMiddleware,
+  declaracaoController.atualizarStatusDeclaracao
+)
+
+app.get(
+  "/admin/declaracoes/analistas",mockAuthMiddleware,
+  declaracaoController.listarAnalistas.bind(declaracaoController)
+)
+
+app.put(
+  "/admin/declaracoes/:id/analises",mockAuthMiddleware,
+  declaracaoController.enviarParaAnalise.bind(declaracaoController)
+)
+
+app.put(
+  "/admin/declaracoes/:id/analises-concluir",mockAuthMiddleware,
+  declaracaoController.concluirAnalise.bind(declaracaoController)
+)
+
+app.get(
+  "/admin/declaracoes/analistas-filtrados",mockAuthMiddleware,
+  declaracaoController.getDeclaracoesAgrupadasPorAnalista.bind(declaracaoController)
+)
+
+app.get(
+  "public/declaracoes/:museuId/itens/:anoInicio/:anoFim",mockAuthMiddleware,
+declaracaoController.getItensPorAnoETipo.bind(declaracaoController)
+);
+
+
+
 
 
 const teardownTestEnvironment = async () => {
