@@ -237,16 +237,6 @@ export class DeclaracaoController {
     }
   }
 
-  async getDeclaracaoPendente(req: Request, res: Response) {
-    try {
-      const declaracoes = await Declaracoes.find({ pendente: true })
-      return res.status(200).json(declaracoes)
-    } catch (error) {
-      return res
-        .status(500)
-        .json({ message: "Erro ao buscar declarações pendentes." })
-    }
-  }
 
   /**
  * Realiza a operação de exclusão lógica de  uma declaração ao definir a propriedade `isExcluded` como `true`.
@@ -785,6 +775,7 @@ export class DeclaracaoController {
       return res.status(500).json({ message: "Erro ao obter anos válidos" });
     }
   }
+
 
 
 
