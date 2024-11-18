@@ -5,15 +5,21 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import UsuarioController from "../controllers/UsuarioController";
 import Usuario from "../models/Usuario";
 import {Profile} from '../models/Profile';
+import DeclaracaoController from "../controllers/DeclaracaoController"
+
 
 const app = express();
 app.use(express.json());
+
+const declaracaoController = new DeclaracaoController()
+
 app.post("/register", UsuarioController.registerUsuario);
 app.get("/usuarios", UsuarioController.getUsuarios);
 app.get("/usuarios/:id", UsuarioController.getUsuarioPorId);
 app.put("/usuarios/:id", UsuarioController.atualizarUsuario);
 app.delete("/usuarios/:id", UsuarioController.deletarUsuario);
 app.get("/usuarios/profile/:profileId", UsuarioController.getUsersByProfile);
+app.get("/admin/declaracoes/analistas", declaracaoController.listarAnalistas)
 
 let mongoServer: MongoMemoryServer;
 
@@ -76,7 +82,7 @@ describe("GET /usuarios", () => {
   it("Deve retornar uma lista de usuários ativos", async () => {
     // Salvar o perfil e esperar que seja concluído
     const profileTeste = await new Profile({
-      name: "Teste",
+      name: "analyst",
       description: "Teste Profile",
       permissions: [],
       isProtected: false

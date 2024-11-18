@@ -24,5 +24,7 @@ const routes = express.Router()
  *         description: Erro ao listar museus.
  */
 routes.get("/", adminMiddleware, MuseuController.listarMuseus)
+routes.get("/listarCidades", adminMiddleware, MuseuController.listarMunicipios)
+
 
 export default routes
