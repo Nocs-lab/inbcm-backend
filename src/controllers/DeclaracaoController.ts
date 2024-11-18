@@ -96,41 +96,41 @@ export class DeclaracaoController {
     }
   }
 
- 
+
   async getDeclaracao(req: Request, res: Response) {
     try {
       const { id } = req.params;
-  
+
       const isAdmin = req.user?.admin;
-  
-     
-      const selectFields = isAdmin 
+
+
+      const selectFields = isAdmin
         ? ''  // Para admins, inclui todos os campos
         : '-responsavelEnvioAnaliseNome -analistasResponsaveisNome -responsavelEnvioAnalise -analistasResponsaveis';  // Para usuários comuns, omite esses campos
-  
-      
+
+
       const declaracao = await Declaracoes.findById(id)
         .select(selectFields)
         .populate({
           path: "museu_id",
           model: Museu,
         });
-  
+
       if (!declaracao) {
         return res.status(404).json({ message: "Declaração não encontrada." });
       }
-  
+
       if (declaracao.ultimaDeclaracao === false) {
         return res.status(404).json({ message: "Não é possível acessar declaração." });
       }
-  
+
       return res.status(200).json(declaracao);
     } catch (error) {
       console.error("Erro ao buscar declaração:", error);
       return res.status(500).json({ message: "Erro ao buscar declaração." });
     }
   }
-  
+
 
   // Retorna todas as declarações do usuário logado
   async getDeclaracoes(req: Request, res: Response) {
@@ -186,51 +186,32 @@ export class DeclaracaoController {
    */
   async getDashboard(req: Request, res: Response) {
     try {
-      const { anos, estados, museu } = req.query
+      const { anos, estados, museu, cidades } = req.query
 
       return res
         .status(200)
         .json(
-          await this.declaracaoService.getDashbaordData(
+          await this.declaracaoService.getDashboardData(
             estados
               ? Array.isArray(estados)
                 ? estados.map(String)
                 : [String(estados)]
               : [
-                  "AC",
-                  "AL",
-                  "AP",
-                  "AM",
-                  "BA",
-                  "CE",
-                  "DF",
-                  "ES",
-                  "GO",
-                  "MA",
-                  "MT",
-                  "MS",
-                  "MG",
-                  "PA",
-                  "PB",
-                  "PR",
-                  "PE",
-                  "PI",
-                  "RJ",
-                  "RN",
-                  "RS",
-                  "RO",
-                  "RR",
-                  "SC",
-                  "SP",
-                  "SE",
-                  "TO"
+                  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
+                  "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
+                  "RS", "RO", "RR", "SC", "SP", "SE", "TO"
                 ],
             anos
               ? Array.isArray(anos)
                 ? anos.map(String)
                 : [String(anos)]
               : [],
-            museu ? String(museu) : null
+            museu ? String(museu) : null,
+            cidades
+              ? Array.isArray(cidades)
+                ? cidades.map(String)
+                : [String(cidades)]
+              : []
           )
         )
     } catch (error) {
@@ -240,6 +221,7 @@ export class DeclaracaoController {
         .json({ message: "Erro ao buscar declarações por ano." })
     }
   }
+
 
   async getDeclaracaoFiltrada(req: Request, res: Response) {
     try {
@@ -778,6 +760,24 @@ export class DeclaracaoController {
       });
     }
   }
+
+  async getAnosValidos(req: Request, res: Response) {
+    try {
+
+      const { qtdAnos } = req.params;
+      const anosQuantidade = parseInt(qtdAnos, 10) || 10;
+      console.log(qtdAnos)
+      const anosValidos = this.declaracaoService.getAnosValidos(anosQuantidade);
+
+      return res.json({ anos: anosValidos });
+    } catch (error) {
+      console.error("Erro ao obter anos válidos:", error);
+      return res.status(500).json({ message: "Erro ao obter anos válidos" });
+    }
+  }
+
+
+
 
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
