@@ -16,7 +16,8 @@ const UsuarioSchema = new Schema<IUsuario>({
   admin: { type: Boolean, default: false },
   senha: { type: String, required: true },
   profile: { type: Schema.Types.ObjectId, required: true, ref: "profiles" },
-  ativo: { type: Boolean, default: true }
+  ativo: { type: Boolean, default: true },
+  museus: [{ type: mongoose.Schema.Types.ObjectId, ref: "Museu" }]
 })
 
 interface IRefreshToken extends Document {
