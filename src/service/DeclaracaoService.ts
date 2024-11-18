@@ -25,16 +25,53 @@ import { DataUtils } from "../utils/dataUtils"
 import { Eventos } from "../enums/Eventos"
 
 class DeclaracaoService {
-  async getDashbaordData(
+
+  async getDashboardData(
     estados: string[],
     anos: string[],
-    museuId: string | null
+    museuId: string | null,
+    cidades: string[], // Novo parâmetro para cidades
   ) {
     const result = (
       await Declaracoes.aggregate([
         {
-          $match: { status: { $ne: "Excluída" } }
+          $match: {
+            status: { $ne: "Excluída" }, // Filtra pelo status
+            anoDeclaracao: { $in: anos }, // Filtra pelos anos passados no array
+            ...(museuId && {
+              museu_id: new mongoose.Types.ObjectId(museuId) // Adiciona o filtro de museuId quando presente
+            })
+          }
         },
+        {
+          $lookup: {
+            from: "museus",
+            localField: "museu_id",
+            foreignField: "_id",
+            as: "museu"
+          }
+        },
+        {
+          $unwind: "$museu"
+        },
+        ...(estados.length
+          ? [
+              {
+                $match: {
+                  "museu.endereco.uf": { $in: estados } // Filtro por estado
+                }
+              }
+            ]
+          : []),
+        ...(cidades.length
+          ? [
+              {
+                $match: {
+                  "museu.endereco.municipio": { $in: cidades } // Filtro por cidade
+                }
+              }
+            ]
+          : []),
         {
           $facet: {
             declaracoesPorAnoDashboard: [
@@ -71,22 +108,6 @@ class DeclaracaoService {
               }
             ],
             declaracoesPorUFs: [
-              {
-                $match: {
-                  anoDeclaracao: { $in: anos }
-                }
-              },
-              {
-                $lookup: {
-                  from: "museus",
-                  localField: "museu_id",
-                  foreignField: "_id",
-                  as: "museu"
-                }
-              },
-              {
-                $unwind: "$museu"
-              },
               {
                 $group: {
                   _id: "$museu.endereco.uf",
@@ -321,10 +342,10 @@ class DeclaracaoService {
       .map((item) => item.ano)
       .filter((value, index, self) => self.indexOf(value) === index)
 
-    const statusEnum = Declaracoes.schema.path("status")
-    const status = Object.values(statusEnum)[0].filter(
-      (s: string) => s !== "Excluída"
-    )
+
+      const statusEnum = Declaracoes.schema.path("status")
+      const status = Object.values(statusEnum)[0].filter((s: string) => s !== "Excluída")
+
 
     const regioes: string[] = [
       "Norte",
@@ -528,7 +549,7 @@ class DeclaracaoService {
     }
   }
 
-  async verificarDeclaracaoExistente(museu: string, anoDeclaracao: string) {
+   async verificarDeclaracaoExistente(museu: string, anoDeclaracao: string) {
     const declaracaoExistente = await Declaracoes.findOne({
       anoDeclaracao,
       museu_id: museu,
@@ -931,10 +952,7 @@ class DeclaracaoService {
     return declaracaoAtualizada
   }
 
-  async getAnosValidos(qtdAnos: number): Promise<string[]> {
-    const anoAtual = new Date().getFullYear()
-    return Array.from({ length: qtdAnos }, (_, i) => (anoAtual - i).toString())
-  }
+
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *
@@ -1048,27 +1066,26 @@ class DeclaracaoService {
    * Processa e atualiza uma  declaração,fazendo a deleção lógica.
    * @param id - String  contendo um  id de da declaracao.
    */
-  async excluirDeclaracao(id: string): Promise<void> {
-    const declaracaoId = new mongoose.Types.ObjectId(id)
+async excluirDeclaracao(id: string): Promise<void> {
+    const declaracaoId = new mongoose.Types.ObjectId(id);
+    const declaracao = await Declaracoes.findById(declaracaoId);
+
+
 
     const resultado = await Declaracoes.updateOne(
-      { _id: declaracaoId, status: Status.Recebida },
-      { $set: { status: Status.Excluida } }
-    )
+      { _id: declaracaoId, status: Status.Recebida},
+      { $set: {status: Status.Excluida } }
+    );
 
     if (resultado.matchedCount === 0) {
-      const declaracao = await Declaracoes.findById(declaracaoId)
+      const declaracao = await Declaracoes.findById(declaracaoId);
       if (declaracao && declaracao.status === Status.Recebida) {
-        throw new Error(
-          "Declaração está em período de análise. Não pode ser excluída."
-        )
+        throw new Error("Declaração está em período de análise. Não pode ser excluída.");
       }
-      if (declaracao && declaracao.status == Status.Excluida) {
-        throw new Error(
-          `Operação de exclusão já foi realizada para essa declaração ${declaracaoId}`
-        )
+      if(declaracao && declaracao.status == Status.Excluida){
+        throw new Error(`Operação de exclusão já foi realizada para essa declaração ${declaracaoId}`);
       }
-      throw new Error("Declaração não encontrada.")
+      throw new Error("Declaração não encontrada.");
     }
   }
 }

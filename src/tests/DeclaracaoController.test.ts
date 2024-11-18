@@ -7,8 +7,12 @@ import {
   museuMock
 } from "./DeclaracaoMockSetup"
 import mongoose from "mongoose"
+import {Usuario} from "../models/Usuario";
+import {Profile} from '../models/Profile';
 
 let declaracaoId: string
+let usuarioId: mongoose.Types.ObjectId;
+let muu: any
 
 beforeAll(async () => {
   await setupTestEnvironment()
@@ -42,6 +46,7 @@ describe("POST /public/declaracoes/uploads/:museu/:anoDeclaracao", () => {
       .expect(200)
 
     const museuId = museuMock._id as unknown as mongoose.Types.ObjectId
+    muu = museuMock._id as unknown as mongoose.Types.ObjectId
 
     expect(response.body).toHaveProperty("museu_id", museuId.toString())
     expect(response.body).toHaveProperty("anoDeclaracao", "2024")
@@ -138,3 +143,133 @@ describe("GET /public/declaracoes", () => {
 })
 
 
+describe("PUT /api/admin/declaracoes/atualizarStatus/:id", () => {
+  it("Deve atualizar o status da declaração com sucesso", async () => {
+    const response = await request(app)
+      .put(`/api/admin/declaracoes/atualizarStatus/${declaracaoId}`)
+      .set("Authorization", `Bearer mocked-token`)
+      .send({ status: "Recebida" })
+      .expect(200)
+
+    expect(response.body).toHaveProperty("status", "Recebida")
+    expect(response.body.museologico.status).toBe("Recebida")
+    expect(response.body.arquivistico.status).toBe("Recebida")
+    expect(response.body.bibliografico.status).toBe("Recebida")
+  })
+
+})
+
+describe("GET /admin/declaracoes/analistas", () => {
+  it("Deve retornar uma lista de analistas com status 200", async () => {
+    // Mockando o perfil "analyst"
+    const profileTeste = await new Profile({
+      name: "analyst",
+      description: "analyst",
+      permissions: [],
+      isProtected: false
+    }).save();
+
+    // Criando usuários "Alice" e "Bob" utilizando o ID do profileTeste
+    const alice = await new Usuario({
+      nome: "Alice",
+      email: "alice@example.com",
+      senha: "password123",
+      profile: profileTeste._id, // Vincular o ID do perfil de analista
+      ativo: true
+    }).save();
+
+     usuarioId = alice._id as mongoose.Types.ObjectId;
+
+
+
+    await new Usuario({
+      nome: "Bob",
+      email: "bob@example.com",
+      senha: "password123",
+      profile: profileTeste._id, // Vincular o ID do perfil de analista
+      ativo: true
+    }).save();
+
+
+    // Fazer a requisição para a rota de listar analistas
+    const response = await request(app)
+      .get("/admin/declaracoes/analistas")
+      .set("Authorization", `Bearer mocked-token`)
+      .expect(200);
+
+  });
+});
+
+describe("PUT /admin/declaracoes/:id/analises", () => {
+  it("Deve atualizar o status da declaração para 'Em Análise' e associar o(s) analista(s)", async () => {
+    const response = await request(app)
+      .put(`/admin/declaracoes/${declaracaoId}/analises`)
+      .set("Authorization", `Bearer mocked-token`)
+      .send({
+        analistas: [usuarioId] // Enviando `usuarioId` como array de strings
+      })
+      .expect(200)
+
+    expect(response.body).toHaveProperty("status", "Em análise")
+    expect(response.body).toHaveProperty("_id", declaracaoId)
+  })
+})
+
+describe("PUT /admin/declaracoes/:id/analises-concluir", () => {
+  it("Deve concluir a análise da declaração e atualizar o status para 'Não conformidade'", async () => {
+    // Supondo que você já tenha uma declaração criada, vamos pegar o ID dela
+
+    const response = await request(app)
+      .put(`/admin/declaracoes/${declaracaoId}/analises-concluir`)
+      .set("Authorization", `Bearer mocked-token`)
+      .send({
+        status: "Não conformidade" // Enviando o status como 'Não conformidade'
+      })
+      .expect(200)
+
+    // Verificando se a resposta contém o status atualizado
+    expect(response.body).toHaveProperty("status", "Não conformidade")
+    expect(response.body).toHaveProperty("_id", declaracaoId)
+    expect(response.body).toHaveProperty("dataFimAnalise")
+  })
+
+  it("Deve retornar erro 500 se a declaração não for encontrada", async () => {
+    // Usando um ID de declaração inválido
+    const invalidDeclaracaoId = "id-invalido";
+
+    const response = await request(app)
+      .put(`/admin/declaracoes/${invalidDeclaracaoId}/analises-concluir`)
+      .set("Authorization", `Bearer mocked-token`)
+      .send({
+        status: "Não conformidade"
+      })
+      .expect(500)
+
+    expect(response.body).toHaveProperty("message", "Erro ao concluir análise da declaração.")
+  })
+
+  it("Deve retornar erro 500 para status inválido", async () => {
+    const declaracaoId = "id-da-declaracao"; // Substitua com o ID real ou mockado de uma declaração
+
+    const response = await request(app)
+      .put(`/admin/declaracoes/${declaracaoId}/analises-concluir`)
+      .set("Authorization", `Bearer mocked-token`)
+      .send({
+        status: "Status inválido" // Status que não é válido
+      })
+      .expect(500)
+
+    expect(response.body).toHaveProperty("message", "Erro ao concluir análise da declaração.")
+  })
+})
+
+describe("GET /admin/declaracoes/analistas-filtrados", () => {
+  it("Deve retornar status 200 ao buscar declarações agrupadas por analista", async () => {
+    const response = await request(app)
+      .get("/admin/declaracoes/analistas-filtrados")  // Substitua pela rota correta
+      .set("Authorization", `Bearer mocked-token`)
+      .expect(200);
+
+    expect(Array.isArray(response.body)).toBe(true);
+  });
+});

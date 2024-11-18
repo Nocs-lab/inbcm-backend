@@ -60,6 +60,31 @@ class MuseuController {
         .json({ mensagem: "Erro ao listar museus do usuário." })
     }
   }
+
+  static async listarMunicipios(req: Request, res: Response) {
+    try {
+      // Usando agregação para obter os municípios e estados em formato chave-valor
+      const municipiosEstados = await Museu.aggregate([
+        {
+          $group: {
+            _id: { municipio: "$endereco.municipio", estado: "$endereco.uf" }
+          }
+        },
+        {
+          $project: {
+            municipio: "$_id.municipio",
+            estado: "$_id.estado",
+            _id: 0
+          }
+        }
+      ])
+
+      return res.status(200).json(municipiosEstados)
+    } catch (erro) {
+      console.error("Erro ao listar municípios e estados:", erro)
+      return res.status(500).json({ mensagem: "Erro ao listar municípios e estados." })
+    }
+  }
 }
 
 export default MuseuController

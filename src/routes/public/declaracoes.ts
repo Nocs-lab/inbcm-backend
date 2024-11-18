@@ -408,7 +408,7 @@ routes.get(
 
 /**
  * @swagger
- * /api/public/declaracoes/{museuId}:
+ * /api/public/declaracoes/{declaracaoId}:
  *   delete:
  *     summary: Realiza a deleção lógica de uma declaração, caso o status seja diferente de "Recebida"
  *     parameters:
