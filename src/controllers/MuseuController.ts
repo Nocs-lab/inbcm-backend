@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { Museu } from "../models"
+import { Museu, Usuario } from "../models"
 
 class MuseuController {
   // Método para criar um novo museu
@@ -40,7 +40,15 @@ class MuseuController {
 
   static async listarMuseus(req: Request, res: Response) {
     try {
-      const museus = await Museu.find()
+      // Obtém o parâmetro booleano da query string
+      const { semVinculoUsuario } = req.query
+
+      // Verifica o valor do parâmetro e ajusta o filtro
+      const filtro = semVinculoUsuario === "true" ? { usuario: null } : {}
+
+      // Busca os museus com base no filtro
+      const museus = await Museu.find(filtro)
+
       return res.status(200).json(museus)
     } catch (erro) {
       console.error("Erro ao listar museus:", erro)
@@ -82,7 +90,104 @@ class MuseuController {
       return res.status(200).json(municipiosEstados)
     } catch (erro) {
       console.error("Erro ao listar municípios e estados:", erro)
-      return res.status(500).json({ mensagem: "Erro ao listar municípios e estados." })
+      return res
+        .status(500)
+        .json({ mensagem: "Erro ao listar municípios e estados." })
+    }
+  }
+  static async desvincularUsuarioDoMuseu(req: Request, res: Response) {
+    try {
+      const { museuId } = req.body
+
+      if (!museuId) {
+        return res.status(400).json({
+          mensagem: "O ID do museu é obrigatório."
+        })
+      }
+
+      const museu = await Museu.findById(museuId)
+
+      if (!museu) {
+        return res.status(404).json({ mensagem: "Museu não encontrado." })
+      }
+
+      if (!museu.usuario) {
+        return res.status(400).json({
+          mensagem: "Este museu não possui um usuário vinculado."
+        })
+      }
+
+      const usuarioId = museu.usuario
+
+      museu.usuario = null
+      await museu.save()
+
+      const usuario = await Usuario.findById(usuarioId)
+
+      if (usuario) {
+        usuario.museus = usuario.museus.filter(
+          (id) => id.toString() !== museuId
+        )
+        await usuario.save()
+      }
+
+      return res.status(200).json({
+        mensagem: "Usuário desvinculado do museu com sucesso.",
+        museu
+      })
+    } catch (erro) {
+      console.error("Erro ao desvincular usuário do museu:", erro)
+      return res
+        .status(500)
+        .json({ mensagem: "Erro ao desvincular usuário do museu." })
+    }
+  }
+
+  static async vincularUsuarioAoMuseu(req: Request, res: Response) {
+    try {
+      const { museuId, usuarioId } = req.body
+
+      if (!museuId || !usuarioId) {
+        return res.status(400).json({
+          mensagem: "O ID do museu e o ID do usuário são obrigatórios."
+        })
+      }
+
+      const museu = await Museu.findById(museuId)
+
+      if (!museu) {
+        return res.status(404).json({ mensagem: "Museu não encontrado." })
+      }
+
+      if (museu.usuario) {
+        return res.status(400).json({
+          mensagem: "Este museu já possui um usuário associado."
+        })
+      }
+
+      museu.usuario = usuarioId
+      await museu.save()
+
+      const usuario = await Usuario.findById(usuarioId)
+
+      if (!usuario) {
+        return res.status(404).json({ mensagem: "Usuário não encontrado." })
+      }
+
+      if (!usuario.museus.includes(museuId)) {
+        usuario.museus.push(museuId)
+        await usuario.save()
+      }
+
+      return res.status(200).json({
+        mensagem: "Usuário vinculado ao museu com sucesso.",
+        museu
+      })
+    } catch (erro) {
+      console.error("Erro ao vincular usuário ao museu:", erro)
+      return res
+        .status(500)
+        .json({ mensagem: "Erro ao vincular usuário ao museu." })
     }
   }
 }
