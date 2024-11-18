@@ -13,7 +13,20 @@ export interface Arquivo {
   dataEnvio?: Date
   versao: number
 }
+export interface TimeLine {
+  nomeEvento: string
+  dataEvento: Date
+  autorEvento?: string
+}
 
+const TimeLineSchema = new Schema<TimeLine>(
+  {
+    nomeEvento: String,
+    dataEvento: { type: Date, default: Date.now() },
+    autorEvento: String
+  },
+  { _id: false, versionKey: false }
+)
 const ArquivoSchema = new Schema<Arquivo>(
   {
     nome: String,
@@ -37,7 +50,7 @@ export interface DeclaracaoModel extends Document {
   museu_nome: string
   anoDeclaracao: string
   responsavelEnvio: mongoose.Types.ObjectId
-  responsavelEnvioNome: String
+  responsavelEnvioNome: string
   hashDeclaracao: string
   dataCriacao?: Date
   dataAtualizacao?: Date
@@ -57,10 +70,11 @@ export interface DeclaracaoModel extends Document {
   dataEnvioAnalise?: Date
   responsavelEnvioAnalise?: mongoose.Types.ObjectId
   analistasResponsaveis?: mongoose.Types.ObjectId[]
-  responsavelEnvioAnaliseNome: string,
+  responsavelEnvioAnaliseNome: string
   analistasResponsaveisNome: string[]
   dataAnalise?: Date
   dataFimAnalise?: Date
+  timeLine: TimeLine[]
 }
 
 export type ArquivoTypes =
@@ -81,8 +95,8 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
     },
     responsavelEnvioNome: {
       type: String,
-      required: true,
-    },  
+      required: true
+    },
     hashDeclaracao: String,
     dataCriacao: { type: Date, default: Date.now() },
     dataAtualizacao: { type: Date, default: Date.now() },
@@ -102,10 +116,11 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
     dataEnvioAnalise: { type: Date },
     analistasResponsaveis: [{ type: Schema.Types.ObjectId, ref: "usuarios" }],
     responsavelEnvioAnalise: { type: Schema.Types.ObjectId, ref: "usuarios" },
-    responsavelEnvioAnaliseNome: { type: String},
-    analistasResponsaveisNome: [{ type: String,}],
+    responsavelEnvioAnaliseNome: { type: String },
+    analistasResponsaveisNome: [{ type: String }],
     dataAnalise: { type: Date },
-    dataFimAnalise: { type: Date }
+    dataFimAnalise: { type: Date },
+    timeLine: [TimeLineSchema]
   },
   { timestamps: true, versionKey: false }
 )
