@@ -25,12 +25,11 @@ import { DataUtils } from "../utils/dataUtils"
 import { Eventos } from "../enums/Eventos"
 
 class DeclaracaoService {
-
   async getDashboardData(
     estados: string[],
     anos: string[],
     museuId: string | null,
-    cidades: string[], // Novo parâmetro para cidades
+    cidades: string[] // Novo parâmetro para cidades
   ) {
     const result = (
       await Declaracoes.aggregate([
@@ -342,10 +341,10 @@ class DeclaracaoService {
       .map((item) => item.ano)
       .filter((value, index, self) => self.indexOf(value) === index)
 
-
-      const statusEnum = Declaracoes.schema.path("status")
-      const status = Object.values(statusEnum)[0].filter((s: string) => s !== "Excluída")
-
+    const statusEnum = Declaracoes.schema.path("status")
+    const status = Object.values(statusEnum)[0].filter(
+      (s: string) => s !== "Excluída"
+    )
 
     const regioes: string[] = [
       "Norte",
@@ -549,11 +548,12 @@ class DeclaracaoService {
     }
   }
 
-   async verificarDeclaracaoExistente(museu: string, anoDeclaracao: string) {
+  async verificarDeclaracaoExistente(museu: string, anoDeclaracao: string) {
     const declaracaoExistente = await Declaracoes.findOne({
       anoDeclaracao,
       museu_id: museu,
-      status: { $ne: Status.Excluida }
+      status: { $ne: Status.Excluida },
+      ultimaDeclaracao: true
     })
 
     return declaracaoExistente
@@ -952,7 +952,6 @@ class DeclaracaoService {
     return declaracaoAtualizada
   }
 
-
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *
@@ -1050,11 +1049,6 @@ class DeclaracaoService {
     declaracaoId: mongoose.Types.ObjectId,
     evento: TimeLine
   ) {
-    console.log(
-      "################################### Adicionando evento à timeline:",
-      evento
-    )
-
     return await Declaracoes.findByIdAndUpdate(
       declaracaoId,
       { $push: { timeLine: evento } },
@@ -1066,26 +1060,27 @@ class DeclaracaoService {
    * Processa e atualiza uma  declaração,fazendo a deleção lógica.
    * @param id - String  contendo um  id de da declaracao.
    */
-async excluirDeclaracao(id: string): Promise<void> {
-    const declaracaoId = new mongoose.Types.ObjectId(id);
-    const declaracao = await Declaracoes.findById(declaracaoId);
-
-
+  async excluirDeclaracao(id: string): Promise<void> {
+    const declaracaoId = new mongoose.Types.ObjectId(id)
 
     const resultado = await Declaracoes.updateOne(
-      { _id: declaracaoId, status: Status.Recebida},
-      { $set: {status: Status.Excluida } }
-    );
+      { _id: declaracaoId, status: Status.Recebida },
+      { $set: { status: Status.Excluida } }
+    )
 
     if (resultado.matchedCount === 0) {
-      const declaracao = await Declaracoes.findById(declaracaoId);
+      const declaracao = await Declaracoes.findById(declaracaoId)
       if (declaracao && declaracao.status === Status.Recebida) {
-        throw new Error("Declaração está em período de análise. Não pode ser excluída.");
+        throw new Error(
+          "Declaração está em período de análise. Não pode ser excluída."
+        )
       }
-      if(declaracao && declaracao.status == Status.Excluida){
-        throw new Error(`Operação de exclusão já foi realizada para essa declaração ${declaracaoId}`);
+      if (declaracao && declaracao.status == Status.Excluida) {
+        throw new Error(
+          `Operação de exclusão já foi realizada para essa declaração ${declaracaoId}`
+        )
       }
-      throw new Error("Declaração não encontrada.");
+      throw new Error("Declaração não encontrada.")
     }
   }
 }
