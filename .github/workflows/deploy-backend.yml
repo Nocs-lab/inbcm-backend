@@ -47,7 +47,7 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_REPOSITORY }}:${{ github.event_name }}-${{ env.SHORT_SHA }}
             ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_REPOSITORY }}:latest
 
-      - name: timewait images will come in dockerhub
+      - name: waiting images arrive in docker hub
         run: sleep 12
 
 # Environment update
