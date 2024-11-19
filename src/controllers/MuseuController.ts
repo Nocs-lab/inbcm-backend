@@ -2,7 +2,45 @@ import { Request, Response } from "express"
 import { Museu, Usuario } from "../models"
 
 class MuseuController {
-  // Método para criar um novo museu
+  /**
+   * @swagger
+   * /museus:
+   *   post:
+   *     summary: Cria um novo museu
+   *     tags:
+   *       - Museus
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               nome:
+   *                 type: string
+   *               endereco:
+   *                 type: object
+   *                 properties:
+   *                   cidade:
+   *                     type: string
+   *                   logradouro:
+   *                     type: string
+   *                   numero:
+   *                     type: string
+   *               codIbram:
+   *                 type: string
+   *               esferaAdministraiva:
+   *                 type: string
+   *               usuario:
+   *                 type: string
+   *     responses:
+   *       201:
+   *         description: Museu criado com sucesso
+   *       400:
+   *         description: Dados obrigatórios ausentes
+   *       500:
+   *         description: Erro no servidor
+   */
   static async criarMuseu(req: Request, res: Response) {
     try {
       const { nome, endereco, codIbram, esferaAdministraiva, usuario } =
@@ -37,7 +75,55 @@ class MuseuController {
       return res.status(500).json({ mensagem: "Erro ao criar museu." })
     }
   }
-
+  /**
+   * @swagger
+   * /museus:
+   *   get:
+   *     summary: Lista museus com suporte à paginação e filtros
+   *     tags:
+   *       - Museus
+   *     parameters:
+   *       - in: query
+   *         name: semVinculoUsuario
+   *         schema:
+   *           type: boolean
+   *         description: Filtrar museus sem usuário vinculado
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *         description: Número da página
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *         description: Itens por página
+   *     responses:
+   *       200:
+   *         description: Lista de museus
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 museus:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                 pagination:
+   *                   type: object
+   *                   properties:
+   *                     currentPage:
+   *                       type: integer
+   *                     totalPages:
+   *                       type: integer
+   *                     totalItems:
+   *                       type: integer
+   *                     itemsPerPage:
+   *                       type: integer
+   *       500:
+   *         description: Erro ao listar museus
+   */
   static async listarMuseus(req: Request, res: Response) {
     try {
       const { semVinculoUsuario, page = "1", limit = "10" } = req.query
@@ -68,7 +154,25 @@ class MuseuController {
       return res.status(500).json({ mensagem: "Erro ao listar museus." })
     }
   }
-
+  /**
+   * @swagger
+   * /museus/usuario:
+   *   get:
+   *     summary: Lista os museus associados ao usuário autenticado.
+   *     tags:
+   *       - Museus
+   *     responses:
+   *       200:
+   *         description: Lista de museus do usuário.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/Museu'
+   *       500:
+   *         description: Erro interno ao listar museus do usuário.
+   */
   static async userMuseus(req: Request, res: Response) {
     try {
       const user_id = req.user.id
@@ -81,7 +185,32 @@ class MuseuController {
         .json({ mensagem: "Erro ao listar museus do usuário." })
     }
   }
-
+  /**
+   * @swagger
+   * /museus/municipios:
+   *   get:
+   *     summary: Lista os municípios e estados onde os museus estão localizados.
+   *     tags:
+   *       - Museus
+   *     responses:
+   *       200:
+   *         description: Lista de municípios e estados.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 type: object
+   *                 properties:
+   *                   municipio:
+   *                     type: string
+   *                     description: Nome do município.
+   *                   estado:
+   *                     type: string
+   *                     description: UF do estado.
+   *       500:
+   *         description: Erro interno ao listar municípios e estados.
+   */
   static async listarMunicipios(req: Request, res: Response) {
     try {
       // Usando agregação para obter os municípios e estados em formato chave-valor
@@ -107,7 +236,33 @@ class MuseuController {
         .status(500)
         .json({ mensagem: "Erro ao listar municípios e estados." })
     }
-  }
+  } /**
+   * @swagger
+   * /museus/desvincular-usuario:
+   *   post:
+   *     summary: Desvincula um usuário de um museu específico.
+   *     tags:
+   *       - Museus
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               museuId:
+   *                 type: string
+   *                 description: ID do museu a ser desvinculado.
+   *     responses:
+   *       200:
+   *         description: Usuário desvinculado do museu com sucesso.
+   *       400:
+   *         description: Parâmetros inválidos ou erro de validação.
+   *       404:
+   *         description: Museu ou usuário não encontrado.
+   *       500:
+   *         description: Erro interno ao desvincular usuário.
+   */
   static async desvincularUsuarioDoMuseu(req: Request, res: Response) {
     try {
       const { museuId } = req.body
@@ -155,7 +310,36 @@ class MuseuController {
         .json({ mensagem: "Erro ao desvincular usuário do museu." })
     }
   }
-
+  /**
+   * @swagger
+   * /museus/vincular-usuario:
+   *   post:
+   *     summary: Vincula um usuário a um museu específico.
+   *     tags:
+   *       - Museus
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               museuId:
+   *                 type: string
+   *                 description: ID do museu.
+   *               usuarioId:
+   *                 type: string
+   *                 description: ID do usuário.
+   *     responses:
+   *       200:
+   *         description: Usuário vinculado ao museu com sucesso.
+   *       400:
+   *         description: Parâmetros inválidos ou erro de validação.
+   *       404:
+   *         description: Museu ou usuário não encontrado.
+   *       500:
+   *         description: Erro interno ao vincular usuário.
+   */
   static async vincularUsuarioAoMuseu(req: Request, res: Response) {
     try {
       const { museuId, usuarioId } = req.body
