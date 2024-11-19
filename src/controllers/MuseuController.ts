@@ -40,18 +40,31 @@ class MuseuController {
 
   static async listarMuseus(req: Request, res: Response) {
     try {
-      // Obtém o parâmetro booleano da query string
-      const { semVinculoUsuario } = req.query
+      const { semVinculoUsuario, page = "1", limit = "10" } = req.query
 
-      // Verifica o valor do parâmetro e ajusta o filtro
+      const pageNumber = parseInt(page as string, 10)
+      const limitNumber = parseInt(limit as string, 10)
+
+      const skip = (pageNumber - 1) * limitNumber
+
       const filtro = semVinculoUsuario === "true" ? { usuario: null } : {}
 
-      // Busca os museus com base no filtro
-      const museus = await Museu.find(filtro)
+      const museus = await Museu.find(filtro).skip(skip).limit(limitNumber)
 
-      return res.status(200).json(museus)
+      const totalMuseus = await Museu.countDocuments(filtro)
+
+      const totalPages = Math.ceil(totalMuseus / limitNumber)
+
+      return res.status(200).json({
+        museus,
+        pagination: {
+          currentPage: pageNumber,
+          totalPages,
+          totalItems: totalMuseus,
+          itemsPerPage: limitNumber
+        }
+      })
     } catch (erro) {
-      console.error("Erro ao listar museus:", erro)
       return res.status(500).json({ mensagem: "Erro ao listar museus." })
     }
   }
