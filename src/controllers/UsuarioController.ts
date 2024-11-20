@@ -68,7 +68,9 @@ class UsuarioController {
     const { id } = req.params
 
     try {
-      const usuario = await Usuario.findById(id).populate("profile")
+      const usuario = await Usuario.findById(id)
+        .populate("museus", "nome")
+        .populate("profile")
       if (!usuario) {
         return res.status(404).json({ mensagem: "Usuário não encontrado." })
       }
