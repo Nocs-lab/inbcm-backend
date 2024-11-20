@@ -126,19 +126,27 @@ class MuseuController {
    */
   static async listarMuseus(req: Request, res: Response) {
     try {
-      const { semVinculoUsuario, page = "1", limit = "10" } = req.query
+      const { semVinculoUsuario, page, limit } = req.query
 
-      const pageNumber = parseInt(page as string, 10)
-      const limitNumber = parseInt(limit as string, 10)
-
-      const skip = (pageNumber - 1) * limitNumber
-
+      // Verifica o valor do parâmetro `semVinculoUsuario` e ajusta o filtro
       const filtro = semVinculoUsuario === "true" ? { usuario: null } : {}
 
+      // Caso `page` e `limit` não sejam fornecidos, retorna todos os museus
+      if (!page && !limit) {
+        const museus = await Museu.find(filtro)
+        return res.status(200).json(museus)
+      }
+
+      // Calcula paginação caso `page` e `limit` sejam fornecidos
+      const pageNumber = parseInt(page as string, 10) || 1
+      const limitNumber = parseInt(limit as string, 10) || 10
+      const skip = (pageNumber - 1) * limitNumber
+
+      // Consulta paginada
       const museus = await Museu.find(filtro).skip(skip).limit(limitNumber)
 
+      // Contagem total para paginação
       const totalMuseus = await Museu.countDocuments(filtro)
-
       const totalPages = Math.ceil(totalMuseus / limitNumber)
 
       return res.status(200).json({
@@ -151,9 +159,11 @@ class MuseuController {
         }
       })
     } catch (erro) {
+      console.error("Erro ao listar museus:", erro)
       return res.status(500).json({ mensagem: "Erro ao listar museus." })
     }
   }
+
   /**
    * @swagger
    * /museus/usuario:
