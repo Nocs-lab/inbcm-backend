@@ -348,26 +348,17 @@ class MuseuController {
     try {
       const { museuId, usuarioId } = req.body
 
-      if (!museuId || !usuarioId) {
+      if (
+        !museuId ||
+        !Array.isArray(museuId) ||
+        museuId.length === 0 ||
+        !usuarioId
+      ) {
         return res.status(400).json({
-          mensagem: "O ID do museu e o ID do usuário são obrigatórios."
+          mensagem:
+            "É necessário fornecer um array de IDs de museus e o ID do usuário."
         })
       }
-
-      const museu = await Museu.findById(museuId)
-
-      if (!museu) {
-        return res.status(404).json({ mensagem: "Museu não encontrado." })
-      }
-
-      if (museu.usuario) {
-        return res.status(400).json({
-          mensagem: "Este museu já possui um usuário associado."
-        })
-      }
-
-      museu.usuario = usuarioId
-      await museu.save()
 
       const usuario = await Usuario.findById(usuarioId)
 
@@ -375,20 +366,57 @@ class MuseuController {
         return res.status(404).json({ mensagem: "Usuário não encontrado." })
       }
 
-      if (!usuario.museus.includes(museuId)) {
-        usuario.museus.push(museuId)
-        await usuario.save()
+      const resultados = []
+
+      for (const id of museuId) {
+        // Valida o formato do ID
+        if (!id.match(/^[a-fA-F0-9]{24}$/)) {
+          resultados.push({
+            museuId: id,
+            mensagem: "ID do museu inválido."
+          })
+          continue
+        }
+
+        const museu = await Museu.findById(id)
+
+        if (!museu) {
+          resultados.push({ museuId: id, mensagem: "Museu não encontrado." })
+          continue
+        }
+
+        if (museu.usuario) {
+          resultados.push({
+            museuId: id,
+            mensagem: "Este museu já possui um usuário associado."
+          })
+          continue
+        }
+
+        museu.usuario = usuarioId
+        await museu.save()
+
+        if (!usuario.museus.includes(id)) {
+          usuario.museus.push(id)
+        }
+
+        resultados.push({
+          museuId: id,
+          mensagem: "Usuário vinculado ao museu com sucesso."
+        })
       }
 
+      await usuario.save()
+
       return res.status(200).json({
-        mensagem: "Usuário vinculado ao museu com sucesso.",
-        museu
+        mensagem: "Processo concluído.",
+        resultados
       })
     } catch (erro) {
-      console.error("Erro ao vincular usuário ao museu:", erro)
+      console.error("Erro ao vincular usuários aos museus:", erro)
       return res
         .status(500)
-        .json({ mensagem: "Erro ao vincular usuário ao museu." })
+        .json({ mensagem: "Erro ao vincular usuários aos museus." })
     }
   }
 }
