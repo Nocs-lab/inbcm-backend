@@ -34,7 +34,7 @@ routes.put(
 routes.put(
   "/desvincular-usuario",
   adminMiddleware,
-  MuseuController.vincularUsuarioAoMuseu
+  MuseuController.desvincularUsuarioDoMuseu
 )
 
 export default routes
