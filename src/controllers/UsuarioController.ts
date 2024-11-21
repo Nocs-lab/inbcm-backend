@@ -1,19 +1,22 @@
 import { Request, Response } from "express"
 import argon2 from "@node-rs/argon2"
 import Usuario from "../models/Usuario"
+import { Profile } from "../models/Profile"
+import mongoose from "mongoose"
 
 class UsuarioController {
   async registerUsuario(req: Request, res: Response) {
-    const { nome, email, senha, profile } = req.body
+    const { nome, email, senha } = req.body
     if (!nome || !email || !senha) {
       return res
         .status(400)
         .json({ mensagem: "Nome, email e senha são obrigatórios." })
     }
-    if (!profile) {
+    const declarante = await Profile.findOne({ name: "declarant" })
+    if (!declarante) {
       return res
         .status(400)
-        .json({ mensagem: "O usuário precisa ter um perfil." })
+        .json({ mensagem: "Perfil declarante não encontrado." })
     }
 
     try {
@@ -27,7 +30,7 @@ class UsuarioController {
         nome,
         email,
         senha: senhaHash,
-        profile
+        profile: declarante._id as unknown as mongoose.Types.ObjectId
       })
 
       await novoUsuario.save()
@@ -41,7 +44,19 @@ class UsuarioController {
 
   async getUsuarios(req: Request, res: Response) {
     try {
-      const usuarios = await Usuario.find({ ativo: true }).populate("profile")
+      const declarantProfile = await Profile.findOne({ name: "declarant" })
+
+      if (!declarantProfile) {
+        return res.status(404).json({ message: "Declarant profile not found" })
+      }
+
+      const usuarios = await Usuario.find({
+        ativo: true,
+        profile: declarantProfile._id
+      })
+        .populate("profile")
+        .populate("museus")
+
       return res.status(200).json(usuarios)
     } catch (error) {
       console.error("Erro ao listar usuários:", error)
@@ -53,7 +68,9 @@ class UsuarioController {
     const { id } = req.params
 
     try {
-      const usuario = await Usuario.findById(id).populate("profile")
+      const usuario = await Usuario.findById(id)
+        .populate("museus", "nome")
+        .populate("profile")
       if (!usuario) {
         return res.status(404).json({ mensagem: "Usuário não encontrado." })
       }

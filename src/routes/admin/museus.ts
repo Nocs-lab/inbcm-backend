@@ -26,5 +26,15 @@ const routes = express.Router()
 routes.get("/", adminMiddleware, MuseuController.listarMuseus)
 routes.get("/listarCidades", adminMiddleware, MuseuController.listarMunicipios)
 
+routes.put(
+  "/vincular-usuario",
+  adminMiddleware,
+  MuseuController.vincularUsuarioAoMuseu
+)
+routes.put(
+  "/desvincular-usuario",
+  adminMiddleware,
+  MuseuController.desvincularUsuarioDoMuseu
+)
 
 export default routes
