@@ -7,6 +7,8 @@ import profileRoutes from "./profile"
 import permissionsRoutes from "./permission"
 import userRoutes from "./user"
 import timeLineRoutes from "./timeline"
+import anoDeclaracaoRoutes from "./anodeclaracao"
+
 const routes = express.Router()
 
 routes.use("/auth", authRoutes)
@@ -17,5 +19,6 @@ routes.use("/profile", profileRoutes)
 routes.use("/users", userRoutes)
 routes.use("/dashboard", dashboardRoutes)
 routes.use("/timeline", timeLineRoutes)
+routes.use("/anoDeclaracao", anoDeclaracaoRoutes)
 
 export default routes
