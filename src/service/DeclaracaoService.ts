@@ -38,6 +38,7 @@ class DeclaracaoService {
           $match: {
             status: { $ne: "Excluída" }, // Filtra pelo status
             anoDeclaracao: { $in: anos }, // Filtra pelos anos passados no array
+            ultimaDeclaracao: true,
             ...(museuId && {
               museu_id: new mongoose.Types.ObjectId(museuId) // Adiciona o filtro de museuId quando presente
             })
