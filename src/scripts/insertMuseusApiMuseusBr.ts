@@ -21,7 +21,7 @@ type MuseuItem = {
 }
 
 const API_URL =
-  "https://museusbr.tainacan.org/wp-json/tainacan/v2/collection/208/items?fetch_only=id,author_id,author_name,title&fetch_only_meta=15568,2797,2261,1379,259,15171,1367"
+  "https://museusbr.tainacan.org/wp-json/tainacan/v2/collection/208/items?fetch_only=id,author_id,author_name,title&fetch_only_meta=15568,2797,2261,1379,259,15171,1367,1375"
 
 async function fetchMuseus() {
   try {
