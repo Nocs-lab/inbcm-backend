@@ -147,7 +147,8 @@ export class DeclaracaoController {
         {
           $match: {
             responsavelEnvio: new mongoose.Types.ObjectId(req.user.id),
-            status: { $ne: Status.Excluida }
+            status: { $ne: Status.Excluida },
+            ultimaDeclaracao: true
           }
         },
         {
