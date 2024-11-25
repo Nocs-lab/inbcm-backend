@@ -10,6 +10,7 @@ import minioClient from "../db/minioClient"
 import { DataUtils } from "../utils/dataUtils"
 import { Status } from "../enums/Status"
 import { Eventos } from "../enums/Eventos"
+import logger from "../utils/logger"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -134,7 +135,7 @@ export class DeclaracaoController {
 
       return res.status(200).json(declaracao)
     } catch (error) {
-      console.error("Erro ao buscar declaração:", error)
+      logger.error("Erro ao buscar declaração:", error)
       return res.status(500).json({ message: "Erro ao buscar declaração." })
     }
   }
@@ -171,7 +172,7 @@ export class DeclaracaoController {
       // Retorna o resultado final
       return res.status(200).json(declaracoes)
     } catch (error) {
-      console.error("Erro ao buscar declarações:", error)
+      logger.error("Erro ao buscar declarações:", error)
       return res.status(500).json({ message: "Erro ao buscar declarações." })
     }
   }
@@ -235,7 +236,7 @@ export class DeclaracaoController {
             anos
               ? Array.isArray(anos)
                 ? anos.map(String)
-                : [String(anos)]
+                : String(anos).split(",")
               : [],
             museu ? String(museu) : null,
             cidades
@@ -246,7 +247,7 @@ export class DeclaracaoController {
           )
         )
     } catch (error) {
-      console.error("Erro ao buscar declarações por ano:", error)
+      logger.error("Erro ao buscar declarações por ano:", error)
       return res
         .status(500)
         .json({ message: "Erro ao buscar declarações por ano." })
@@ -260,7 +261,7 @@ export class DeclaracaoController {
       )
       return res.status(200).json(declaracoes)
     } catch (error) {
-      console.error("Erro ao buscar declarações com filtros:", error)
+      logger.error("Erro ao buscar declarações com filtros:", error)
       return res
         .status(500)
         .json({ message: "Erro ao buscar declarações com filtros." })
@@ -431,7 +432,7 @@ export class DeclaracaoController {
 
       return res.status(200).json(novaDeclaracao)
     } catch (error) {
-      console.error("Erro ao enviar uma declaração:", error)
+      logger.error("Erro ao enviar uma declaração:", error)
       return res
         .status(500)
         .json({ message: "Erro ao enviar uma declaração: ", error })
@@ -477,7 +478,7 @@ export class DeclaracaoController {
 
       fileStream.pipe(res)
     } catch (error) {
-      console.error("Erro ao baixar arquivo da declaração:", error)
+      logger.error("Erro ao baixar arquivo da declaração:", error)
       return res
         .status(500)
         .json({ message: "Erro ao baixar arquivo da declaração." })
@@ -517,7 +518,7 @@ export class DeclaracaoController {
 
       return res.json(processedTimeline)
     } catch (error) {
-      console.error(error)
+      logger.error(error)
       return res.status(500).json({ error: "Erro ao obter a timeline." })
     }
   }
@@ -595,7 +596,7 @@ export class DeclaracaoController {
 
       return res.status(200).json(declaracao)
     } catch (error) {
-      console.error("Erro ao enviar declaração para análise:", error)
+      logger.error("Erro ao enviar declaração para análise:", error)
       return res
         .status(500)
         .json({ message: "Erro ao enviar declaração para análise." })
@@ -707,7 +708,7 @@ export class DeclaracaoController {
 
       res.status(200).json(resultado)
     } catch (error) {
-      console.error(error)
+      logger.error(error)
       res
         .status(500)
         .json({ error: "Erro ao buscar declarações agrupadas por analista" })
@@ -772,7 +773,7 @@ export class DeclaracaoController {
         data: agregacao
       })
     } catch (error) {
-      console.error("Erro ao processar a requisição: ", error)
+      logger.error("Erro ao processar a requisição: ", error)
 
       return res.status(500).json({
         success: false,
@@ -799,7 +800,7 @@ export class DeclaracaoController {
       // Envia a lista de anos válidos na resposta
       res.json({ anos: anosValidos })
     } catch (error) {
-      console.error("Erro ao obter anos válidos:", error)
+      logger.error("Erro ao obter anos válidos:", error)
       res.status(500).json({ message: "Erro ao obter anos válidos" })
     }
   }
@@ -841,7 +842,7 @@ export class DeclaracaoController {
 
       res.status(200).json(result)
     } catch (error) {
-      console.error(`Erro ao listar itens ${tipo}:`, error)
+      logger.error(`Erro ao listar itens ${tipo}:`, error)
 
       if (error instanceof Error) {
         res.status(500).json({

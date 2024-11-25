@@ -19,7 +19,7 @@ interface SubmissionRequest extends Request {
 }
 
 const uploadMiddleware: RequestHandler = async (req, res, next) => {
-  upload(req, res, async (err: any) => {
+  upload(req, res, async (err: unknown) => {
     if (err) {
       const errorMessage =
         err instanceof MulterError

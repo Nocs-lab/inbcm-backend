@@ -1,5 +1,6 @@
 import connect from "../db/conn"
 import { Permission } from "../models/Permission"
+import logger from "../utils/logger"
 
 const setPermissions = async () => {
   await connect()
@@ -47,9 +48,9 @@ const setPermissions = async () => {
 
       if (!existingPermission) {
         await Permission.create(permission)
-        console.log(`Permissão "${permission.name}" criada com sucesso!`)
+        logger.info(`Permissão "${permission.name}" criada com sucesso!`)
       } else {
-        console.log(`Permissão "${permission.name}" já existe. Ignorando...`)
+        logger.info(`Permissão "${permission.name}" já existe. Ignorando...`)
       }
     }
 

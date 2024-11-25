@@ -1,5 +1,6 @@
 import { Request, Response } from "express"
 import { Permission } from "../models/Permission"
+import logger from "../utils/logger"
 
 class PermissionController {
   public async getPermissions(req: Request, res: Response): Promise<Response> {
@@ -7,7 +8,7 @@ class PermissionController {
       const permissions = await Permission.find()
       return res.status(200).json(permissions)
     } catch (error) {
-      console.error("Erro ao listar os perfis dos usuários:", error)
+      logger.error("Erro ao listar os perfis dos usuários:", error)
       return res.status(500).json({ message: "Erro ao listar permissões" })
     }
   }

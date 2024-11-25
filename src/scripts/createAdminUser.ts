@@ -2,6 +2,7 @@ import { hash } from "@node-rs/argon2"
 import { Usuario } from "../models/Usuario"
 import { Profile } from "../models/Profile" // Importa o model Profile
 import connect from "../db/conn"
+import logger from "../utils/logger"
 
 const [email, nome, senha = "1234"] = process.argv.slice(2)
 
@@ -28,10 +29,10 @@ const createAdminUser = async () => {
     })
 
     await adminUser.save()
-    console.log("Usuário criado com sucesso!")
+    logger.info("Usuário criado com sucesso!")
     process.exit(0)
   } catch (err) {
-    console.error("Erro ao criar o usuário:", err)
+    logger.error("Erro ao criar o usuário:", err)
     process.exit(1)
   }
 }
