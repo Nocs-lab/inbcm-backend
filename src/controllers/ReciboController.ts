@@ -1,6 +1,7 @@
 import { Request, Response } from "express"
 import mongoose from "mongoose"
 import { gerarPDFRecibo } from "../service/ReciboService"
+import logger from "../utils/logger"
 
 class ReciboController {
   /**
@@ -24,7 +25,7 @@ class ReciboController {
       res.setHeader("Content-Type", "application/pdf")
       res.send(pdfBuffer)
     } catch (error) {
-      console.error("Erro ao gerar o recibo:", error)
+      logger.error("Erro ao gerar o recibo:", error)
       res.status(500).json({ error: "Erro ao gerar o recibo." })
     }
   }

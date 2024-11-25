@@ -12,11 +12,20 @@ import swaggerSpec from "./swagger"
 import * as OpenApiValidator from "express-openapi-validator"
 import sanitizeMongo from "./middlewares/sanitizers/mongo"
 import sanitizeHtml from "./middlewares/sanitizers/html"
+import logger from "./utils/logger"
 
 const app = express()
 
+app.set("trust proxy", process.env.NODE_ENV === "production")
+
 app.use(helmet())
-app.use(morgan("dev"))
+app.use(
+  morgan(":method :url :status :res[content-length] - :response-time ms", {
+    stream: {
+      write: (message) => logger.http(message.trim())
+    }
+  })
+)
 app.use(express.json())
 app.use(cookieParser(config.JWT_SECRET))
 app.use(msgpack())

@@ -3,6 +3,7 @@ import { Profile } from "../models/Profile"
 import { Permission } from "../models/Permission"
 import mongoose from "mongoose"
 import { Usuario } from "../models"
+import logger from "../utils/logger"
 
 class ProfileController {
   public async addPermissions(req: Request, res: Response): Promise<void> {
@@ -58,7 +59,7 @@ class ProfileController {
 
       return res.status(201).json(profile)
     } catch (error) {
-      console.error("Erro ao criar o perfil do usuário:", error)
+      logger.error("Erro ao criar o perfil do usuário:", error)
       return res
         .status(500)
         .json({ message: "Erro ao criar o perfil do usuário" })
@@ -70,7 +71,7 @@ class ProfileController {
       const profiles = await Profile.find()
       return res.status(200).json(profiles)
     } catch (error) {
-      console.error("Erro ao listar os perfis dos usuários:", error)
+      logger.error("Erro ao listar os perfis dos usuários:", error)
       return res
         .status(500)
         .json({ message: "Erro ao listar os perfis dos usuários" })
@@ -86,7 +87,7 @@ class ProfileController {
       }
       return res.status(200).json(profile)
     } catch (error) {
-      console.error("Erro ao buscar o perfil do usuário:", error)
+      logger.error("Erro ao buscar o perfil do usuário:", error)
       return res
         .status(500)
         .json({ message: "Erro ao buscar o perfil do usuário" })
@@ -116,7 +117,7 @@ class ProfileController {
 
       return res.status(200).json(updatedProfile)
     } catch (error) {
-      console.error("Erro ao atualizar o perfil do usuário:", error)
+      logger.error("Erro ao atualizar o perfil do usuário:", error)
       return res
         .status(500)
         .json({ message: "Erro ao atualizar o perfil do usuário" })
@@ -146,7 +147,7 @@ class ProfileController {
       await Profile.findByIdAndDelete(id)
       return res.status(200).json({ message: "Perfil excluído com sucesso" })
     } catch (error) {
-      console.error("Erro ao excluir o perfil do usuário:", error)
+      logger.error("Erro ao excluir o perfil do usuário:", error)
       return res
         .status(500)
         .json({ message: "Erro ao excluir o perfil do usuário" })

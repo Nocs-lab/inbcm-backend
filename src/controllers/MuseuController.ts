@@ -1,5 +1,6 @@
 import { Request, Response } from "express"
 import { Museu, Usuario } from "../models"
+import logger from "../utils/logger"
 
 class MuseuController {
   /**
@@ -71,7 +72,7 @@ class MuseuController {
         .status(201)
         .json({ mensagem: "Museu criado com sucesso!", museu: novoMuseu })
     } catch (erro) {
-      console.error("Erro ao criar museu:", erro)
+      logger.error("Erro ao criar museu:", erro)
       return res.status(500).json({ mensagem: "Erro ao criar museu." })
     }
   }
@@ -183,7 +184,7 @@ class MuseuController {
       const museus = await Museu.find({ usuario: user_id })
       return res.status(200).json(museus)
     } catch (erro) {
-      console.error("Erro ao listar museus do usuário:", erro)
+      logger.error("Erro ao listar museus do usuário:", erro)
       return res
         .status(500)
         .json({ mensagem: "Erro ao listar museus do usuário." })
@@ -235,7 +236,7 @@ class MuseuController {
 
       return res.status(200).json(municipiosEstados)
     } catch (erro) {
-      console.error("Erro ao listar municípios e estados:", erro)
+      logger.error("Erro ao listar municípios e estados:", erro)
       return res
         .status(500)
         .json({ mensagem: "Erro ao listar municípios e estados." })
@@ -308,7 +309,7 @@ class MuseuController {
         museu
       })
     } catch (erro) {
-      console.error("Erro ao desvincular usuário do museu:", erro)
+      logger.error("Erro ao desvincular usuário do museu:", erro)
       return res
         .status(500)
         .json({ mensagem: "Erro ao desvincular usuário do museu." })
@@ -413,7 +414,7 @@ class MuseuController {
         resultados
       })
     } catch (erro) {
-      console.error("Erro ao vincular usuários aos museus:", erro)
+      logger.error("Erro ao vincular usuários aos museus:", erro)
       return res
         .status(500)
         .json({ mensagem: "Erro ao vincular usuários aos museus." })

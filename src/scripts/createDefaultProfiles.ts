@@ -47,7 +47,7 @@ const createProfiles = async () => {
       console.log("Perfil 'analyst' já existe.")
     }
   } catch (error) {
-    console.error("Erro ao criar os perfis:", error)
+    logger.error("Erro ao criar os perfis:", error)
     throw error
   }
 }
@@ -55,6 +55,6 @@ const createProfiles = async () => {
 createProfiles()
   .then(() => process.exit(0))
   .catch((err) => {
-    console.error(err)
+    logger.error(err)
     process.exit(1)
   })

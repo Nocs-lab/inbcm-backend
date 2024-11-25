@@ -1,8 +1,8 @@
-import { Request, Response } from "express";
-import { AnoDeclaracao } from "../models/AnoDeclaracao";
+import { Request, Response } from "express"
+import { AnoDeclaracao } from "../models/AnoDeclaracao"
+import logger from "../utils/logger"
 
 class AnoDeclaracaoController {
-
   /**
    * Cria um novo registro de ano de declaração.
    *
@@ -19,7 +19,10 @@ class AnoDeclaracaoController {
    * @throws {400} - Se o ano já existir.
    * @throws {500} - Em caso de erro interno ao criar o ano de declaração.
    */
-  public async criarAnoDeclaracao(req: Request, res: Response): Promise<Response> {
+  public async criarAnoDeclaracao(
+    req: Request,
+    res: Response
+  ): Promise<Response> {
     try {
       const {
         ano,
@@ -27,18 +30,20 @@ class AnoDeclaracaoController {
         dataFimSubmissao,
         dataInicioRetificacao,
         dataFimRetificacao,
-        metaDeclaracoesEnviadas,
-      } = req.body;
+        metaDeclaracoesEnviadas
+      } = req.body
 
       // Convertendo as strings para objetos Date, se necessário
-      const dataInicioSubmissaoDate = new Date(dataInicioSubmissao);
-      const dataFimSubmissaoDate = new Date(dataFimSubmissao);
-      const dataInicioRetificacaoDate = new Date(dataInicioRetificacao);
-      const dataFimRetificacaoDate = new Date(dataFimRetificacao);
+      const dataInicioSubmissaoDate = new Date(dataInicioSubmissao)
+      const dataFimSubmissaoDate = new Date(dataFimSubmissao)
+      const dataInicioRetificacaoDate = new Date(dataInicioRetificacao)
+      const dataFimRetificacaoDate = new Date(dataFimRetificacao)
 
-      const anoExistente = await AnoDeclaracao.findOne({ ano });
+      const anoExistente = await AnoDeclaracao.findOne({ ano })
       if (anoExistente) {
-        return res.status(400).json({ message: `Já existe um ano de declaração para o ano ${ano}.` });
+        return res.status(400).json({
+          message: `Já existe um ano de declaração para o ano ${ano}.`
+        })
       }
 
       const anoDeclaracao = new AnoDeclaracao({
@@ -47,14 +52,16 @@ class AnoDeclaracaoController {
         dataFimSubmissao: dataFimSubmissaoDate,
         dataInicioRetificacao: dataInicioRetificacaoDate,
         dataFimRetificacao: dataFimRetificacaoDate,
-        metaDeclaracoesEnviadas,
-      });
+        metaDeclaracoesEnviadas
+      })
 
-      await anoDeclaracao.save();
-      return res.status(201).json(anoDeclaracao);
+      await anoDeclaracao.save()
+      return res.status(201).json(anoDeclaracao)
     } catch (error) {
-      console.error("Erro ao criar o ano de declaração:", error);
-      return res.status(500).json({ message: "Erro ao criar o ano de declaração" });
+      logger.error("Erro ao criar o ano de declaração:", error)
+      return res
+        .status(500)
+        .json({ message: "Erro ao criar o ano de declaração" })
     }
   }
 
@@ -68,20 +75,25 @@ class AnoDeclaracaoController {
    *
    * @throws {500} - Em caso de erro interno ao buscar os anos.
    */
-  public async getAnoDeclaracao(req: Request, res: Response): Promise<Response> {
+  public async getAnoDeclaracao(
+    req: Request,
+    res: Response
+  ): Promise<Response> {
     try {
-      const { quantidadeAnoDeclaracao } = req.query;
-      const query = AnoDeclaracao.find().sort({ ano: -1 });
+      const { quantidadeAnoDeclaracao } = req.query
+      const query = AnoDeclaracao.find().sort({ ano: -1 })
 
       if (quantidadeAnoDeclaracao) {
-        query.limit(Number(quantidadeAnoDeclaracao));
+        query.limit(Number(quantidadeAnoDeclaracao))
       }
 
-      const anoDeclaracoes = await query;
-      return res.status(200).json(anoDeclaracoes);
+      const anoDeclaracoes = await query
+      return res.status(200).json(anoDeclaracoes)
     } catch (error) {
-      console.error("Erro ao listar os anos de declaração:", error);
-      return res.status(500).json({ message: "Erro ao listar os anos de declaração" });
+      logger.error("Erro ao listar os anos de declaração:", error)
+      return res
+        .status(500)
+        .json({ message: "Erro ao listar os anos de declaração" })
     }
   }
 
@@ -96,17 +108,24 @@ class AnoDeclaracaoController {
    * @throws {404} - Se o ano de declaração não for encontrado.
    * @throws {500} - Em caso de erro interno ao buscar o ano.
    */
-  public async getAnoDeclaracaoById(req: Request, res: Response): Promise<Response> {
+  public async getAnoDeclaracaoById(
+    req: Request,
+    res: Response
+  ): Promise<Response> {
     try {
-      const { id } = req.params;
-      const anoDeclaracao = await AnoDeclaracao.findById(id);
+      const { id } = req.params
+      const anoDeclaracao = await AnoDeclaracao.findById(id)
       if (!anoDeclaracao) {
-        return res.status(404).json({ message: "Ano de declaração não encontrado" });
+        return res
+          .status(404)
+          .json({ message: "Ano de declaração não encontrado" })
       }
-      return res.status(200).json(anoDeclaracao);
+      return res.status(200).json(anoDeclaracao)
     } catch (error) {
-      console.error("Erro ao buscar o ano de declaração:", error);
-      return res.status(500).json({ message: "Erro ao buscar o ano de declaração" });
+      logger.error("Erro ao buscar o ano de declaração:", error)
+      return res
+        .status(500)
+        .json({ message: "Erro ao buscar o ano de declaração" })
     }
   }
 
@@ -126,37 +145,50 @@ class AnoDeclaracaoController {
    * @throws {404} - Se o ano de declaração não for encontrado.
    * @throws {500} - Em caso de erro interno ao atualizar o ano.
    */
-  public async updateAnoDeclaracao(req: Request, res: Response): Promise<Response> {
+  public async updateAnoDeclaracao(
+    req: Request,
+    res: Response
+  ): Promise<Response> {
     try {
-      const { id } = req.params;
+      const { id } = req.params
       const {
         dataInicioSubmissao,
         dataFimSubmissao,
         dataInicioRetificacao,
         dataFimRetificacao,
-        metaDeclaracoesEnviadas,
-      } = req.body;
+        metaDeclaracoesEnviadas
+      } = req.body
 
       // Convertendo as strings para objetos Date, se necessário
-      const dataInicioSubmissaoDate = new Date(dataInicioSubmissao);
-      const dataFimSubmissaoDate = new Date(dataFimSubmissao);
-      const dataInicioRetificacaoDate = new Date(dataInicioRetificacao);
-      const dataFimRetificacaoDate = new Date(dataFimRetificacao);
+      const dataInicioSubmissaoDate = new Date(dataInicioSubmissao)
+      const dataFimSubmissaoDate = new Date(dataFimSubmissao)
+      const dataInicioRetificacaoDate = new Date(dataInicioRetificacao)
+      const dataFimRetificacaoDate = new Date(dataFimRetificacao)
 
       const updatedAnoDeclaracao = await AnoDeclaracao.findByIdAndUpdate(
         id,
-        { dataInicioSubmissao: dataInicioSubmissaoDate, dataFimSubmissao: dataFimSubmissaoDate, dataInicioRetificacao: dataInicioRetificacaoDate, dataFimRetificacao: dataFimRetificacaoDate, metaDeclaracoesEnviadas },
+        {
+          dataInicioSubmissao: dataInicioSubmissaoDate,
+          dataFimSubmissao: dataFimSubmissaoDate,
+          dataInicioRetificacao: dataInicioRetificacaoDate,
+          dataFimRetificacao: dataFimRetificacaoDate,
+          metaDeclaracoesEnviadas
+        },
         { new: true }
-      );
+      )
 
       if (!updatedAnoDeclaracao) {
-        return res.status(404).json({ message: "Ano de declaração não encontrado" });
+        return res
+          .status(404)
+          .json({ message: "Ano de declaração não encontrado" })
       }
 
-      return res.status(200).json(updatedAnoDeclaracao);
+      return res.status(200).json(updatedAnoDeclaracao)
     } catch (error) {
-      console.error("Erro ao atualizar o ano de declaração:", error);
-      return res.status(500).json({ message: "Erro ao atualizar o ano de declaração" });
+      logger.error("Erro ao atualizar o ano de declaração:", error)
+      return res
+        .status(500)
+        .json({ message: "Erro ao atualizar o ano de declaração" })
     }
   }
 
@@ -171,21 +203,30 @@ class AnoDeclaracaoController {
    * @throws {404} - Se o ano de declaração não for encontrado.
    * @throws {500} - Em caso de erro interno ao excluir o ano.
    */
-  public async deleteAnoDeclaracao(req: Request, res: Response): Promise<Response> {
+  public async deleteAnoDeclaracao(
+    req: Request,
+    res: Response
+  ): Promise<Response> {
     try {
-      const { id } = req.params;
-      const anoDeclaracao = await AnoDeclaracao.findByIdAndDelete(id);
+      const { id } = req.params
+      const anoDeclaracao = await AnoDeclaracao.findByIdAndDelete(id)
 
       if (!anoDeclaracao) {
-        return res.status(404).json({ message: "Ano de declaração não encontrado" });
+        return res
+          .status(404)
+          .json({ message: "Ano de declaração não encontrado" })
       }
 
-      return res.status(200).json({ message: "Ano de declaração excluído com sucesso" });
+      return res
+        .status(200)
+        .json({ message: "Ano de declaração excluído com sucesso" })
     } catch (error) {
-      console.error("Erro ao excluir o ano de declaração:", error);
-      return res.status(500).json({ message: "Erro ao excluir o ano de declaração" });
+      logger.error("Erro ao excluir o ano de declaração:", error)
+      return res
+        .status(500)
+        .json({ message: "Erro ao excluir o ano de declaração" })
     }
   }
 }
 
-export default new AnoDeclaracaoController();
+export default new AnoDeclaracaoController()

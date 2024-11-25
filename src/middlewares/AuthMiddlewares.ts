@@ -44,7 +44,7 @@ export const permissionCheckMiddleware: (permission: string) => Handler =
 
       next()
     } catch (error) {
-      console.error("Erro no middleware de verificação de permissão:", error)
+      logg.error("Erro no middleware de verificação de permissão:", error)
       return res.status(401).send("Erro ao verificar permissão")
     }
   }

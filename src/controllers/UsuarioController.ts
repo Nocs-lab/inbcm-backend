@@ -3,6 +3,7 @@ import argon2 from "@node-rs/argon2"
 import Usuario from "../models/Usuario"
 import { Profile } from "../models/Profile"
 import mongoose from "mongoose"
+import logger from "../utils/logger"
 
 class UsuarioController {
   async registerUsuario(req: Request, res: Response) {
@@ -37,7 +38,7 @@ class UsuarioController {
 
       return res.status(201).json({ mensagem: "Usuário criado com sucesso." })
     } catch (error) {
-      console.error("Erro ao criar usuário:", error)
+      logger.error("Erro ao criar usuário:", error)
       return res.status(500).json({ mensagem: "Erro ao criar usuário." })
     }
   }
@@ -59,7 +60,7 @@ class UsuarioController {
 
       return res.status(200).json(usuarios)
     } catch (error) {
-      console.error("Erro ao listar usuários:", error)
+      logger.error("Erro ao listar usuários:", error)
       return res.status(500).json({ mensagem: "Erro ao listar usuários." })
     }
   }
@@ -76,7 +77,7 @@ class UsuarioController {
       }
       return res.status(200).json(usuario)
     } catch (error) {
-      console.error("Erro ao buscar usuário:", error)
+      logger.error("Erro ao buscar usuário:", error)
       return res.status(500).json({ mensagem: "Erro ao buscar usuário." })
     }
   }
@@ -84,7 +85,6 @@ class UsuarioController {
   async atualizarUsuario(req: Request, res: Response) {
     const { id } = req.params
     const { nome, email, senha, profile } = req.body
-    console.log(req.body)
     try {
       const usuario = await Usuario.findById(id)
       if (!usuario) {
@@ -107,7 +107,7 @@ class UsuarioController {
         .status(200)
         .json({ mensagem: "Usuário atualizado com sucesso." })
     } catch (error) {
-      console.error("Erro ao atualizar usuário:", error)
+      logger.error("Erro ao atualizar usuário:", error)
       return res.status(500).json({ mensagem: "Erro ao atualizar usuário." })
     }
   }
@@ -126,7 +126,7 @@ class UsuarioController {
 
       return res.status(200).json({ mensagem: "Usuário deletado com sucesso." })
     } catch (error) {
-      console.error("Erro ao deletar usuário:", error)
+      logger.error("Erro ao deletar usuário:", error)
       return res.status(500).json({ mensagem: "Erro ao deletar usuário." })
     }
   }
@@ -146,7 +146,7 @@ class UsuarioController {
       }
       return res.status(200).json(usuarios)
     } catch (error) {
-      console.error("Erro ao listar usuários por perfil:", error)
+      logger.error("Erro ao listar usuários por perfil:", error)
       return res
         .status(500)
         .json({ mensagem: "Erro ao listar usuários por perfil." })
