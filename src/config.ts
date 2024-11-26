@@ -1,6 +1,7 @@
 import dotenv from "dotenv"
 import { expand } from "dotenv-expand"
 import { z } from "zod"
+import logger from "./utils/logger"
 
 dotenv.config()
 
@@ -19,8 +20,10 @@ const parsed = {
   MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY ?? "",
   MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY ?? ""
 }
+logger.info("Carregando configurações...")
 
 expand({ parsed, processEnv: parsedEnv })
+logger.info(JSON.stringify(parsedEnv, null, 2))
 
 const schema = z.object({
   NODE_ENV: z.enum(["DEVELOPMENT", "PRODUCTION", "test"]),
@@ -40,5 +43,7 @@ const schema = z.object({
 })
 
 const config = schema.parse(parsedEnv)
+logger.info("Configurações carregadas com sucesso.")
+logger.info(JSON.stringify(config, null, 2))
 
 export default config
