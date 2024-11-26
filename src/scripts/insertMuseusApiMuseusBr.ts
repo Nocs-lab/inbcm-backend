@@ -50,7 +50,7 @@ async function fetchMuseus() {
               codIbram:
                 metadata["codigo-identificador-ibram-2"]?.value_as_string ||
                 "N/A",
-              nome: item.title || "Sem Nome",
+              museu_nome: item.title || "Sem Nome",
               esferaAdministraiva:
                 metadata["esfera"]?.value_as_string || "Desconhecida",
               endereco: {
