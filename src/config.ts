@@ -13,7 +13,7 @@ const parsed = {
   DB_URL: process.env.DB_URL ?? "",
   JWT_SECRET: process.env.JWT_SECRET ?? "__SeCrEt__",
   ADMIN_SITE_URL: process.env.PRIVATE_SITE_URL ?? "https://localhost:5173",
-  MINIO_ENDPOINT: process.env.MINIO_ENDPOINT ?? "localhost",
+  MINIO_ENDPOINT: process.env.MINIO_ENDPOINT ?? "minio",
   MINIO_PORT: process.env.MINIO_PORT ?? "9000",
   MINIO_USE_SSL: process.env.MINIO_USE_SSL ?? "false",
   MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY ?? "",
