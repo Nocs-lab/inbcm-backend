@@ -41,7 +41,7 @@ def test_envio_declaracao(pagina):
         pagina.click('xpath=//*[@id="root"]/main/form/div[2]/div/button')
         sleep(2)
         file_chooser = fc.value
-        file_chooser.set_files("./28_08_2024_20_29_16_186-02_-_Museologia_Procopio_Resistencia_-_Retificadora.xlsx")
+        file_chooser.set_files("./src/tests/assets/museologico.xlsx")
     sleep(2)
     pagina.click('button.br-button.primary.mt-5')
     sleep(1)
@@ -96,7 +96,7 @@ def test_exclusao_declaracao(pagina):
 
 
 with sync_playwright() as p:
-    navegador = p.chromium.launch(headless=False)
+    navegador = p.chromium.launch()
     pagina = navegador.new_page()
     login_public(pagina, user, pwd)
     test_nova_declaracao(pagina)
