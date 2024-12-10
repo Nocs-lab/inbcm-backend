@@ -5,5 +5,6 @@ export enum Eventos {
   EnvioParaAnalista = "Declaração enviada para o analista",
   ConclusaoAnalise = "Conclusão de análise",
   MudancaStatus = "Mudança de status de declaração",
-  RetificacaoDeclaracao = "Retificação de declaração"
+  RetificacaoDeclaracao = "Retificação de declaração",
+  ExclusaoDeclaracao = "Exclusão de declaração"
 }
