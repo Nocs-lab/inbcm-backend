@@ -1064,25 +1064,33 @@ class DeclaracaoService {
   async excluirDeclaracao(id: string): Promise<void> {
     const declaracaoId = new mongoose.Types.ObjectId(id)
 
-    const resultado = await Declaracoes.updateOne(
-      { _id: declaracaoId, status: Status.Recebida },
-      { $set: { status: Status.Excluida } }
-    )
+    // Busca a declaração pelo ID
+    const declaracao = await Declaracoes.findById(declaracaoId)
 
-    if (resultado.matchedCount === 0) {
-      const declaracao = await Declaracoes.findById(declaracaoId)
-      if (declaracao && declaracao.status === Status.Recebida) {
-        throw new Error(
-          "Declaração está em período de análise. Não pode ser excluída."
-        )
-      }
-      if (declaracao && declaracao.status == Status.Excluida) {
-        throw new Error(
-          `Operação de exclusão já foi realizada para essa declaração ${declaracaoId}`
-        )
-      }
+    if (!declaracao) {
       throw new Error("Declaração não encontrada.")
     }
+
+    if (declaracao.status === Status.Excluida) {
+      throw new Error(
+        `Operação de exclusão já foi realizada para essa declaração ${declaracaoId}`
+      )
+    }
+
+    if (declaracao.status === Status.Recebida) {
+      throw new Error(
+        "Declaração está em período de análise. Não pode ser excluída."
+      )
+    }
+
+    declaracao.timeLine.push({
+      nomeEvento: Eventos.ExclusaoDeclaracao,
+      dataEvento: DataUtils.getCurrentData(),
+      autorEvento: declaracao.responsavelEnvioNome
+    })
+    declaracao.status = Status.Excluida
+
+    await declaracao.save()
   }
 }
 
