@@ -41,44 +41,31 @@ export class DeclaracaoController {
         return res.status(404).json({ message: "Declaração não encontrada." })
       }
 
-      if (declaracao.status === Status.Excluida && status !== Status.Excluida) {
-        const verificaDeclaracao = await Declaracoes.findOne({
+      if (status === Status.Excluida) {
+        const existeDeclaracaoNova = await Declaracoes.findOne({
           museu: declaracao.museu_id,
           anoDeclaracao: declaracao.anoDeclaracao,
+          status: Status.Recebida,
           _id: { $ne: id }
         })
 
-        if (verificaDeclaracao) {
-          throw new Error(
-            "Não é possível alterar o status de uma declaração excluída quando já existe outra declaração para o mesmo museu no mesmo ano."
-          )
+        if (existeDeclaracaoNova) {
+          return res.status(400).json({
+            message:
+              "Não é possível restaurar esta declaração porque já existe uma  nova declaração  para o mesmo museu e ano."
+          })
         }
       }
 
-      // Atualizar o status da declaração e de suas subcategorias, se permitido
       declaracao.status = status
-      if (declaracao.museologico) {
-        declaracao.museologico.status = status
-      }
-      if (declaracao.arquivistico) {
-        declaracao.arquivistico.status = status
-      }
-      if (declaracao.bibliografico) {
-        declaracao.bibliografico.status = status
-      }
+      await declaracao.save()
 
-      await declaracao.save({ validateBeforeSave: false })
-      return res.status(200).json(declaracao)
+      return res.status(200).json({ message: "Status atualizado com sucesso." })
     } catch (error) {
-      const statusCode =
-        error instanceof Error && error.message === "Declaração não encontrada."
-          ? 404
-          : 400
-      return res.status(statusCode).json({
-        message:
-          error instanceof Error
-            ? error.message
-            : "Erro ao atualizar status da declaração."
+      logger.error("Erro ao atualizar o status da declaração:", error)
+      return res.status(500).json({
+        message: "Erro ao atualizar o status da declaração.",
+        error: error.message
       })
     }
   }
@@ -387,11 +374,20 @@ export class DeclaracaoController {
 
       const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
 
-      novaDeclaracao.timeLine.push({
-        nomeEvento: Eventos.EnvioDeclaracao,
-        dataEvento: DataUtils.getCurrentData(),
-        autorEvento: responsavelEnvio.nome
-      })
+      // Verifica se é retificação ou nova declaração e adiciona o evento correspondente
+      if (idDeclaracao && declaracaoExistente) {
+        novaDeclaracao.timeLine.push({
+          nomeEvento: "Retificação da Declaração",
+          dataEvento: DataUtils.getCurrentData(),
+          autorEvento: responsavelEnvio.nome
+        })
+      } else {
+        novaDeclaracao.timeLine.push({
+          nomeEvento: Eventos.EnvioDeclaracao,
+          dataEvento: DataUtils.getCurrentData(),
+          autorEvento: responsavelEnvio.nome
+        })
+      }
 
       await this.declaracaoService.updateDeclaracao(
         files["arquivistico"],
