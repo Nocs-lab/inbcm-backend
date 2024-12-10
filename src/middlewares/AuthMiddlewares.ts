@@ -6,6 +6,7 @@ import { Permission } from "../models/Permission"
 import { verify } from "@node-rs/argon2"
 import config from "../config"
 import { rateLimit } from "express-rate-limit"
+import logger from "../utils/logger"
 
 const limiter = rateLimit({
   windowMs: 2 * 60 * 1000,
@@ -44,7 +45,7 @@ export const permissionCheckMiddleware: (permission: string) => Handler =
 
       next()
     } catch (error) {
-      logg.error("Erro no middleware de verificação de permissão:", error)
+      logger.error("Erro no middleware de verificação de permissão:", error)
       return res.status(401).send("Erro ao verificar permissão")
     }
   }
@@ -59,7 +60,10 @@ export const userMiddleware: Handler = async (req, res, next) => {
         .toString()
         .split(":")
 
-      const user = await Usuario.findOne({ email, admin: false })
+      const user = await Usuario.findOne({
+        email: email.toLowerCase(),
+        admin: false
+      })
 
       if (user) {
         if (await verify(user.senha, password)) {
@@ -105,7 +109,10 @@ export const adminMiddleware: Handler = async (req, res, next) => {
         .toString()
         .split(":")
 
-      const user = await Usuario.findOne({ email, admin: true })
+      const user = await Usuario.findOne({
+        email: email.toLowerCase(),
+        admin: true
+      })
 
       if (user) {
         if (await verify(user.senha, password)) {
