@@ -1071,16 +1071,29 @@ class DeclaracaoService {
 
     if (resultado.matchedCount === 0) {
       const declaracao = await Declaracoes.findById(declaracaoId)
-      if (declaracao && declaracao.status === Status.Recebida) {
-        throw new Error(
-          "Declaração está em período de análise. Não pode ser excluída."
-        )
+
+      if (declaracao) {
+        // Adiciona o evento de exclusão à timeline
+        declaracao.timeLine.push({
+          nomeEvento: Eventos.ExclusaoDeclaracao,
+          dataEvento: DataUtils.getCurrentData(),
+          autorEvento: declaracao.responsavelEnvioNome
+        })
+
+        await declaracao.save()
+
+        if (declaracao.status === Status.Recebida) {
+          throw new Error(
+            "Declaração está em período de análise. Não pode ser excluída."
+          )
+        }
+        if (declaracao.status === Status.Excluida) {
+          throw new Error(
+            `Operação de exclusão já foi realizada para essa declaração ${declaracaoId}`
+          )
+        }
       }
-      if (declaracao && declaracao.status == Status.Excluida) {
-        throw new Error(
-          `Operação de exclusão já foi realizada para essa declaração ${declaracaoId}`
-        )
-      }
+
       throw new Error("Declaração não encontrada.")
     }
   }
