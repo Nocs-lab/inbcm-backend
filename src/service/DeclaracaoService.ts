@@ -23,6 +23,7 @@ import { createHash } from "../utils/hashUtils"
 import { Profile } from "../models/Profile"
 import { DataUtils } from "../utils/dataUtils"
 import { Eventos } from "../enums/Eventos"
+import logger from "../utils/logger"
 
 class DeclaracaoService {
   async getDashboardData(
@@ -1063,38 +1064,38 @@ class DeclaracaoService {
    */
   async excluirDeclaracao(id: string): Promise<void> {
     const declaracaoId = new mongoose.Types.ObjectId(id)
-
     const resultado = await Declaracoes.updateOne(
       { _id: declaracaoId, status: Status.Recebida },
       { $set: { status: Status.Excluida } }
     )
 
     if (resultado.matchedCount === 0) {
-      const declaracao = await Declaracoes.findById(declaracaoId)
+      throw new Error(
+        "Nenhuma declaração com status 'Recebida' foi encontrada para exclusão."
+      )
+    }
 
-      if (declaracao) {
-        // Adiciona o evento de exclusão à timeline
-        declaracao.timeLine.push({
-          nomeEvento: Eventos.ExclusaoDeclaracao,
-          dataEvento: DataUtils.getCurrentData(),
-          autorEvento: declaracao.responsavelEnvioNome
-        })
+    const declaracao = await Declaracoes.findById(declaracaoId)
+    if (!declaracao) {
+      throw new Error("Declaração não encontrada após atualização.")
+    }
 
-        await declaracao.save()
+    declaracao.timeLine.push({
+      nomeEvento: Eventos.ExclusaoDeclaracao,
+      dataEvento: DataUtils.getCurrentData(),
+      autorEvento: declaracao.responsavelEnvioNome
+    })
 
-        if (declaracao.status === Status.Recebida) {
-          throw new Error(
-            "Declaração está em período de análise. Não pode ser excluída."
-          )
-        }
-        if (declaracao.status === Status.Excluida) {
-          throw new Error(
-            `Operação de exclusão já foi realizada para essa declaração ${declaracaoId}`
-          )
-        }
-      }
-
-      throw new Error("Declaração não encontrada.")
+    logger.info(
+      "Evento de exclusão adicionado à time-line:",
+      declaracao.timeLine
+    )
+    try {
+      await declaracao.save()
+      logger.info("Time-line salva com sucesso.")
+    } catch (error) {
+      logger.error("Erro ao salvar time-line na declaração:", error)
+      throw new Error("Falha ao salvar a time-line de exclusão.")
     }
   }
 }

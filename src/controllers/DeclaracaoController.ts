@@ -373,14 +373,17 @@ export class DeclaracaoController {
         )
 
       const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
-
-      // Verifica se é retificação ou nova declaração e adiciona o evento correspondente
       if (idDeclaracao && declaracaoExistente) {
-        novaDeclaracao.timeLine.push({
-          nomeEvento: "Retificação da Declaração",
+        const timeLineAnterior = ultimaDeclaracao?.timeLine || []
+        const novoEvento = {
+          nomeEvento: Eventos.RetificacaoDeclaracao,
           dataEvento: DataUtils.getCurrentData(),
           autorEvento: responsavelEnvio.nome
-        })
+        }
+        novaDeclaracao.timeLine = [...timeLineAnterior, novoEvento].sort(
+          (a, b) =>
+            new Date(a.dataEvento).getTime() - new Date(b.dataEvento).getTime()
+        )
       } else {
         novaDeclaracao.timeLine.push({
           nomeEvento: Eventos.EnvioDeclaracao,

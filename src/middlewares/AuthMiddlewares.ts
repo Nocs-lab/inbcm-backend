@@ -61,7 +61,7 @@ export const userMiddleware: Handler = async (req, res, next) => {
         .split(":")
 
       const user = await Usuario.findOne({
-        email: email.toLowerCase(),
+        email: email,
         admin: false
       })
 
@@ -110,7 +110,7 @@ export const adminMiddleware: Handler = async (req, res, next) => {
         .split(":")
 
       const user = await Usuario.findOne({
-        email: email.toLowerCase(),
+        email: email,
         admin: true
       })
 
