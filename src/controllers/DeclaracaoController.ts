@@ -70,7 +70,7 @@ export class DeclaracaoController {
         })
       } else if (status === Status.NaoConformidade) {
         declaracao.timeLine.push({
-          nomeEvento: `Resultado da análise: ${Status.EmConformidade}`,
+          nomeEvento: `Resultado da análise: ${Status.NaoConformidade}`,
           dataEvento: DataUtils.getCurrentData(),
           autorEvento: declaracao.analistasResponsaveisNome.join(", ")
         })
