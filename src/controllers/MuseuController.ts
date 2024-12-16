@@ -127,10 +127,13 @@ class MuseuController {
    */
   static async listarMuseus(req: Request, res: Response) {
     try {
-      const { semVinculoUsuario, page, limit } = req.query
+      const { semVinculoUsuario, page, limit, search } = req.query
 
-      const filtro = semVinculoUsuario === "true" ? { usuario: null } : {}
+      const filtro: any = semVinculoUsuario === "true" ? { usuario: null } : {}
 
+      if (search) {
+        filtro.nome = { $regex: `^${search}`, $options: "i" }
+      }
       if (!page && !limit) {
         const museus = await Museu.find(filtro)
         return res.status(200).json(museus)
@@ -143,7 +146,7 @@ class MuseuController {
       const museus = await Museu.find(filtro).skip(skip).limit(limitNumber)
 
       const totalMuseus = await Museu.countDocuments(filtro)
-      const totalPages = Math.ceil(totalMuseus / limitNumber)
+      const totalPages = Math.ceil(totalMuseus / limitNumber) // Calcula o total de páginas
 
       return res.status(200).json({
         museus,
