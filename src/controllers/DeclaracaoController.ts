@@ -56,6 +56,13 @@ export class DeclaracaoController {
           })
         }
       }
+      if (status === Status.Recebida && declaracao.status === Status.Excluida) {
+        declaracao.timeLine.push({
+          nomeEvento: Eventos.DeclaracaoRestaurada,
+          dataEvento: DataUtils.getCurrentData(),
+          autorEvento: declaracao.responsavelEnvioAnaliseNome
+        })
+      }
 
       declaracao.status = status
       await declaracao.save()
