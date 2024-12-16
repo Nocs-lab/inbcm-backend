@@ -132,7 +132,11 @@ class MuseuController {
       const filtro: any = semVinculoUsuario === "true" ? { usuario: null } : {}
 
       if (search) {
-        filtro.nome = { $regex: `^${search}`, $options: "i" }
+        const museus = (search as string)
+          .split(" ")
+          .filter((museus) => museus.trim() !== "")
+        const regexBusca = museus.map((museus) => `(?=.*${museus})`).join("")
+        filtro.nome = { $regex: regexBusca, $options: "i" }
       }
       if (!page && !limit) {
         const museus = await Museu.find(filtro)
@@ -146,7 +150,7 @@ class MuseuController {
       const museus = await Museu.find(filtro).skip(skip).limit(limitNumber)
 
       const totalMuseus = await Museu.countDocuments(filtro)
-      const totalPages = Math.ceil(totalMuseus / limitNumber) // Calcula o total de páginas
+      const totalPages = Math.ceil(totalMuseus / limitNumber)
 
       return res.status(200).json({
         museus,
