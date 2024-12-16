@@ -62,6 +62,18 @@ export class DeclaracaoController {
           dataEvento: DataUtils.getCurrentData(),
           autorEvento: declaracao.responsavelEnvioAnaliseNome
         })
+      } else if (status === Status.EmConformidade) {
+        declaracao.timeLine.push({
+          nomeEvento: `Resultado da análise: ${Status.EmConformidade}`,
+          dataEvento: DataUtils.getCurrentData(),
+          autorEvento: declaracao.analistasResponsaveisNome.join(",")
+        })
+      } else if (status === Status.NaoConformidade) {
+        declaracao.timeLine.push({
+          nomeEvento: `Resultado da análise: ${Status.EmConformidade}`,
+          dataEvento: DataUtils.getCurrentData(),
+          autorEvento: declaracao.analistasResponsaveisNome.join(", ")
+        })
       }
 
       declaracao.status = status
