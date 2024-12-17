@@ -41,9 +41,9 @@ export class DeclaracaoController {
         return res.status(404).json({ message: "Declaração não encontrada." })
       }
 
-      if (status === Status.Excluida) {
+      if (status === Status.Recebida) {
         const existeDeclaracaoNova = await Declaracoes.findOne({
-          museu: declaracao.museu_id,
+          museu_id: declaracao.museu_id,
           anoDeclaracao: declaracao.anoDeclaracao,
           status: Status.Recebida,
           _id: { $ne: id }
