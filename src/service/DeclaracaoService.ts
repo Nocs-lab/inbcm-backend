@@ -820,7 +820,7 @@ class DeclaracaoService {
     )
     declaracao.responsavelEnvioAnaliseNome = responsavel ? responsavel.nome : ""
     const responsavelReporte: TimeLine = {
-      nomeEvento: Eventos.EnvioParaAnalise,
+      nomeEvento: ` ${Eventos.EnvioParaAnalise} para ${declaracao.analistasResponsaveisNome.toString()}`,
       dataEvento: new Date(),
       autorEvento: responsavel ? responsavel.nome : "Desconhecido"
     }
@@ -830,18 +830,6 @@ class DeclaracaoService {
       responsavelReporte
     )
     await declaracao.save({ validateBeforeSave: false })
-
-    // Adiciona o evento de "Envio para Análise" ao timeLine
-    const eventoTimeLine: TimeLine = {
-      nomeEvento: Eventos.EnvioParaAnalista,
-      dataEvento: DataUtils.getCurrentData(),
-      autorEvento: declaracao.analistasResponsaveisNome.toString()
-    }
-
-    await this.adicionarEvento(
-      declaracao._id as unknown as mongoose.Types.ObjectId,
-      eventoTimeLine
-    )
 
     const declaracaoComNomes = await Declaracoes.findById(declaracao._id)
       .populate({ path: "analistasResponsaveis", select: "nome" })
