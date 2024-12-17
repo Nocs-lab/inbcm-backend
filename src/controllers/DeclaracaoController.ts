@@ -60,7 +60,7 @@ export class DeclaracaoController {
         declaracao.timeLine.push({
           nomeEvento: Eventos.DeclaracaoRestaurada,
           dataEvento: DataUtils.getCurrentData(),
-          autorEvento: declaracao.ana
+          autorEvento: declaracao.responsavelEnvioAnaliseNome
         })
       } else if (status === Status.EmConformidade) {
         declaracao.timeLine.push({
