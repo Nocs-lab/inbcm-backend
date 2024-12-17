@@ -7,5 +7,5 @@ export enum Eventos {
   MudancaStatus = "Mudança de status de declaração",
   RetificacaoDeclaracao = "Retificação de declaração",
   ExclusaoDeclaracao = "Exclusão de declaração",
-  DeclaracaoRestaurada = "Declaração restaurada"
+  DeclaracaoRestaurada = "Declaração restaurada para situação Recibida"
 }
