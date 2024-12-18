@@ -1,6 +1,8 @@
 import express from "express"
 import DeclaracaoController from "../../controllers/DeclaracaoController"
 import uploadMiddleware from "../../middlewares/UploadMiddleware"
+import uploadPeriodoMiddleware from "../../middlewares/UploadPeriodoMiddleware"
+import retificacaoPeriodoMiddleware from "../../middlewares/RetificacaoPeriodoMiddleware"
 import { userMiddleware } from "../../middlewares/AuthMiddlewares"
 
 const routes = express.Router()
@@ -117,6 +119,7 @@ routes.get(
 routes.post(
   "/uploads/:museu/:anoDeclaracao",
   uploadMiddleware,
+  uploadPeriodoMiddleware,
   userMiddleware,
   declaracaoController.uploadDeclaracao
 )
@@ -196,6 +199,7 @@ routes.post(
 routes.put(
   "/retificar/:museu/:anoDeclaracao/:idDeclaracao",
   uploadMiddleware,
+  retificacaoPeriodoMiddleware,
   userMiddleware,
   declaracaoController.retificarDeclaracao.bind(declaracaoController)
 )
