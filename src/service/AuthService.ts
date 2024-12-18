@@ -12,7 +12,7 @@ export default class AuthService {
     password: string
     admin: boolean
   }) {
-    const user = await Usuario.findOne({ email: email.toLowerCase() })
+    const user = await Usuario.findOne({ email: email })
 
     if (!user) {
       throw new Error("Usuário não encontrado")

@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { Declaracoes, Usuario } from "../models"
+import { Declaracoes, TimeLine, Usuario } from "../models"
 import DeclaracaoService from "../service/DeclaracaoService"
 import { generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
@@ -35,26 +35,72 @@ export class DeclaracaoController {
     try {
       const { id } = req.params
       const { status } = req.body
+      const adminId = req.user?.id
 
       const declaracao = await Declaracoes.findById(id)
       if (!declaracao) {
         return res.status(404).json({ message: "Declaração não encontrada." })
       }
 
-      if (status === Status.Excluida) {
+      if (status === Status.Recebida) {
         const existeDeclaracaoNova = await Declaracoes.findOne({
-          museu: declaracao.museu_id,
+          museu_id: declaracao.museu_id,
           anoDeclaracao: declaracao.anoDeclaracao,
-          status: Status.Recebida,
+          versao: { $gt: declaracao.versao },
           _id: { $ne: id }
         })
 
         if (existeDeclaracaoNova) {
           return res.status(400).json({
             message:
-              "Não é possível restaurar esta declaração porque já existe uma  nova declaração  para o mesmo museu e ano."
+              "Não é possível restaurar esta declaração porque já existe uma nova declaração para o mesmo museu e ano."
           })
         }
+
+        if (declaracao.status !== Status.Excluida) {
+          return res.status(400).json({
+            message:
+              "Somente declarações com status 'Excluída' podem ser restauradas para 'Recebida'."
+          })
+        }
+      }
+      const admin = await Usuario.findById(adminId).select("nome").lean()
+      if (!admin) {
+        return res
+          .status(404)
+          .json({ message: "Administrador não encontrado." })
+      }
+
+      declaracao.responsavelEnvioAnaliseNome = admin.nome
+
+      const evento: TimeLine = {
+        nomeEvento: "",
+        dataEvento: DataUtils.getCurrentData(),
+        autorEvento: ""
+      }
+
+      switch (status) {
+        case Status.Recebida:
+          evento.nomeEvento = Eventos.DeclaracaoRestaurada
+          evento.autorEvento = declaracao.responsavelEnvioAnaliseNome
+          break
+
+        case Status.EmConformidade:
+          evento.nomeEvento = `Resultado da análise: ${Status.EmConformidade}`
+          evento.autorEvento = declaracao.analistasResponsaveisNome.join(", ")
+          break
+
+        case Status.NaoConformidade:
+          evento.nomeEvento = `Resultado da análise: ${Status.NaoConformidade}`
+          evento.autorEvento = declaracao.analistasResponsaveisNome.join(", ")
+          break
+
+        default:
+          break
+      }
+
+      if (evento.nomeEvento) {
+        declaracao.timeLine.push(evento)
       }
 
       declaracao.status = status
@@ -373,14 +419,17 @@ export class DeclaracaoController {
         )
 
       const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
-
-      // Verifica se é retificação ou nova declaração e adiciona o evento correspondente
       if (idDeclaracao && declaracaoExistente) {
-        novaDeclaracao.timeLine.push({
-          nomeEvento: "Retificação da Declaração",
+        const timeLineAnterior = ultimaDeclaracao?.timeLine || []
+        const novoEvento = {
+          nomeEvento: Eventos.RetificacaoDeclaracao,
           dataEvento: DataUtils.getCurrentData(),
           autorEvento: responsavelEnvio.nome
-        })
+        }
+        novaDeclaracao.timeLine = [...timeLineAnterior, novoEvento].sort(
+          (a, b) =>
+            new Date(a.dataEvento).getTime() - new Date(b.dataEvento).getTime()
+        )
       } else {
         novaDeclaracao.timeLine.push({
           nomeEvento: Eventos.EnvioDeclaracao,
