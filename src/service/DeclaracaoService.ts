@@ -820,7 +820,7 @@ class DeclaracaoService {
     )
     declaracao.responsavelEnvioAnaliseNome = responsavel ? responsavel.nome : ""
     const responsavelReporte: TimeLine = {
-      nomeEvento: ` ${Eventos.EnvioParaAnalise} para ${declaracao.analistasResponsaveisNome.toString()}`,
+      nomeEvento: ` ${Eventos.EnvioParaAnalise}  ${declaracao.analistasResponsaveisNome.toString()}`,
       dataEvento: new Date(),
       autorEvento: responsavel ? responsavel.nome : "Desconhecido"
     }
