@@ -29,7 +29,76 @@ export class DeclaracaoController {
     this.getDashboard = this.getDashboard.bind(this)
     this.excluirDeclaracao = this.excluirDeclaracao.bind(this)
     this.getTimeLine = this.getTimeLine.bind(this)
+    this.filtroDashBoard = this.filtroDashBoard.bind(this)
   }
+
+  async filtroDashBoard(req: Request, res: Response) {
+    try {
+      // Lista de estados válidos
+      const estadosValidos = [
+        "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
+        "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
+        "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+      ];
+
+      // Extraindo os filtros da query string
+      const { anos, estados, cidades, museu } = req.query;
+
+      // Garantindo que os filtros sejam arrays
+      const anosArray = anos
+        ? Array.isArray(anos)
+          ? anos.map(String)
+          : String(anos).split(",")  // Caso sejam passados como "anos=2023&anos=2024"
+        : [];
+
+      const estadosArray = estados
+        ? Array.isArray(estados)
+          ? estados.map(String)
+          : [String(estados)]
+        : [];
+
+      // Validando os estados
+      const estadosInvalidos = estadosArray.filter(estado => !estadosValidos.includes(estado.toUpperCase()));
+      if (estadosInvalidos.length > 0) {
+        return res.status(400).json({
+          message: "Estados inválidos encontrados.",
+          invalidStates: estadosInvalidos
+        });
+      }
+
+      const cidadesArray = cidades
+        ? Array.isArray(cidades)
+          ? cidades.map(String)
+          : [String(cidades)]
+        : [];
+
+      const museuId = museu ? String(museu) : null;
+      if (museuId && !museuId.match(/^[a-fA-F0-9]{24}$/)) {
+        return res.status(400).json({
+          message: "O campo 'museu' deve conter um ID válido no formato ObjectId."
+        });
+      }
+
+      // Chamando o método do serviço para realizar o filtro
+      const declaracoes = await this.declaracaoService.filtroDeclaracoesDashBoard(
+        anosArray,
+        estadosArray,
+        cidadesArray,
+        museuId
+      );
+
+      // Retornando as declarações filtradas
+      return res.status(200).json(declaracoes);
+    } catch (error) {
+      // Logando o erro em caso de falha
+      logger.error("Erro ao filtrar declarações para o dashboard:", error);
+
+      // Retornando status 500 com uma mensagem de erro
+      return res.status(500).json({ message: "Erro ao filtrar declarações para o dashboard." });
+    }
+  }
+
+
 
   async atualizarStatusDeclaracao(req: Request, res: Response) {
     try {
@@ -65,7 +134,7 @@ export class DeclaracaoController {
       logger.error("Erro ao atualizar o status da declaração:", error)
       return res.status(500).json({
         message: "Erro ao atualizar o status da declaração.",
-        error: error.message
+        // error: error.message
       })
     }
   }
