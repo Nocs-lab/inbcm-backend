@@ -1,7 +1,9 @@
 import ReciboController from "../../controllers/ReciboController"
 import { adminMiddleware } from "../../middlewares/AuthMiddlewares"
 import express from "express"
+
 const reciboController = new ReciboController()
+
 const routes = express.Router()
 /**
  * @swagger
@@ -27,3 +29,4 @@ const routes = express.Router()
  *         description: Erro ao gerar o recibo.
  */
 routes.get("/:idDeclaracao", adminMiddleware, reciboController.gerarRecibo)
+export default routes
