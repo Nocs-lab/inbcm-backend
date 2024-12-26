@@ -190,4 +190,88 @@ routes.get(
  */
 routes.get("/:id", adminMiddleware, declaracaoController.getDeclaracao)
 
+/**
+ * @swagger
+ * /api/admin/declaracoes/download/{museu}/{anoDeclaracao}/{tipoArquivo}:
+ *   get:
+ *     summary: Baixa um arquivo de declaração.
+ *     description: Endpoint para baixar um arquivo de declaração para o museu e ano especificados.
+ *     tags:
+ *       - Declarações
+ *     parameters:
+ *       - in: path
+ *         name: museu
+ *         description: ID do museu ao qual a declaração pertence.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: anoDeclaracao
+ *         description: Ano da declaração do arquivo a ser baixado.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: tipoArquivo
+ *         description: Tipo de arquivo a ser baixado (arquivistico, bibliografico ou museologico).
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [arquivistico, bibliografico, museologico]
+ *     responses:
+ *       '200':
+ *         description: Arquivo de declaração baixado com sucesso.
+ *       '404':
+ *         description: Declaração não encontrada para o ano especificado ou arquivo não encontrado para o tipo especificado.
+ *       '500':
+ *         description: Erro ao baixar arquivo da declaração.
+ */
+routes.get(
+  "/download/:museu/:anoDeclaracao/:tipoArquivo",
+  adminMiddleware,
+  declaracaoController.downloadDeclaracao
+)
+
+/**
+ * @swagger
+ * /api/admin/declaracoes/listar-itens/:museuId/:ano/:tipo:
+ *   get:
+ *     summary: Lista os itens de uma determinada declaracao por tipo de bem museal.
+ *     description: Endpoint retornar os itens por tipo de bem museal.
+ *     tags:
+ *       - Declarações
+ *     parameters:
+ *       - in: path
+ *         name: museuId
+ *         description: ID do museu ao qual a declaração pertence.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: ano
+ *         description: Ano da declaração do arquivo a ser baixado.
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: tipo
+ *         description: Tipo de arquivo a ser baixado (arquivistico, bibliografico ou museologico).
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [arquivistico, bibliografico, museologico]
+ *     responses:
+ *       '200':
+ *         description: Arquivo de declaração baixado com sucesso.
+ *       '404':
+ *         description: Declaração não encontrada para o ano especificado ou arquivo não encontrado para o tipo especificado.
+ *       '500':
+ *         description: Erro ao baixar arquivo da declaração.
+ */
+routes.get(
+  "/listar-itens/:museuId/:ano/:tipo",
+  adminMiddleware,
+  declaracaoController.listarItensPorTipodeBem.bind(declaracaoController)
+)
+
 export default routes

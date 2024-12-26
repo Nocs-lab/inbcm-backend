@@ -20,5 +20,6 @@ routes.use("/users", userRoutes)
 routes.use("/dashboard", dashboardRoutes)
 routes.use("/timeline", timeLineRoutes)
 routes.use("/anoDeclaracao", anoDeclaracaoRoutes)
+routes.use("/recibo")
 
 export default routes
