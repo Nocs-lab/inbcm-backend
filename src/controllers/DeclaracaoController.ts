@@ -602,7 +602,40 @@ export class DeclaracaoController {
    */
   async listarAnalistas(req: Request, res: Response): Promise<Response> {
     try {
-      const analistas = await this.declaracaoService.listarAnalistas()
+      const { especificidade } = req.query
+
+      let analistas
+
+      if (especificidade) {
+        // Converter especificidades em array e remover espaços extras
+        const especificidadesArray = especificidade
+          .toString()
+          .split(",")
+          .map((item) => item.trim())
+
+        // Validar as especificidades
+        const tiposValidos = ["museologico", "bibliografico", "arquivistico"]
+        const especificidadesInvalidas = especificidadesArray.filter(
+          (tipo) => !tiposValidos.includes(tipo)
+        )
+
+        if (especificidadesInvalidas.length > 0) {
+          return res.status(400).json({
+            message: `Os seguintes valores de 'especificidade' são inválidos: ${especificidadesInvalidas.join(
+              ", "
+            )}. Valores válidos: ${tiposValidos.join(", ")}.`
+          })
+        }
+
+        // Consultar analistas com base nas especificidades
+        analistas =
+          await this.declaracaoService.listarAnalistasPorEspecificidades(
+            especificidadesArray
+          )
+      } else {
+        // Consultar todos os analistas
+        analistas = await this.declaracaoService.listarAnalistas()
+      }
 
       return res.status(200).json(analistas)
     } catch (error) {
