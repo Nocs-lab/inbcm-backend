@@ -44,7 +44,7 @@ class UsuarioController {
   }
   async getUsuarios(req: Request, res: Response) {
     try {
-      const { perfil, page = 1, limit = 10 } = req.query
+      const { perfil } = req.query
 
       const perfilArray: string[] =
         typeof perfil === "string"
@@ -53,11 +53,7 @@ class UsuarioController {
             ? perfil.map((item) => String(item))
             : []
 
-      const result = await UsuarioService.buscarUsuarios(
-        perfilArray,
-        Number(page),
-        Number(limit)
-      )
+      const result = await UsuarioService.buscarUsuarios(perfilArray)
 
       return res.status(200).json(result)
     } catch (error) {

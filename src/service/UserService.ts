@@ -94,17 +94,11 @@ export class UsuarioService {
    */
 
   /**
-   * Busca usuários com paginação e filtro de perfil.
+   * Busca usuários com   filtro de perfil.
    * @param perfil Perfis a serem filtrados.
-   * @param page Número da página.
-   * @param limit Limite de itens por página.
-   * @returns Lista de usuários com paginação.
+   * @returns Lista de usuários
    */
-  static async buscarUsuarios(
-    perfil: string[],
-    page: number = 1,
-    limit: number = 10
-  ) {
+  static async buscarUsuarios(perfil: string[] = []) {
     const query: {
       ativo: boolean
       profile?: Types.ObjectId[] | { $in: Types.ObjectId[] }
@@ -119,14 +113,7 @@ export class UsuarioService {
       query.profile = { $in: profiles.map((p) => p._id as Types.ObjectId) }
     }
 
-    // Conta o total de usuários que atendem ao filtro
-    const totalDocs = await Usuario.countDocuments(query)
-
-    // Calcula a páginação
-    const skip = (page - 1) * limit
     const usuarios = await Usuario.find(query)
-      .skip(skip)
-      .limit(limit)
       .populate("profile")
       .populate("museus")
 
@@ -140,25 +127,11 @@ export class UsuarioService {
 
       // if (usuario.profile && (usuario.profile as IProfile).name === "analyst") {
       //   usuario.declaracoes = await Usuario.populate(usuario, {
-      //     path: "declaracoes"
-      //   })
+      //     path: "declaracoes",
+      //   });
       // }
     }
 
-    const totalPages = Math.ceil(totalDocs / limit)
-    const hasNextPage = page < totalPages
-    const hasPrevPage = page > 1
-
-    return {
-      docs: usuarios,
-      totalDocs,
-      page,
-      limit,
-      totalPages,
-      hasNextPage,
-      hasPrevPage,
-      nextPage: hasNextPage ? page + 1 : null,
-      prevPage: hasPrevPage ? page - 1 : null
-    }
+    return usuarios
   }
 }
