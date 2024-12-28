@@ -789,17 +789,31 @@ class DeclaracaoService {
     }
 
     const analistasList: IUsuario[] = await this.listarAnalistas()
-    const analistasIds = analistasList
-      .map((analista) => analista._id as mongoose.Types.ObjectId)
-      .toString()
 
     for (const analistaId of analistas) {
-      if (!analistasIds.includes(analistaId)) {
-        throw new Error(`Usuário com ID ${analistaId} não é um analista.`)
+      const analista = analistasList.find(
+        (a) => (a._id as mongoose.Types.ObjectId).toString() === analistaId
+      )
+
+      if (!analista) {
+        throw new Error(`Usuário com ID ${analistaId} não encontrado.`)
+      }
+
+      if (
+        (declaracao.museologico &&
+          !analista.tipoAnalista.includes("museologico")) ||
+        (declaracao.bibliografico &&
+          !analista.tipoAnalista.includes("bibliografico")) ||
+        (declaracao.arquivistico &&
+          !analista.tipoAnalista.includes("arquivistico"))
+      ) {
+        throw new Error(
+          `O analista ${analista.nome} não é especializado no tipo de declaração.`
+        )
       }
     }
 
-    // Atualiza informações da declaração
+    // Atualizar a declaração com os analistas selecionados
     declaracao.analistasResponsaveis = analistas.map(
       (id) => new mongoose.Types.ObjectId(id)
     )
@@ -807,6 +821,7 @@ class DeclaracaoService {
     declaracao.dataEnvioAnalise = DataUtils.getCurrentData()
     declaracao.responsavelEnvioAnalise = new mongoose.Types.ObjectId(adminId)
 
+    // Buscar e associar nomes dos analistas e do responsável
     const analistasNomes = await Usuario.find({
       _id: { $in: declaracao.analistasResponsaveis }
     })
@@ -819,18 +834,11 @@ class DeclaracaoService {
       (analista) => analista.nome
     )
     declaracao.responsavelEnvioAnaliseNome = responsavel ? responsavel.nome : ""
-    const responsavelReporte: TimeLine = {
-      nomeEvento: ` ${Eventos.EnvioParaAnalise}  ${declaracao.analistasResponsaveisNome.toString()}`,
-      dataEvento: new Date(),
-      autorEvento: responsavel ? responsavel.nome : "Desconhecido"
-    }
 
-    await this.adicionarEvento(
-      declaracao._id as unknown as mongoose.Types.ObjectId,
-      responsavelReporte
-    )
+    // Persistir os dados
     await declaracao.save({ validateBeforeSave: false })
 
+    // Obter a declaração atualizada com os nomes populados
     const declaracaoComNomes = await Declaracoes.findById(declaracao._id)
       .populate({ path: "analistasResponsaveis", select: "nome" })
       .populate({ path: "responsavelEnvioAnalise", select: "nome" })
@@ -841,6 +849,17 @@ class DeclaracaoService {
     }
 
     return declaracaoComNomes
+  }
+  async listarAnalistasPorEspecificidades(
+    especificidades: string[]
+  ): Promise<IUsuario[]> {
+    const analistas = await Usuario.find<IUsuario>({
+      tipoAnalista: { $in: especificidades }
+    })
+      .select("nome tipoAnalista")
+      .lean<IUsuario[]>()
+
+    return analistas
   }
 
   async getItensPorAnoETipo(
