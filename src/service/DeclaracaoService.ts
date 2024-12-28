@@ -24,6 +24,8 @@ import { Profile } from "../models/Profile"
 import { DataUtils } from "../utils/dataUtils"
 import { Eventos } from "../enums/Eventos"
 import logger from "../utils/logger"
+import { IAnalista } from "../types/Inalistas"
+import { FilterQuery } from "mongoose"
 
 class DeclaracaoService {
   async getDashboardData(
@@ -759,97 +761,106 @@ class DeclaracaoService {
     return agregacao
   }
 
-  async listarAnalistas() {
+  async listarAnalistas(especificidades?: string[]): Promise<IAnalista[]> {
     const analistaProfile = await Profile.findOne({ name: "analyst" })
-
     if (!analistaProfile) {
-      throw new Error("Perfil de analista não encontrado.")
+      throw new Error("Perfil 'analyst' não encontrado.")
     }
 
-    const analistas: IUsuario[] = await Usuario.find({
-      profile: analistaProfile._id
-    })
-
-    return analistas
-  }
-  async enviarParaAnalise(
-    id: string,
-    analistas: string[],
-    adminId: string
-  ): Promise<DeclaracaoModel | null> {
-    const objectId = new mongoose.Types.ObjectId(id)
-    const declaracao = await Declaracoes.findById(objectId)
-
-    if (!declaracao) {
-      throw new Error("Declaração não encontrada.")
+    const filtro: FilterQuery<IUsuario> = {
+      profile: analistaProfile._id,
+      tipoAnalista: { $exists: true, $not: { $size: 0 } }
     }
 
-    if (declaracao.status !== Status.Recebida) {
-      throw new Error("Declaração não está no estado adequado para envio.")
+    if (especificidades) {
+      filtro.tipoAnalista = { $in: especificidades }
     }
 
-    const analistasList: IUsuario[] = await this.listarAnalistas()
-
-    for (const analistaId of analistas) {
-      const analista = analistasList.find(
-        (a) => (a._id as mongoose.Types.ObjectId).toString() === analistaId
-      )
-
-      if (!analista) {
-        throw new Error(`Usuário com ID ${analistaId} não encontrado.`)
-      }
-
-      if (
-        (declaracao.museologico &&
-          !analista.tipoAnalista.includes("museologico")) ||
-        (declaracao.bibliografico &&
-          !analista.tipoAnalista.includes("bibliografico")) ||
-        (declaracao.arquivistico &&
-          !analista.tipoAnalista.includes("arquivistico"))
-      ) {
-        throw new Error(
-          `O analista ${analista.nome} não é especializado no tipo de declaração.`
-        )
-      }
-    }
-
-    // Atualizar a declaração com os analistas selecionados
-    declaracao.analistasResponsaveis = analistas.map(
-      (id) => new mongoose.Types.ObjectId(id)
-    )
-    declaracao.status = Status.EmAnalise
-    declaracao.dataEnvioAnalise = DataUtils.getCurrentData()
-    declaracao.responsavelEnvioAnalise = new mongoose.Types.ObjectId(adminId)
-
-    // Buscar e associar nomes dos analistas e do responsável
-    const analistasNomes = await Usuario.find({
-      _id: { $in: declaracao.analistasResponsaveis }
-    })
-      .select("nome")
+    const analistas = await Usuario.find(filtro)
+      .select("nome email museus tipoAnalista")
       .lean()
 
-    const responsavel = await Usuario.findById(adminId).select("nome").lean()
-
-    declaracao.analistasResponsaveisNome = analistasNomes.map(
-      (analista) => analista.nome
-    )
-    declaracao.responsavelEnvioAnaliseNome = responsavel ? responsavel.nome : ""
-
-    // Persistir os dados
-    await declaracao.save({ validateBeforeSave: false })
-
-    // Obter a declaração atualizada com os nomes populados
-    const declaracaoComNomes = await Declaracoes.findById(declaracao._id)
-      .populate({ path: "analistasResponsaveis", select: "nome" })
-      .populate({ path: "responsavelEnvioAnalise", select: "nome" })
-      .exec()
-
-    if (!declaracaoComNomes) {
-      throw new Error("Erro ao obter a declaração com os nomes.")
-    }
-
-    return declaracaoComNomes
+    return analistas as IAnalista[]
   }
+
+  // async enviarParaAnalise(
+  //   id: string,
+  //   analistas: string[],
+  //   adminId: string
+  // ): Promise<DeclaracaoModel | null> {
+  //   const objectId = new mongoose.Types.ObjectId(id)
+  //   const declaracao = await Declaracoes.findById(objectId)
+
+  //   if (!declaracao) {
+  //     throw new Error("Declaração não encontrada.")
+  //   }
+
+  //   if (declaracao.status !== Status.Recebida) {
+  //     throw new Error("Declaração não está no estado adequado para envio.")
+  //   }
+
+  //   const analistasList: IUsuario[] = await this.listarAnalistas()
+
+  //   for (const analistaId of analistas) {
+  //     const analista = analistasList.find(
+  //       (a) => (a._id as mongoose.Types.ObjectId).toString() === analistaId
+  //     )
+
+  //     if (!analista) {
+  //       throw new Error(`Usuário com ID ${analistaId} não encontrado.`)
+  //     }
+
+  //     if (
+  //       (declaracao.museologico &&
+  //         !analista.tipoAnalista.includes("museologico")) ||
+  //       (declaracao.bibliografico &&
+  //         !analista.tipoAnalista.includes("bibliografico")) ||
+  //       (declaracao.arquivistico &&
+  //         !analista.tipoAnalista.includes("arquivistico"))
+  //     ) {
+  //       throw new Error(
+  //         `O analista ${analista.nome} não é especializado no tipo de declaração.`
+  //       )
+  //     }
+  //   }
+
+  //   // Atualizar a declaração com os analistas selecionados
+  //   declaracao.analistasResponsaveis = analistas.map(
+  //     (id) => new mongoose.Types.ObjectId(id)
+  //   )
+  //   declaracao.status = Status.EmAnalise
+  //   declaracao.dataEnvioAnalise = DataUtils.getCurrentData()
+  //   declaracao.responsavelEnvioAnalise = new mongoose.Types.ObjectId(adminId)
+
+  //   // Buscar e associar nomes dos analistas e do responsável
+  //   const analistasNomes = await Usuario.find({
+  //     _id: { $in: declaracao.analistasResponsaveis }
+  //   })
+  //     .select("nome")
+  //     .lean()
+
+  //   const responsavel = await Usuario.findById(adminId).select("nome").lean()
+
+  //   declaracao.analistasResponsaveisNome = analistasNomes.map(
+  //     (analista) => analista.nome
+  //   )
+  //   declaracao.responsavelEnvioAnaliseNome = responsavel ? responsavel.nome : ""
+
+  //   // Persistir os dados
+  //   await declaracao.save({ validateBeforeSave: false })
+
+  //   // Obter a declaração atualizada com os nomes populados
+  //   const declaracaoComNomes = await Declaracoes.findById(declaracao._id)
+  //     .populate({ path: "analistasResponsaveis", select: "nome" })
+  //     .populate({ path: "responsavelEnvioAnalise", select: "nome" })
+  //     .exec()
+
+  //   if (!declaracaoComNomes) {
+  //     throw new Error("Erro ao obter a declaração com os nomes.")
+  //   }
+
+  //   return declaracaoComNomes
+  // }
   async listarAnalistasPorEspecificidades(
     especificidades: string[]
   ): Promise<IUsuario[]> {

@@ -604,16 +604,16 @@ export class DeclaracaoController {
     try {
       const { especificidade } = req.query
 
-      let analistas
+      // Converter especificidades em array e remover espaços extras, se fornecido
+      const especificidadesArray = especificidade
+        ? especificidade
+            .toString()
+            .split(",")
+            .map((item) => item.trim())
+        : undefined
 
-      if (especificidade) {
-        // Converter especificidades em array e remover espaços extras
-        const especificidadesArray = especificidade
-          .toString()
-          .split(",")
-          .map((item) => item.trim())
-
-        // Validar as especificidades
+      // Validar as especificidades, se fornecido
+      if (especificidadesArray) {
         const tiposValidos = ["museologico", "bibliografico", "arquivistico"]
         const especificidadesInvalidas = especificidadesArray.filter(
           (tipo) => !tiposValidos.includes(tipo)
@@ -626,16 +626,11 @@ export class DeclaracaoController {
             )}. Valores válidos: ${tiposValidos.join(", ")}.`
           })
         }
-
-        // Consultar analistas com base nas especificidades
-        analistas =
-          await this.declaracaoService.listarAnalistasPorEspecificidades(
-            especificidadesArray
-          )
-      } else {
-        // Consultar todos os analistas
-        analistas = await this.declaracaoService.listarAnalistas()
       }
+
+      // Consultar analistas (com ou sem filtro)
+      const analistas =
+        await this.declaracaoService.listarAnalistas(especificidadesArray)
 
       return res.status(200).json(analistas)
     } catch (error) {
@@ -660,26 +655,26 @@ export class DeclaracaoController {
    *   - Status 500: Retorna um erro em caso de falha no envio.
    * @returns {Promise<Response>} Retorna um JSON com a declaração atualizada ou uma mensagem de erro.
    */
-  async enviarParaAnalise(req: Request, res: Response): Promise<Response> {
-    const { id } = req.params
-    const { analistas } = req.body
-    const adminId = req.user?.id
+  // async enviarParaAnalise(req: Request, res: Response): Promise<Response> {
+  //   const { id } = req.params
+  //   const { analistas } = req.body
+  //   const adminId = req.user?.id
 
-    try {
-      const declaracao = await this.declaracaoService.enviarParaAnalise(
-        id,
-        analistas,
-        adminId
-      )
+  //   try {
+  //     const declaracao = await this.declaracaoService.enviarParaAnalise(
+  //       id,
+  //       analistas,
+  //       adminId
+  //     )
 
-      return res.status(200).json(declaracao)
-    } catch (error) {
-      logger.error("Erro ao enviar declaração para análise:", error)
-      return res
-        .status(500)
-        .json({ message: "Erro ao enviar declaração para análise." })
-    }
-  }
+  //     return res.status(200).json(declaracao)
+  //   } catch (error) {
+  //     logger.error("Erro ao enviar declaração para análise:", error)
+  //     return res
+  //       .status(500)
+  //       .json({ message: "Erro ao enviar declaração para análise." })
+  //   }
+  // }
 
   /**
    * Conclui a análise de uma declaração.
