@@ -53,7 +53,6 @@ const setupTestEnvironment = async () => {
     },
     usuario: userMock._id
   })
-
 }
 
 // Middleware de autenticação mockada, utilizando JWT
@@ -63,12 +62,18 @@ const mockAuthMiddleware = (
   next: NextFunction
 ) => {
   const token = jwt.sign(
-    { sub: (userMock._id as unknown as mongoose.Types.ObjectId).toString(), admin: userMock.admin },
+    {
+      sub: (userMock._id as unknown as mongoose.Types.ObjectId).toString(),
+      admin: userMock.admin
+    },
     config.JWT_SECRET!,
     { expiresIn: "1h" }
   )
   req.headers.authorization = `Bearer ${token}`
-  req.user = { id: (userMock._id as unknown as mongoose.Types.ObjectId).toString(), admin: false }
+  req.user = {
+    id: (userMock._id as unknown as mongoose.Types.ObjectId).toString(),
+    admin: false
+  }
 
   next()
 }
@@ -90,18 +95,15 @@ app.put(
   declaracaoController.retificarDeclaracao.bind(declaracaoController)
 )
 
-app.get(
-  "/public/declaracoes/:id",
-  declaracaoController.getDeclaracao
-)
-
-app.get("/public/recibo/:idDeclaracao",mockAuthMiddleware,reciboController.gerarRecibo)
-
+app.get("/public/declaracoes/:id", declaracaoController.getDeclaracao)
 
 app.get(
-  "/admin/dashboard/getStatusEnum",
-  declaracaoController.getStatusEnum
+  "/public/recibo/:idDeclaracao",
+  mockAuthMiddleware,
+  reciboController.gerarRecibo
 )
+
+app.get("/admin/dashboard/getStatusEnum", declaracaoController.getStatusEnum)
 
 app.get(
   "/public/declaracoes/:museu/:anoDeclaracao",
@@ -109,48 +111,54 @@ app.get(
 )
 
 app.get(
-  "/public/declaracoes",mockAuthMiddleware,
+  "/public/declaracoes",
+  mockAuthMiddleware,
   declaracaoController.getDeclaracoes
 )
 
 app.delete(
-  "/api/public/declaracoes/:id",mockAuthMiddleware,
+  "/api/public/declaracoes/:id",
+  mockAuthMiddleware,
   declaracaoController.excluirDeclaracao
 )
 
 app.put(
-  "/api/admin/declaracoes/atualizarStatus/:id",mockAuthMiddleware,
+  "/api/admin/declaracoes/atualizarStatus/:id",
+  mockAuthMiddleware,
   declaracaoController.atualizarStatusDeclaracao
 )
 
 app.get(
-  "/admin/declaracoes/analistas",mockAuthMiddleware,
+  "/admin/declaracoes/analistas",
+  mockAuthMiddleware,
   declaracaoController.listarAnalistas.bind(declaracaoController)
 )
 
 app.put(
-  "/admin/declaracoes/:id/analises",mockAuthMiddleware,
+  "/admin/declaracoes/:id/analises",
+  mockAuthMiddleware,
   declaracaoController.enviarParaAnalise.bind(declaracaoController)
 )
 
 app.put(
-  "/admin/declaracoes/:id/analises-concluir",mockAuthMiddleware,
+  "/admin/declaracoes/:id/analises-concluir",
+  mockAuthMiddleware,
   declaracaoController.concluirAnalise.bind(declaracaoController)
 )
 
 app.get(
-  "/admin/declaracoes/analistas-filtrados",mockAuthMiddleware,
-  declaracaoController.getDeclaracoesAgrupadasPorAnalista.bind(declaracaoController)
+  "/admin/declaracoes/analistas-filtrados",
+  mockAuthMiddleware,
+  declaracaoController.getDeclaracoesAgrupadasPorAnalista.bind(
+    declaracaoController
+  )
 )
 
 app.get(
-  "public/declaracoes/:museuId/itens/:anoInicio/:anoFim",mockAuthMiddleware,
-declaracaoController.getItensPorAnoETipo.bind(declaracaoController)
-);
-
-
-
-
+  "public/declaracoes/:museuId/itens/:anoInicio/:anoFim",
+  mockAuthMiddleware,
+  declaracaoController.getItensPorAnoETipo.bind(declaracaoController)
+)
 
 const teardownTestEnvironment = async () => {
   await mongoose.disconnect()
