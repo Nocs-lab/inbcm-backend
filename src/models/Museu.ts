@@ -68,5 +68,5 @@ const MuseuSchema: Schema = new Schema({
     default: null
   }
 })
-
+MuseuSchema.index({ nome: "text" })
 export const Museu = mongoose.model<IMuseu>("museus", MuseuSchema)
