@@ -141,7 +141,7 @@ class MuseuController {
           .split(" ")
           .filter((item) => item.trim() !== "")
         if (busca.length > 0) {
-          filtro.$text = { $search: busca.join(" ") }
+          filtro.nome = { $regex: busca.join("|"), $options: "i" }
         }
       }
 
@@ -149,6 +149,7 @@ class MuseuController {
       const limitNumber = parseInt(limit as string, 10) || 10
       const skip = (pageNumber - 1) * limitNumber
 
+      // Busca paginada com apenas os campos necessários
       const museus = await Museu.find(filtro)
         .select("nome _id")
         .skip(skip)
