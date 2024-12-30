@@ -655,26 +655,26 @@ export class DeclaracaoController {
    *   - Status 500: Retorna um erro em caso de falha no envio.
    * @returns {Promise<Response>} Retorna um JSON com a declaração atualizada ou uma mensagem de erro.
    */
-  // async enviarParaAnalise(req: Request, res: Response): Promise<Response> {
-  //   const { id } = req.params
-  //   const { analistas } = req.body
-  //   const adminId = req.user?.id
+  async enviarParaAnalise(req: Request, res: Response): Promise<Response> {
+    const { id } = req.params
+    const { analistas } = req.body
+    const adminId = req.user?.id
 
-  //   try {
-  //     const declaracao = await this.declaracaoService.enviarParaAnalise(
-  //       id,
-  //       analistas,
-  //       adminId
-  //     )
+    try {
+      const declaracao = await this.declaracaoService.enviarParaAnalise(
+        id,
+        analistas,
+        adminId
+      )
 
-  //     return res.status(200).json(declaracao)
-  //   } catch (error) {
-  //     logger.error("Erro ao enviar declaração para análise:", error)
-  //     return res
-  //       .status(500)
-  //       .json({ message: "Erro ao enviar declaração para análise." })
-  //   }
-  // }
+      return res.status(200).json(declaracao)
+    } catch (error) {
+      logger.error("Erro ao enviar declaração para análise:", error)
+      return res
+        .status(500)
+        .json({ message: "Erro ao enviar declaração para análise." })
+    }
+  }
 
   /**
    * Conclui a análise de uma declaração.
