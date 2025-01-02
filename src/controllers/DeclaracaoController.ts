@@ -36,69 +36,97 @@ export class DeclaracaoController {
     try {
       // Lista de estados válidos
       const estadosValidos = [
-        "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
-        "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
-        "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
-      ];
+        "AC",
+        "AL",
+        "AP",
+        "AM",
+        "BA",
+        "CE",
+        "DF",
+        "ES",
+        "GO",
+        "MA",
+        "MT",
+        "MS",
+        "MG",
+        "PA",
+        "PB",
+        "PR",
+        "PE",
+        "PI",
+        "RJ",
+        "RN",
+        "RS",
+        "RO",
+        "RR",
+        "SC",
+        "SP",
+        "SE",
+        "TO"
+      ]
 
       // Extraindo os filtros da query string
-      const { anos, estados, cidades, museu } = req.query;
+      const { anos, estados, cidades, museu } = req.query
 
       // Garantindo que os filtros sejam arrays
       const anosArray = anos
         ? Array.isArray(anos)
           ? anos.map(String)
-          : String(anos).split(",")  // Caso sejam passados como "anos=2023&anos=2024"
-        : [];
+          : String(anos).split(",") // Caso sejam passados como "anos=2023&anos=2024"
+        : []
 
       const estadosArray = estados
         ? Array.isArray(estados)
           ? estados.map(String)
           : [String(estados)]
-        : [];
+        : []
 
       // Validando os estados
-      const estadosInvalidos = estadosArray.filter(estado => !estadosValidos.includes(estado.toUpperCase()));
+      const estadosInvalidos = estadosArray.filter(
+        (estado) => !estadosValidos.includes(estado.toUpperCase())
+      )
       if (estadosInvalidos.length > 0) {
         return res.status(400).json({
           message: "Estados inválidos encontrados.",
           invalidStates: estadosInvalidos
-        });
+        })
       }
 
       const cidadesArray = cidades
         ? Array.isArray(cidades)
           ? cidades.map(String)
           : [String(cidades)]
-        : [];
+        : []
 
-      const museuId = museu ? String(museu) : null;
+      const museuId = museu ? String(museu) : null
       if (museuId && !museuId.match(/^[a-fA-F0-9]{24}$/)) {
         return res.status(400).json({
-          message: "O campo 'museu' deve conter um ID válido no formato ObjectId."
-        });
+          message:
+            "O campo 'museu' deve conter um ID válido no formato ObjectId."
+        })
       }
 
       // Chamando o método do serviço para realizar o filtro
-      const declaracoes = await this.declaracaoService.filtroDeclaracoesDashBoard(
-        anosArray,
-        estadosArray,
-        cidadesArray,
-        museuId
-      );
+      const declaracoes =
+        await this.declaracaoService.filtroDeclaracoesDashBoard(
+          anosArray,
+          estadosArray,
+          cidadesArray,
+          museuId
+        )
 
       // Retornando as declarações filtradas
-      return res.status(200).json(declaracoes);
+      return res.status(200).json(declaracoes)
     } catch (error) {
       // Logando o erro em caso de falha
-      logger.error("Erro ao filtrar declarações para o dashboard:", error);
+      logger.error("Erro ao filtrar declarações para o dashboard:", error)
 
       // Retornando status 500 com uma mensagem de erro
-      return res.status(500).json({ message: "Erro ao filtrar declarações para o dashboard." });
+      return res
+        .status(500)
+        .json({ message: "Erro ao filtrar declarações para o dashboard." })
     }
   }
-
-
 
   async atualizarStatusDeclaracao(req: Request, res: Response) {
     try {
@@ -112,17 +140,20 @@ export class DeclaracaoController {
       }
 
       if (status === Status.Recebida) {
-        const existeDeclaracaoNova = await Declaracoes.findOne({
+        const declaracoesMaisNovas = await Declaracoes.find({
           museu_id: declaracao.museu_id,
           anoDeclaracao: declaracao.anoDeclaracao,
-          versao: { $gt: declaracao.versao },
-          _id: { $ne: id }
-        })
+          versao: { $gt: declaracao.versao }
+        }).lean()
 
-        if (existeDeclaracaoNova) {
+        const existeVersaoNaoExcluida = declaracoesMaisNovas.some(
+          (decl) => decl.status !== Status.Excluida
+        )
+
+        if (existeVersaoNaoExcluida) {
           return res.status(400).json({
             message:
-              "Não é possível restaurar esta declaração porque já existe uma nova declaração para o mesmo museu e ano."
+              "Não é possível restaurar esta declaração porque há versões mais recentes que não estão com status 'Excluída'."
           })
         }
 
@@ -133,6 +164,7 @@ export class DeclaracaoController {
           })
         }
       }
+
       const admin = await Usuario.findById(adminId).select("nome").lean()
       if (!admin) {
         return res
@@ -179,8 +211,7 @@ export class DeclaracaoController {
     } catch (error) {
       logger.error("Erro ao atualizar o status da declaração:", error)
       return res.status(500).json({
-        message: "Erro ao atualizar o status da declaração.",
-        // error: error.message
+        message: "Erro ao atualizar o status da declaração."
       })
     }
   }
@@ -488,6 +519,9 @@ export class DeclaracaoController {
         )
 
       const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
+      if (idDeclaracao) {
+        novaDeclaracao.status = Status.Recebida
+      }
       if (idDeclaracao && declaracaoExistente) {
         const timeLineAnterior = ultimaDeclaracao?.timeLine || []
         const novoEvento = {
