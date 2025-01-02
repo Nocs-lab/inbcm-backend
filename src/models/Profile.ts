@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Types } from "mongoose"
 
-interface IProfile extends Document {
+export interface IProfile extends Document {
   name: string
   description?: string
   permissions: Types.ObjectId[]

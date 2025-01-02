@@ -24,6 +24,8 @@ import { Profile } from "../models/Profile"
 import { DataUtils } from "../utils/dataUtils"
 import { Eventos } from "../enums/Eventos"
 import logger from "../utils/logger"
+import { IAnalista } from "../types/Inalistas"
+import { FilterQuery } from "mongoose"
 
 
 class DeclaracaoService {
@@ -1011,19 +1013,33 @@ class DeclaracaoService {
     return agregacao
   }
 
-  async listarAnalistas() {
+  async listarAnalistas(especificidades?: string[]): Promise<IAnalista[]> {
     const analistaProfile = await Profile.findOne({ name: "analyst" })
-
     if (!analistaProfile) {
-      throw new Error("Perfil de analista não encontrado.")
+      throw new Error("Perfil 'analyst' não encontrado.")
     }
 
-    const analistas: IUsuario[] = await Usuario.find({
-      profile: analistaProfile._id
-    })
+    const filtro: FilterQuery<IUsuario> = {
+      profile: analistaProfile._id,
+      tipoAnalista: { $exists: true, $not: { $size: 0 } }
+    }
 
-    return analistas
+    if (especificidades) {
+      filtro.tipoAnalista = { $in: especificidades }
+    }
+
+    const analistas = await Usuario.find(filtro)
+      .select("_id nome email tipoAnalista")
+      .lean<{
+        _id: mongoose.Types.ObjectId
+        nome: string
+        email: string
+        tipoAnalista: string[]
+      }>()
+
+    return analistas as unknown as IAnalista[]
   }
+
   async enviarParaAnalise(
     id: string,
     analistas: string[],
@@ -1040,7 +1056,7 @@ class DeclaracaoService {
       throw new Error("Declaração não está no estado adequado para envio.")
     }
 
-    const analistasList: IUsuario[] = await this.listarAnalistas()
+    const analistasList: IAnalista[] = await this.listarAnalistas()
     const analistasIds = analistasList
       .map((analista) => analista._id as mongoose.Types.ObjectId)
       .toString()
@@ -1093,6 +1109,17 @@ class DeclaracaoService {
     }
 
     return declaracaoComNomes
+  }
+  async listarAnalistasPorEspecificidades(
+    especificidades: string[]
+  ): Promise<IUsuario[]> {
+    const analistas = await Usuario.find<IUsuario>({
+      tipoAnalista: { $in: especificidades }
+    })
+      .select("nome tipoAnalista")
+      .lean<IUsuario[]>()
+
+    return analistas
   }
 
   async getItensPorAnoETipo(

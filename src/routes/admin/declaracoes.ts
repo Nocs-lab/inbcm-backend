@@ -48,11 +48,11 @@ routes.get(
   declaracaoController.listarAnalistas.bind(declaracaoController)
 )
 
-routes.put(
-  "/:id/analises",
-  adminMiddleware,
-  declaracaoController.enviarParaAnalise.bind(declaracaoController)
-)
+// routes.put(
+//   "/:id/analises",
+//   adminMiddleware,
+//   declaracaoController.enviarParaAnalise.bind(declaracaoController)
+// )
 
 routes.get(
   "/:id/timeline",

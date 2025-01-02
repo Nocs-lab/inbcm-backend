@@ -1,23 +1,33 @@
 import mongoose, { Schema, Types, Document } from "mongoose"
+import { IProfile } from "./Profile"
+import { IMuseu } from "./Museu"
 
 export interface IUsuario extends Document {
   nome: string
   email: string
-  museus: string[]
+  museus: IMuseu[]
   admin: boolean
   senha: string
-  profile: Types.ObjectId
+  profile: IProfile | Types.ObjectId
   ativo: boolean
+  tipoAnalista: string[]
 }
 
-const UsuarioSchema = new Schema<IUsuario>({
+export const UsuarioSchema = new Schema<IUsuario>({
   nome: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   admin: { type: Boolean, default: false },
   senha: { type: String, required: true },
   profile: { type: Schema.Types.ObjectId, required: true, ref: "profiles" },
   ativo: { type: Boolean, default: true },
-  museus: [{ type: mongoose.Schema.Types.ObjectId, ref: "museus" }]
+  museus: [{ type: mongoose.Schema.Types.ObjectId, ref: "museus" }],
+  tipoAnalista: [
+    {
+      type: String,
+      enum: ["museologico", "arquivistico", "bibliografico"],
+      default: []
+    }
+  ]
 })
 
 interface IRefreshToken extends Document {

@@ -1,6 +1,7 @@
 import { Request, Response } from "express"
 import { Museu, Usuario } from "../models"
 import logger from "../utils/logger"
+import { MuseuFiltro } from "../types/MuseuFIltro"
 
 class MuseuController {
   /**
@@ -127,30 +128,42 @@ class MuseuController {
    */
   static async listarMuseus(req: Request, res: Response) {
     try {
-      const { semVinculoUsuario, page, limit } = req.query
+      const { semVinculoUsuario, search, page, limit } = req.query
 
-      const filtro = semVinculoUsuario === "true" ? { usuario: null } : {}
+      const filtro: MuseuFiltro = {}
 
-      if (!page && !limit) {
-        const museus = await Museu.find(filtro)
-        return res.status(200).json(museus)
+      if (semVinculoUsuario === "true") {
+        filtro.usuario = null
+      }
+
+      if (search) {
+        const busca = (search as string)
+          .split(" ")
+          .filter((item) => item.trim() !== "")
+        if (busca.length > 0) {
+          filtro.nome = { $regex: busca.join("|"), $options: "i" }
+        }
       }
 
       const pageNumber = parseInt(page as string, 10) || 1
       const limitNumber = parseInt(limit as string, 10) || 10
       const skip = (pageNumber - 1) * limitNumber
 
-      const museus = await Museu.find(filtro).skip(skip).limit(limitNumber)
+      // Busca paginada com apenas os campos necessários
+      const museus = await Museu.find(filtro)
+        .select("nome _id")
+        .skip(skip)
+        .limit(limitNumber)
 
-      const totalMuseus = await Museu.countDocuments(filtro)
-      const totalPages = Math.ceil(totalMuseus / limitNumber)
+      const totalItems = await Museu.countDocuments(filtro)
+      const totalPages = Math.ceil(totalItems / limitNumber)
 
       return res.status(200).json({
         museus,
         pagination: {
           currentPage: pageNumber,
           totalPages,
-          totalItems: totalMuseus,
+          totalItems,
           itemsPerPage: limitNumber
         }
       })

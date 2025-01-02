@@ -1,7 +1,7 @@
 import express from "express"
 import {
-  permissionCheckMiddleware,
-  userMiddleware
+  adminMiddleware,
+  permissionCheckMiddleware
 } from "../../middlewares/AuthMiddlewares"
 import ProfileController from "../../controllers/ProfileController"
 
@@ -12,7 +12,7 @@ routes.post(
   permissionCheckMiddleware("createProfile"),
   ProfileController.createProfile
 )
-routes.get("/", userMiddleware, ProfileController.getProfiles)
+routes.get("/", adminMiddleware, ProfileController.getProfiles)
 routes.get(
   "/:id",
   permissionCheckMiddleware("getProfileById"),
