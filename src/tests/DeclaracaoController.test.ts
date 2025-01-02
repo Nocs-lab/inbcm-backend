@@ -7,11 +7,11 @@ import {
   museuMock
 } from "./DeclaracaoMockSetup"
 import mongoose from "mongoose"
-import {Usuario} from "../models/Usuario";
-import {Profile} from '../models/Profile';
+import { Usuario } from "../models/Usuario"
+import { Profile } from "../models/Profile"
 
 let declaracaoId: string
-let usuarioId: mongoose.Types.ObjectId;
+let usuarioId: mongoose.Types.ObjectId
 let muu: any
 
 beforeAll(async () => {
@@ -92,7 +92,10 @@ describe("GET /public/declaracoes/:museu/:anoDeclaracao", () => {
       .set("Authorization", `Bearer mocked-token`)
       .expect(200)
 
-    expect(response.body).toHaveProperty("museu_id", (museuMock._id as unknown as mongoose.Types.ObjectId).toString())
+    expect(response.body).toHaveProperty(
+      "museu_id",
+      (museuMock._id as unknown as mongoose.Types.ObjectId).toString()
+    )
     expect(response.body).toHaveProperty("anoDeclaracao", "2024")
     expect(response.body).toHaveProperty("status")
     expect(response.body).toHaveProperty("museologico")
@@ -138,10 +141,7 @@ describe("GET /public/declaracoes", () => {
       anosMuseus.add(key)
     })
   })
-
-
 })
-
 
 describe("PUT /api/admin/declaracoes/atualizarStatus/:id", () => {
   it("Deve atualizar o status da declaração com sucesso", async () => {
@@ -156,7 +156,6 @@ describe("PUT /api/admin/declaracoes/atualizarStatus/:id", () => {
     expect(response.body.arquivistico.status).toBe("Recebida")
     expect(response.body.bibliografico.status).toBe("Recebida")
   })
-
 })
 
 describe("GET /admin/declaracoes/analistas", () => {
@@ -167,7 +166,7 @@ describe("GET /admin/declaracoes/analistas", () => {
       description: "analyst",
       permissions: [],
       isProtected: false
-    }).save();
+    }).save()
 
     // Criando usuários "Alice" e "Bob" utilizando o ID do profileTeste
     const alice = await new Usuario({
@@ -176,11 +175,9 @@ describe("GET /admin/declaracoes/analistas", () => {
       senha: "password123",
       profile: profileTeste._id, // Vincular o ID do perfil de analista
       ativo: true
-    }).save();
+    }).save()
 
-     usuarioId = alice._id as mongoose.Types.ObjectId;
-
-
+    usuarioId = alice._id as mongoose.Types.ObjectId
 
     await new Usuario({
       nome: "Bob",
@@ -188,17 +185,15 @@ describe("GET /admin/declaracoes/analistas", () => {
       senha: "password123",
       profile: profileTeste._id, // Vincular o ID do perfil de analista
       ativo: true
-    }).save();
-
+    }).save()
 
     // Fazer a requisição para a rota de listar analistas
     const response = await request(app)
       .get("/admin/declaracoes/analistas")
       .set("Authorization", `Bearer mocked-token`)
-      .expect(200);
-
-  });
-});
+      .expect(200)
+  })
+})
 
 describe("PUT /admin/declaracoes/:id/analises", () => {
   it("Deve atualizar o status da declaração para 'Em Análise' e associar o(s) analista(s)", async () => {
@@ -235,7 +230,7 @@ describe("PUT /admin/declaracoes/:id/analises-concluir", () => {
 
   it("Deve retornar erro 500 se a declaração não for encontrada", async () => {
     // Usando um ID de declaração inválido
-    const invalidDeclaracaoId = "id-invalido";
+    const invalidDeclaracaoId = "id-invalido"
 
     const response = await request(app)
       .put(`/admin/declaracoes/${invalidDeclaracaoId}/analises-concluir`)
@@ -245,11 +240,14 @@ describe("PUT /admin/declaracoes/:id/analises-concluir", () => {
       })
       .expect(500)
 
-    expect(response.body).toHaveProperty("message", "Erro ao concluir análise da declaração.")
+    expect(response.body).toHaveProperty(
+      "message",
+      "Erro ao concluir análise da declaração."
+    )
   })
 
   it("Deve retornar erro 500 para status inválido", async () => {
-    const declaracaoId = "id-da-declaracao"; // Substitua com o ID real ou mockado de uma declaração
+    const declaracaoId = "id-da-declaracao" // Substitua com o ID real ou mockado de uma declaração
 
     const response = await request(app)
       .put(`/admin/declaracoes/${declaracaoId}/analises-concluir`)
@@ -259,17 +257,20 @@ describe("PUT /admin/declaracoes/:id/analises-concluir", () => {
       })
       .expect(500)
 
-    expect(response.body).toHaveProperty("message", "Erro ao concluir análise da declaração.")
+    expect(response.body).toHaveProperty(
+      "message",
+      "Erro ao concluir análise da declaração."
+    )
   })
 })
 
 describe("GET /admin/declaracoes/analistas-filtrados", () => {
   it("Deve retornar status 200 ao buscar declarações agrupadas por analista", async () => {
     const response = await request(app)
-      .get("/admin/declaracoes/analistas-filtrados")  // Substitua pela rota correta
+      .get("/admin/declaracoes/analistas-filtrados") // Substitua pela rota correta
       .set("Authorization", `Bearer mocked-token`)
-      .expect(200);
+      .expect(200)
 
-    expect(Array.isArray(response.body)).toBe(true);
-  });
-});
+    expect(Array.isArray(response.body)).toBe(true)
+  })
+})
