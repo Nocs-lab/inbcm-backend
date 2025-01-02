@@ -25,9 +25,7 @@ import { DataUtils } from "../utils/dataUtils"
 import { Eventos } from "../enums/Eventos"
 import logger from "../utils/logger"
 
-
 class DeclaracaoService {
-
   async filtroDeclaracoesDashBoard(
     anos: string[],
     estados: string[],
@@ -35,39 +33,41 @@ class DeclaracaoService {
     museuId: string | null
   ) {
     try {
-      const match: any = {};
+      const match: any = {}
 
       if (anos.length > 0) {
-        match.anoDeclaracao = { $in: anos };
+        match.anoDeclaracao = { $in: anos }
       }
 
       if (estados.length > 0 || cidades.length > 0) {
-        const museuQuery: any = {};
+        const museuQuery: any = {}
 
         if (estados.length > 0) {
-          museuQuery["endereco.uf"] = { $in: estados.map((estado) => estado.toUpperCase()) };
+          museuQuery["endereco.uf"] = {
+            $in: estados.map((estado) => estado.toUpperCase())
+          }
         }
 
         if (cidades.length > 0) {
-          museuQuery["endereco.municipio"] = { $in: cidades };
+          museuQuery["endereco.municipio"] = { $in: cidades }
         }
 
         // Busca IDs dos museus que atendem aos critérios
-        const museus = await Museu.find(museuQuery).select("_id").lean();
-        const museuIds = museus.map((museu) => museu._id);
+        const museus = await Museu.find(museuQuery).select("_id").lean()
+        const museuIds = museus.map((museu) => museu._id)
 
         // Adiciona os IDs dos museus encontrados ao filtro
-        match.museu_id = { $in: museuIds };
+        match.museu_id = { $in: museuIds }
       }
 
       // Filtro por museu (caso seja enviado)
       if (museuId) {
-        match.museu_id = museuId;
+        match.museu_id = museuId
       }
 
       // Filtro por "ultimaDeclaracao" sendo true e "status" diferente de 'Excluída'
-      match.ultimaDeclaracao = true;
-      match.status = { $ne: "Excluída" };
+      match.ultimaDeclaracao = true
+      match.status = { $ne: "Excluída" }
 
       // Agregação para buscar declarações com os filtros aplicados
       const declaracoes = await Declaracoes.aggregate([
@@ -84,106 +84,110 @@ class DeclaracaoService {
             bibliografico: 1,
             museologico: 1,
             totalItensDeclarados: 1,
-            ultimaDeclaracao: 1,
-          },
-        },
-      ]);
+            ultimaDeclaracao: 1
+          }
+        }
+      ])
 
       console.log(declaracoes)
 
       // Chamando os métodos para poder construir o json
-      const cards = await this.showCards(declaracoes);
-      const quantidadePorEstadoERegiao = await this.quantidadeDeclaracoesPorEstadoERegiao(declaracoes);
-      const quantidadeDeclaracoesPorAno = await this.quantidadeDeclaracoesPorAnoEStatus(declaracoes, anos);
+      const cards = await this.showCards(declaracoes)
+      const quantidadePorEstadoERegiao =
+        await this.quantidadeDeclaracoesPorEstadoERegiao(declaracoes)
+      const quantidadeDeclaracoesPorAno =
+        await this.quantidadeDeclaracoesPorAnoEStatus(declaracoes, anos)
 
       // Retornando apenas os dados dos métodos chamados
       return {
         cards,
         quantidadePorEstadoERegiao,
         quantidadeDeclaracoesPorAno
-      };
+      }
     } catch (error) {
-      throw new Error(`Erro ao filtrar declarações para o dashboard: `);
+      throw new Error(`Erro ao filtrar declarações para o dashboard: `)
     }
   }
 
   async showCards(declaracoes: any[]) {
     // Contagem do total de declarações
-    const totalDeclaracoes = declaracoes.length;
+    const totalDeclaracoes = declaracoes.length
 
     // Contagem de museus distintos (baseado no campo "museu_id")
-    const museusDistintos = new Set();
+    const museusDistintos = new Set()
 
     // Adiciona o museu_id de cada declaração ao Set (convertendo para string para evitar duplicatas)
     declaracoes.forEach((declaracao) => {
-      const museuIdString = declaracao.museu_id.toString();
-      museusDistintos.add(museuIdString);
-    });
+      const museuIdString = declaracao.museu_id.toString()
+      museusDistintos.add(museuIdString)
+    })
 
     // O número de museus distintos é o tamanho do Set
-    const totalMuseus = museusDistintos.size;
+    const totalMuseus = museusDistintos.size
 
     // Inicializa o contador para cada status (ignorar "Excluída")
     const statusCounts: Record<string, number> = {
       [Status.EmConformidade]: 0,
       [Status.EmAnalise]: 0,
       [Status.NaoConformidade]: 0,
-      [Status.Recebida]: 0,
-    };
+      [Status.Recebida]: 0
+    }
 
     // Contabiliza o número de ocorrências de cada status
     declaracoes.forEach((declaracao) => {
       if (declaracao.status !== Status.Excluida) {
-        statusCounts[declaracao.status] = (statusCounts[declaracao.status] || 0) + 1;
+        statusCounts[declaracao.status] =
+          (statusCounts[declaracao.status] || 0) + 1
       }
-    });
+    })
 
     // Calcula o percentual de cada status
-    const statusPercentages: Record<string, string> = {};
+    const statusPercentages: Record<string, string> = {}
     Object.keys(statusCounts).forEach((status) => {
-      const count = statusCounts[status];
-      const percentage = totalDeclaracoes > 0 ? (count / totalDeclaracoes) * 100 : 0;
-      statusPercentages[status] = `${percentage.toFixed(2)}%`; // Formata para 2 casas decimais
-    });
+      const count = statusCounts[status]
+      const percentage =
+        totalDeclaracoes > 0 ? (count / totalDeclaracoes) * 100 : 0
+      statusPercentages[status] = `${percentage.toFixed(2)}%` // Formata para 2 casas decimais
+    })
 
     // Contagem de itens de cada tipo de bem
     const tipoBemCounts: Record<string, number> = {
       museologico: 0,
       arquivistico: 0,
-      bibliografico: 0,
-    };
+      bibliografico: 0
+    }
 
     // Soma a quantidade de itens por tipo de bem
     declaracoes.forEach((declaracao) => {
       if (declaracao.arquivistico?.quantidadeItens) {
-        tipoBemCounts.arquivistico += declaracao.arquivistico.quantidadeItens;
+        tipoBemCounts.arquivistico += declaracao.arquivistico.quantidadeItens
       }
       if (declaracao.bibliografico?.quantidadeItens) {
-        tipoBemCounts.bibliografico += declaracao.bibliografico.quantidadeItens;
+        tipoBemCounts.bibliografico += declaracao.bibliografico.quantidadeItens
       }
       if (declaracao.museologico?.quantidadeItens) {
-        tipoBemCounts.museologico += declaracao.museologico.quantidadeItens;
+        tipoBemCounts.museologico += declaracao.museologico.quantidadeItens
       }
-    });
+    })
 
     return {
       totalDeclaracoes,
       totalMuseus,
       statusPercentages,
-      quantidadeDeBens: tipoBemCounts,
-    };
+      quantidadeDeBens: tipoBemCounts
+    }
   }
 
   async quantidadeDeclaracoesPorEstadoERegiao(declaracoes: any[]): Promise<{
-    quantidadePorEstado: Record<string, number>;
-    quantidadePorRegiao: Record<string, number>;
-    statusPorRegiao: Record<string, Record<string, number>>;
+    quantidadePorEstado: Record<string, number>
+    quantidadePorRegiao: Record<string, number>
+    statusPorRegiao: Record<string, Record<string, number>>
   }> {
     try {
       // Inicializa os objetos para contagem por estado, por região e status por região
-      const quantidadePorEstado: Record<string, number> = {};
-      const quantidadePorRegiao: Record<string, number> = {};
-      const statusPorRegiao: Record<string, Record<string, number>> = {};
+      const quantidadePorEstado: Record<string, number> = {}
+      const quantidadePorRegiao: Record<string, number> = {}
+      const statusPorRegiao: Record<string, Record<string, number>> = {}
 
       // Mapeamento de estados para regiões
       const regioesMap: { [key: string]: string[] } = {
@@ -192,36 +196,40 @@ class DeclaracaoService {
         "centro-oeste": ["GO", "MT", "MS", "DF"],
         sudeste: ["ES", "MG", "RJ", "SP"],
         sul: ["PR", "RS", "SC"]
-      };
+      }
 
       // Itera sobre as declarações
       for (const declaracao of declaracoes) {
         // Busca o museu relacionado usando o ID do museu na declaração
-        const museu = await Museu.findById(declaracao.museu_id).select("endereco.uf");
+        const museu = await Museu.findById(declaracao.museu_id).select(
+          "endereco.uf"
+        )
 
         // Verifica se o museu e o estado estão disponíveis
         if (museu && museu.endereco?.uf) {
-          const estado = museu.endereco.uf;
-          const status = declaracao.status;
+          const estado = museu.endereco.uf
+          const status = declaracao.status
 
           // Quantidade por estado
-          quantidadePorEstado[estado] = (quantidadePorEstado[estado] || 0) + 1;
+          quantidadePorEstado[estado] = (quantidadePorEstado[estado] || 0) + 1
 
           // Quantidade por região e status por região
           for (const [regiao, estados] of Object.entries(regioesMap)) {
             if (estados.includes(estado)) {
               // Incrementa a contagem por região
-              quantidadePorRegiao[regiao] = (quantidadePorRegiao[regiao] || 0) + 1;
+              quantidadePorRegiao[regiao] =
+                (quantidadePorRegiao[regiao] || 0) + 1
 
               // Inicializa o objeto de status para a região, se necessário
               if (!statusPorRegiao[regiao]) {
-                statusPorRegiao[regiao] = {};
+                statusPorRegiao[regiao] = {}
               }
 
               // Incrementa o contador do status na região
-              statusPorRegiao[regiao][status] = (statusPorRegiao[regiao][status] || 0) + 1;
+              statusPorRegiao[regiao][status] =
+                (statusPorRegiao[regiao][status] || 0) + 1
 
-              break;
+              break
             }
           }
         }
@@ -232,49 +240,52 @@ class DeclaracaoService {
         quantidadePorEstado,
         quantidadePorRegiao,
         statusPorRegiao
-      };
+      }
     } catch (error) {
-      throw new Error(`Erro ao calcular a quantidade de declarações por estado, região e status: `);
+      throw new Error(
+        `Erro ao calcular a quantidade de declarações por estado, região e status: `
+      )
     }
   }
-
 
   async quantidadeDeclaracoesPorAnoEStatus(declaracoes: any[], anos: string[]) {
     try {
       // Inicializa o objeto para contagem
-      const declaracoesPorAno: Record<string, number> = {};
-      const statusPorAno: Record<string, Record<string, number>> = {};
+      const declaracoesPorAno: Record<string, number> = {}
+      const statusPorAno: Record<string, Record<string, number>> = {}
 
       // Inicializa os anos com contagem zerada
       anos.forEach((ano) => {
-        declaracoesPorAno[ano] = 0;
-        statusPorAno[ano] = {}; // Inicializa o objeto para status por ano
-      });
+        declaracoesPorAno[ano] = 0
+        statusPorAno[ano] = {} // Inicializa o objeto para status por ano
+      })
 
       // Conta as declarações por ano e status
       declaracoes.forEach((declaracao) => {
-        const ano = declaracao.anoDeclaracao;
-        const status = declaracao.status;
+        const ano = declaracao.anoDeclaracao
+        const status = declaracao.status
 
         // Incrementa a contagem para o ano
         if (anos.includes(ano)) {
-          declaracoesPorAno[ano] = (declaracoesPorAno[ano] || 0) + 1;
+          declaracoesPorAno[ano] = (declaracoesPorAno[ano] || 0) + 1
 
           // Incrementa a contagem para o status dentro do ano
           if (!statusPorAno[ano][status]) {
-            statusPorAno[ano][status] = 0;
+            statusPorAno[ano][status] = 0
           }
-          statusPorAno[ano][status] += 1;
+          statusPorAno[ano][status] += 1
         }
-      });
+      })
 
       // Retorna o JSON com os dados de declarações por ano e status por ano
       return {
         quantidadePorAno: declaracoesPorAno,
-        statusPorAno,
-      };
+        statusPorAno
+      }
     } catch (error) {
-      throw new Error(`Erro ao calcular a quantidade de declarações por ano e status: `);
+      throw new Error(
+        `Erro ao calcular a quantidade de declarações por ano e status: `
+      )
     }
   }
 
@@ -691,8 +702,11 @@ class DeclaracaoService {
   }) {
     try {
       let query = Declaracoes.find()
+
       if (ultimaDeclaracao || ultimaDeclaracao == null) {
-        query = query.where("ultimaDeclaracao").equals(true)
+        query = query.where({
+          $or: [{ ultimaDeclaracao: true }, { status: "Excluída" }]
+        })
       }
 
       //Lógica para extrair os tipos de status do model e verificar se foi enviado um status válido para filtrar
