@@ -519,10 +519,9 @@ export class DeclaracaoController {
         )
 
       const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
-      if (idDeclaracao) {
-        novaDeclaracao.status = Status.Recebida
-      }
+
       if (idDeclaracao && declaracaoExistente) {
+        novaDeclaracao.status = Status.Recebida
         const timeLineAnterior = ultimaDeclaracao?.timeLine || []
         const novoEvento = {
           nomeEvento: Eventos.RetificacaoDeclaracao,
