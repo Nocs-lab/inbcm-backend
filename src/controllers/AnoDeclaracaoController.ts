@@ -146,12 +146,19 @@ class AnoDeclaracaoController {
   ): Promise<Response> {
     try {
       const { ano } = req.params
+      if (!ano || isNaN(Number(ano))) {
+        return res
+        .status(400)
+        .json({ message: "Parâmetro 'ano' inválido ou ausente" });
+      }
+
       const anoDeclaracao = await AnoDeclaracao.findOne({ ano }) // Busca pelo campo 'ano'
       if (!anoDeclaracao) {
         return res
           .status(404)
           .json({ message: "Ano de declaração não encontrado" })
       }
+
       return res.status(200).json(anoDeclaracao)
     } catch (error) {
       logger.error("Erro ao buscar o ano de declaração pelo ano:", error)
