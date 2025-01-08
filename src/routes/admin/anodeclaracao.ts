@@ -92,6 +92,55 @@ const routes = express.Router()
  */
 routes.post("/", adminMiddleware, AnoDeclaracaoController.criarAnoDeclaracao)
 
+/**
+ * @swagger
+ * /api/ano-declaracao/getPeriodoDeclaracaoVigente:
+ *   get:
+ *     summary: Lista os anos de declaração com período vigente.
+ *     description: Endpoint para obter os anos de declaração cujo período de submissão está vigente, ou seja, a data atual está entre `dataInicioSubmissao` e `dataFimSubmissao`.
+ *     tags:
+ *       - Anos de Declaração
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Lista de anos de declaração com períodos vigentes.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     description: ID do ano de declaração.
+ *                   ano:
+ *                     type: integer
+ *                     description: Ano da declaração.
+ *                   dataInicioSubmissao:
+ *                     type: string
+ *                     format: date
+ *                     description: Data de início para submissão.
+ *                   dataFimSubmissao:
+ *                     type: string
+ *                     format: date
+ *                     description: Data de fim para submissão.
+ *                   dataInicioRetificacao:
+ *                     type: string
+ *                     format: date
+ *                     description: Data de início para retificação.
+ *                   dataFimRetificacao:
+ *                     type: string
+ *                     format: date
+ *                     description: Data de fim para retificação.
+ *                   metaDeclaracoesEnviadas:
+ *                     type: integer
+ *                     description: Meta de declarações.
+ *       '500':
+ *         description: Erro ao listar os períodos vigentes.
+ */
+routes.get("/getPeriodoDeclaracaoVigente/", adminMiddleware, AnoDeclaracaoController.getPeriodoDeclaracaoVigente)
 
 /**
  * @swagger
@@ -135,7 +184,6 @@ routes.post("/", adminMiddleware, AnoDeclaracaoController.criarAnoDeclaracao)
  */
 routes.get("/", adminMiddleware, AnoDeclaracaoController.getAnoDeclaracao)
 
-
 /**
  * @swagger
  * /api/ano-declaracao/{id}:
@@ -164,6 +212,86 @@ routes.get(
   permissionCheckMiddleware("getAnoDeclaracaoById"),
   AnoDeclaracaoController.getAnoDeclaracaoById
 )
+
+/**
+ * @swagger
+ * /api/ano-declaracao/getByAno/{ano}:
+ *   get:
+ *     summary: Busca um ano de declaração pelo ano.
+ *     description: Endpoint para buscar um ano de declaração específico com base no valor do campo `ano`.
+ *     tags:
+ *       - Anos de Declaração
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: ano
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Ano da declaração a ser buscado.
+ *         example: 2024
+ *     responses:
+ *       '200':
+ *         description: Ano de declaração encontrado com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: ID do ano de declaração.
+ *                 ano:
+ *                   type: integer
+ *                   description: Ano da declaração.
+ *                 dataInicioSubmissao:
+ *                   type: string
+ *                   format: date
+ *                   description: Data de início para submissão.
+ *                 dataFimSubmissao:
+ *                   type: string
+ *                   format: date
+ *                   description: Data de fim para submissão.
+ *                 dataInicioRetificacao:
+ *                   type: string
+ *                   format: date
+ *                   description: Data de início para retificação.
+ *                 dataFimRetificacao:
+ *                   type: string
+ *                   format: date
+ *                   description: Data de fim para retificação.
+ *                 metaDeclaracoesEnviadas:
+ *                   type: integer
+ *                   description: Meta de declarações.
+ *       '404':
+ *         description: Ano de declaração não encontrado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Ano de declaração não encontrado.
+ *       '500':
+ *         description: Erro ao buscar o ano de declaração.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Erro ao buscar o ano de declaração.
+ */
+routes.get(
+  "/getByAno/:ano",
+  permissionCheckMiddleware("getAnoDeclaracaoByAno"),
+  AnoDeclaracaoController.getAnoDeclaracaoByAno
+)
+
+
 
 /**
  * @swagger
@@ -229,7 +357,6 @@ routes.put(
   AnoDeclaracaoController.updateAnoDeclaracao
 )
 
-
 /**
  * @swagger
  * /api/ano-declaracao/{id}:
@@ -258,5 +385,7 @@ routes.delete(
   permissionCheckMiddleware("deleteAnoDeclaracao"),
   AnoDeclaracaoController.deleteAnoDeclaracao
 )
+
+
 
 export default routes
