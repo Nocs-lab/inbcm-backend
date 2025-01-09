@@ -148,8 +148,8 @@ class DeclaracaoService {
     Object.keys(statusCounts).forEach((status) => {
       const count = statusCounts[status]
       const percentage =
-        totalDeclaracoes > 0 ? (count / totalDeclaracoes) * 100 : 0
-      statusPercentages[status] = `${percentage.toFixed(2)}%` // Formata para 2 casas decimais
+        totalDeclaracoes > 0 ? count  : 0
+      statusPercentages[status] = `${percentage}` // Formata para 2 casas decimais
     })
 
     // Contagem de itens de cada tipo de bem
