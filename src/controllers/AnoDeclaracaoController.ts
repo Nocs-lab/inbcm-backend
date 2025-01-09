@@ -130,6 +130,45 @@ class AnoDeclaracaoController {
   }
 
   /**
+ * Busca um ano de declaração pelo valor do ano.
+ *
+ * @param {string} req.params.ano - O valor do ano a ser buscado no banco de dados.
+ * @param {Response} res - Resposta contendo o ano de declaração encontrado ou mensagem de erro.
+ *
+ * @returns {Promise<Response>} - Objeto contendo o ano de declaração encontrado ou mensagem de erro.
+ *
+ * @throws {404} - Caso nenhum ano de declaração seja encontrado.
+ * @throws {500} - Em caso de erro interno ao buscar o ano.
+ */
+  public async getAnoDeclaracaoByAno(
+    req: Request,
+    res: Response
+  ): Promise<Response> {
+    try {
+      const { ano } = req.params
+      if (!ano || isNaN(Number(ano))) {
+        return res
+        .status(400)
+        .json({ message: "Parâmetro 'ano' inválido ou ausente" });
+      }
+
+      const anoDeclaracao = await AnoDeclaracao.findOne({ ano }) // Busca pelo campo 'ano'
+      if (!anoDeclaracao) {
+        return res
+          .status(404)
+          .json({ message: "Ano de declaração não encontrado" })
+      }
+
+      return res.status(200).json(anoDeclaracao)
+    } catch (error) {
+      logger.error("Erro ao buscar o ano de declaração pelo ano:", error)
+      return res
+        .status(500)
+        .json({ message: "Erro ao buscar o ano de declaração pelo ano" })
+    }
+  }
+
+  /**
    * Atualiza um registro de ano de declaração.
    *
    * @param {string} req.params.id - ID do ano de declaração a ser atualizado.
@@ -225,6 +264,40 @@ class AnoDeclaracaoController {
       return res
         .status(500)
         .json({ message: "Erro ao excluir o ano de declaração" })
+    }
+  }
+
+  /**
+ * Obtém os anos de declaração cujo período de submissão está vigente.
+ *
+ * Um período é considerado vigente se a data atual estiver entre
+ * `dataInicioSubmissao` e `dataFimSubmissao`.
+ *
+ * @param {Request} req - Objeto da requisição (não utilizado neste método).
+ * @param {Response} res - Resposta contendo os anos de declaração vigentes ou uma mensagem de erro.
+ *
+ * @returns {Promise<Response>} - Lista de anos de declaração com períodos vigentes ou uma mensagem de erro.
+ *
+ * @throws {500} - Em caso de erro interno ao buscar os períodos vigentes.
+ */
+  public async getPeriodoDeclaracaoVigente(
+    req: Request,
+    res: Response
+  ): Promise<Response> {
+    try {
+      const dataAtual = new Date();
+
+      const periodoVigente = await AnoDeclaracao.find({
+        dataInicioSubmissao: { $lte: dataAtual },
+        dataFimSubmissao: { $gte: dataAtual },
+      }).sort({ ano: -1 });
+
+      return res.status(200).json(periodoVigente);
+    } catch (error) {
+      logger.error("Erro ao listar os períodos vigentes:", error);
+      return res
+        .status(500)
+        .json({ message: "Erro ao listar os períodos vigentes" });
     }
   }
 }

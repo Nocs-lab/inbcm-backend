@@ -29,4 +29,4 @@ const AnoDeclaracaoSchema = new Schema<AnoDeclaracaoModel>({
 // Criar o índice de unicidade manualmente
 AnoDeclaracaoSchema.index({ ano: 1 }, { unique: true });
 
-export const AnoDeclaracao = mongoose.model<AnoDeclaracaoModel>("AnoDeclaracao", AnoDeclaracaoSchema);
+export const AnoDeclaracao = mongoose.model<AnoDeclaracaoModel>("AnoDeclaracoes", AnoDeclaracaoSchema);
