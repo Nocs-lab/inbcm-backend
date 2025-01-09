@@ -2,17 +2,19 @@ import argon from "@node-rs/argon2"
 import jwt from "jsonwebtoken"
 import { RefreshToken, Usuario } from "../models/Usuario"
 import config from "../config"
+import { IProfile, Profile } from "../models/Profile"
 
 export default class AuthService {
   async login({
     email,
-    password
+    password,
+    admin
   }: {
     email: string
     password: string
     admin: boolean
   }) {
-    const user = await Usuario.findOne({ email: email })
+    const user = await Usuario.findOne({ email: email }).populate('profile')
 
     if (!user) {
       throw new Error("Usuário não encontrado")
@@ -22,9 +24,21 @@ export default class AuthService {
     if (!user.ativo) {
       throw new Error("Usuário não está ativo.")
     }
+    const profileName = (user.profile as IProfile)?.name || 'sem perfil'
 
+    // Verifica o admin false que vem do endpoint para o front do declarant
+    if (admin == false && profileName !== 'declarant') {
+      throw new Error("O perfil não tem acesso à página")
+    }
+
+    // Verifica o admin false que vem do endpoint para o front do admin/analista
+    if (admin && !(profileName === 'admin' || profileName === 'analyst')) {
+      throw new Error("O perfil não tem acesso à página");
+    }
+
+    // Adiciona o perfil do usuário no payload do JWT
     const token = jwt.sign(
-      { sub: user.id, admin: user.admin ? true : undefined },
+      { sub: user.id, profile: profileName },
       config.JWT_SECRET!,
       { expiresIn: "1h" }
     )
