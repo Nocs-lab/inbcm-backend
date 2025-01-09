@@ -1,5 +1,5 @@
 import express from "express"
-import { userMiddleware } from "../../middlewares/AuthMiddlewares"
+import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 import ReciboController from "../../controllers/ReciboController"
 
 const reciboController = new ReciboController()
@@ -29,6 +29,6 @@ const routes = express.Router()
  *       '500':
  *         description: Erro ao gerar o recibo.
  */
-routes.get("/:idDeclaracao", userMiddleware, reciboController.gerarRecibo)
+routes.get("/:idDeclaracao", userPermissionMiddleware('gerarRecibo'), reciboController.gerarRecibo)
 
 export default routes

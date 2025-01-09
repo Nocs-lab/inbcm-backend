@@ -1,10 +1,10 @@
 import express from "express"
-import { adminMiddleware } from "../../middlewares/AuthMiddlewares"
 import PermissionController from "../../controllers/PermissionController"
+import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 
 const routes = express.Router()
 
-routes.get("/", adminMiddleware, PermissionController.getPermissions)
+routes.get("/",userPermissionMiddleware('getPermissions'), PermissionController.getPermissions)
 
 
 

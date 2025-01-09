@@ -1,36 +1,37 @@
 import express from "express"
 import {
-  adminMiddleware,
-  permissionCheckMiddleware
+  userPermissionMiddleware,
 } from "../../middlewares/AuthMiddlewares"
 import ProfileController from "../../controllers/ProfileController"
 
 const routes = express.Router()
 
+routes.get("/", userPermissionMiddleware('getProfiles'), ProfileController.getProfiles)
+
 routes.post(
   "/",
-  permissionCheckMiddleware("createProfile"),
+  userPermissionMiddleware("createProfile"),
   ProfileController.createProfile
 )
-routes.get("/", adminMiddleware, ProfileController.getProfiles)
+
 routes.get(
   "/:id",
-  permissionCheckMiddleware("getProfileById"),
+  userPermissionMiddleware("getProfileById"),
   ProfileController.getProfileById
 )
 routes.put(
   "/:id",
-  permissionCheckMiddleware("updateProfile"),
+  userPermissionMiddleware("updateProfile"),
   ProfileController.updateProfile
 )
 routes.delete(
   "/:id",
-  permissionCheckMiddleware("deleteProfile"),
+  userPermissionMiddleware("deleteProfile"),
   ProfileController.deleteProfile
 )
 routes.post(
   "/addPermissions",
-  permissionCheckMiddleware("addPermissions"),
+  userPermissionMiddleware("addPermissions"),
   ProfileController.addPermissions
 )
 

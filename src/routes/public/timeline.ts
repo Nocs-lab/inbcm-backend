@@ -1,6 +1,6 @@
 import express from "express"
 import DeclaracaoController from "../../controllers/DeclaracaoController"
-import { userMiddleware } from "../../middlewares/AuthMiddlewares"
+import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 
 const routes = express.Router()
 const declaracaoController = new DeclaracaoController()
@@ -30,7 +30,7 @@ const declaracaoController = new DeclaracaoController()
  */
 routes.get(
   "/:id",
-  userMiddleware,
+  userPermissionMiddleware('getTimeLine'),
   declaracaoController.getTimeLine.bind(declaracaoController)
 )
 export default routes

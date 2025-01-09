@@ -1,7 +1,6 @@
 import express from "express"
 import {
-  adminMiddleware,
-  userMiddleware
+  userPermissionMiddleware,
 } from "../../middlewares/AuthMiddlewares"
 import MuseuController from "../../controllers/MuseuController"
 
@@ -62,7 +61,7 @@ const routes = express.Router()
  *       '400':
  *         description: Erro ao criar o museu.
  */
-routes.post("/", adminMiddleware, MuseuController.criarMuseu)
+routes.post("/", userPermissionMiddleware('criarMuseu'), MuseuController.criarMuseu)
 
 /**
  * @swagger
@@ -83,6 +82,6 @@ routes.post("/", adminMiddleware, MuseuController.criarMuseu)
  *       '500':
  *         description: Erro ao listar museus do usuário.
  */
-routes.get("/", userMiddleware, MuseuController.userMuseus)
+routes.get("/", userPermissionMiddleware('userMuseus'), MuseuController.userMuseus)
 
 export default routes
