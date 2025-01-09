@@ -4,5 +4,5 @@ export interface IAnalista {
   _id: mongoose.Types.ObjectId
   nome: string
   email: string
-  tipoAnalista: string[]
+  especialidadeAnalista: string[]
 }

@@ -12,18 +12,33 @@ export interface Arquivo {
   tipoEnvio?: TipoEnvio
   dataEnvio?: Date
   versao: number
+  comentarios: string[]
+  analistasResponsaveis?: mongoose.Types.ObjectId[]
+  analistasResponsaveisNome?: string[]
 }
+
 export interface TimeLine {
   nomeEvento: string
   dataEvento: Date
   autorEvento?: string
+  analistaResponsavel?: string[]
 }
 
 const TimeLineSchema = new Schema<TimeLine>(
   {
     nomeEvento: String,
     dataEvento: { type: Date, default: Date.now() },
-    autorEvento: String
+    autorEvento: String,
+    analistaResponsavel: [String]
+  },
+  { _id: false, versionKey: false }
+)
+const ComentarioSchema = new Schema(
+  {
+    autor: { type: String, required: true },
+    mensagem: { type: String, required: true },
+    data: { type: Date, default: Date.now },
+    autorNome: { type: String, required: true }
   },
   { _id: false, versionKey: false }
 )
@@ -40,7 +55,10 @@ const ArquivoSchema = new Schema<Arquivo>(
     quantidadeItens: { type: Number, default: 0 },
     hashArquivo: String,
     dataEnvio: { type: Date, default: Date.now() },
-    versao: { type: Number, default: 0 }
+    versao: { type: Number, default: 0 },
+    comentarios: [ComentarioSchema],
+    analistasResponsaveis: [{ type: Schema.Types.ObjectId, ref: "usuarios" }],
+    analistasResponsaveisNome: [{ type: String }]
   },
   { _id: false, versionKey: false }
 )
@@ -69,9 +87,7 @@ export interface DeclaracaoModel extends Document {
   dataRecebimento?: Date
   dataEnvioAnalise?: Date
   responsavelEnvioAnalise?: mongoose.Types.ObjectId
-  analistasResponsaveis?: mongoose.Types.ObjectId[]
   responsavelEnvioAnaliseNome: string
-  analistasResponsaveisNome: string[]
   dataAnalise?: Date
   dataFimAnalise?: Date
   timeLine: TimeLine[]
@@ -114,16 +130,17 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
     ultimaDeclaracao: { type: Boolean, default: true },
     dataRecebimento: { type: Date },
     dataEnvioAnalise: { type: Date },
-    analistasResponsaveis: [{ type: Schema.Types.ObjectId, ref: "usuarios" }],
     responsavelEnvioAnalise: { type: Schema.Types.ObjectId, ref: "usuarios" },
     responsavelEnvioAnaliseNome: { type: String },
-    analistasResponsaveisNome: [{ type: String }],
     dataAnalise: { type: Date },
     dataFimAnalise: { type: Date },
     timeLine: [TimeLineSchema]
   },
   { timestamps: true, versionKey: false }
 )
+DeclaracaoSchema.virtual("arquivos").get(function () {
+  return [this.arquivistico, this.bibliografico, this.museologico]
+})
 
 DeclaracaoSchema.pre("save", function (next) {
   if (this.dataCriacao) {

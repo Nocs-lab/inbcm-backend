@@ -6,7 +6,7 @@ import { UsuarioService } from "../service/UserService"
 
 class UsuarioController {
   async registerUsuario(req: Request, res: Response) {
-    const { nome, email, senha, profile, tipoAnalista } = req.body
+    const { nome, email, senha, profile, especialidadeAnalista } = req.body
 
     if (!nome || !email || !senha || !profile) {
       return res
@@ -18,7 +18,7 @@ class UsuarioController {
       const perfilExistente = await UsuarioService.validarUsuario({
         email,
         profile,
-        tipoAnalista
+        especialidadeAnalista
       })
 
       await UsuarioService.criarUsuario({
@@ -26,7 +26,8 @@ class UsuarioController {
         email,
         senha,
         profile,
-        tipoAnalista: perfilExistente.name === "analyst" ? tipoAnalista : null
+        especialidadeAnalista:
+          perfilExistente.name === "analyst" ? especialidadeAnalista : null
       })
 
       return res.status(201).json({ mensagem: "Usuário criado com sucesso." })

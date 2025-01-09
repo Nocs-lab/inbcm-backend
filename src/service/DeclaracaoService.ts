@@ -1026,111 +1026,492 @@ class DeclaracaoService {
 
     return agregacao
   }
+  /**
+   * Método  para alterar o analista vinculado a uma declaração.
+   *
+   * @param declaracaoId - O ID da declaração que terá o analista alterado
+   * @param analistaId - O ID do novo analista a ser vinculado à declaração
+   * @returns Um objeto com a mensagem de sucesso ou um erro caso algo dê errado
+   */
+  async alterarAnalistaArquivo(
+    declaracaoId: string,
+    arquivoTipo: "arquivistico" | "bibliografico" | "museologico",
+    analistaId: string,
+    autorId: string
+  ) {
+    console.log(
+      "Iniciando a alteração do analista para a declaração:",
+      declaracaoId
+    )
 
-  async listarAnalistas(especificidades?: string[]): Promise<IAnalista[]> {
-    const analistaProfile = await Profile.findOne({ name: "analyst" })
-    if (!analistaProfile) {
-      throw new Error("Perfil 'analyst' não encontrado.")
-    }
-
-    const filtro: FilterQuery<IUsuario> = {
-      profile: analistaProfile._id,
-      tipoAnalista: { $exists: true, $not: { $size: 0 } }
-    }
-
-    if (especificidades) {
-      filtro.tipoAnalista = { $in: especificidades }
-    }
-
-    const analistas = await Usuario.find(filtro)
-      .select("_id nome email tipoAnalista")
-      .lean<{
-        _id: mongoose.Types.ObjectId
-        nome: string
-        email: string
-        tipoAnalista: string[]
-      }>()
-
-    return analistas as unknown as IAnalista[]
-  }
-
-  async enviarParaAnalise(
-    id: string,
-    analistas: string[],
-    adminId: string
-  ): Promise<DeclaracaoModel | null> {
-    const objectId = new mongoose.Types.ObjectId(id)
+    const objectId = new mongoose.Types.ObjectId(declaracaoId)
     const declaracao = await Declaracoes.findById(objectId)
+
+    console.log("Declaração encontrada:", declaracao)
 
     if (!declaracao) {
       throw new Error("Declaração não encontrada.")
     }
 
-    if (declaracao.status !== Status.Recebida) {
-      throw new Error("Declaração não está no estado adequado para envio.")
+    // Verifica se o analista existe
+    const analista = await Usuario.findById(analistaId)
+    console.log("Analista encontrado:", analista)
+
+    if (!analista) {
+      throw new Error("Analista não encontrado.")
     }
 
-    const analistasList: IAnalista[] = await this.listarAnalistas()
-    const analistasIds = analistasList
-      .map((analista) => analista._id as mongoose.Types.ObjectId)
-      .toString()
+    // Verifica quem realizou a alteração (autor)
+    const autor = await Usuario.findById(autorId)
+    console.log("Autor da alteração:", autor)
 
-    for (const analistaId of analistas) {
-      if (!analistasIds.includes(analistaId)) {
-        throw new Error(`Usuário com ID ${analistaId} não é um analista.`)
+    if (!autor) {
+      throw new Error("Autor da alteração não encontrado.")
+    }
+
+    const arquivo = declaracao[arquivoTipo]
+    if (!arquivo) {
+      throw new Error(
+        `Arquivo do tipo ${arquivoTipo} não está presente na declaração.`
+      )
+    }
+
+    // Atualiza os analistas responsáveis
+    const analistaAnterior = arquivo.analistasResponsaveisNome?.[0] || "N/A"
+    arquivo.analistasResponsaveis = [new mongoose.Types.ObjectId(analistaId)]
+    arquivo.analistasResponsaveisNome = [analista.nome]
+
+    console.log("Preparando para salvar a declaração com o novo analista:", {
+      arquivoTipo,
+      analistaId,
+      analistaNome: analista.nome,
+      analistaAnterior,
+      arquivo
+    })
+
+    const evento = {
+      nomeEvento: "Mudança de analista",
+      dataEvento: DataUtils.getCurrentData(),
+      autorEvento: autor.nome,
+      analistaResponsavel: [analista.nome]
+    }
+
+    const declaracaoAtualizada = await this.adicionarEvento(objectId, evento)
+    console.log(declaracaoAtualizada)
+    await declaracao.save()
+
+    console.log("Evento de mudança de analista adicionado à timeline:", evento)
+
+    return {
+      message: `Analista vinculado ao arquivo ${arquivoTipo} com sucesso.`,
+      arquivo,
+      timeLine: declaracaoAtualizada?.timeLine
+    }
+  }
+
+  async listarAnalistas(
+    especificidades?: string[],
+    nomeAnalista?: string
+  ): Promise<IAnalista[]> {
+    try {
+      const analistaProfile = await Profile.findOne({ name: "analyst" })
+      if (!analistaProfile) {
+        throw new Error("Perfil 'analyst' não encontrado.")
+      }
+
+      const filtro: FilterQuery<IUsuario> = {
+        profile: analistaProfile._id,
+        especialidadeAnalista: { $exists: true, $not: { $size: 0 } }
+      }
+
+      if (especificidades) {
+        filtro.especialidadeAnalista = { $in: especificidades }
+      }
+
+      if (nomeAnalista) {
+        filtro.nome = { $regex: nomeAnalista, $options: "i" }
+      }
+
+      const analistas = await Usuario.find(filtro)
+        .select("_id nome email especialidadeAnalista")
+        .lean()
+        .sort({ nome: 1 })
+        .lean()
+
+      return analistas as unknown as IAnalista[]
+    } catch (error: unknown) {
+      if ((error as { message?: string }).message) {
+        throw new Error(
+          `Erro ao listar analistas: ${(error as { message: string }).message}`
+        )
+      } else {
+        throw new Error("Erro desconhecido ao listar analistas.")
+      }
+    }
+  }
+
+  /**
+   * Envia uma declaração para análise, atribuindo analistas por tipo de arquivo
+   * e alterando o status da declaração para Em análise.
+   *
+   * @param id - O ID da declaração a ser enviada.
+   * @param analistasPorTipo - Um objeto contendo os IDs dos analistas por tipo de arquivo
+   * (arquivístico, bibliográfico, museológico).
+   * @param adminId - O ID do administrador responsável pelo envio.
+   * @returns A declaração atualizada com os analistas atribuídos e o status alterado.
+   * @throws Lança erros em caso de problemas durante o processo.
+   */
+  async enviarParaAnalise(
+    id: string,
+    analistasPorTipo: { [key: string]: string[] },
+    adminId: string
+  ): Promise<DeclaracaoModel | null> {
+    try {
+      const objectId = new mongoose.Types.ObjectId(id)
+
+      const declaracao = await Declaracoes.findById(objectId)
+
+      // Verifica se a declaração foi encontrada
+      if (!declaracao) {
+        throw new Error("Declaração não encontrada.")
+      }
+
+      if (declaracao.status !== Status.Recebida) {
+        logger.warn(
+          `Status inválido para envio. Status atual: ${declaracao.status}`
+        )
+        throw new Error(
+          `Declaração não está no estado adequado para envio. Status atual: ${declaracao.status}`
+        )
+      }
+
+      // Lista de tipos de arquivos que serão processados
+      const tiposArquivos = [
+        "arquivistico",
+        "bibliografico",
+        "museologico"
+      ] as const
+
+      // Itera sobre os tipos de arquivos para atualizar os analistas responsáveis
+      for (const tipo of tiposArquivos) {
+        const arquivo = declaracao[tipo] // Obtém o arquivo correspondente ao tipo
+        const analistas = analistasPorTipo[tipo] // Obtém os IDs dos analistas para o tipo
+
+        if (arquivo && analistas) {
+          // Mapeia os IDs dos analistas para ObjectIds do MongoDB
+          arquivo.analistasResponsaveis = analistas.map(
+            (id) => new mongoose.Types.ObjectId(id)
+          )
+
+          // Busca os nomes dos analistas no banco de dados
+          const analistasNomes = await Usuario.find({
+            _id: { $in: arquivo.analistasResponsaveis }
+          })
+            .select("nome")
+            .lean()
+
+          // Atribui os nomes dos analistas ao arquivo
+          arquivo.analistasResponsaveisNome = analistasNomes.map(
+            (analista) => analista.nome
+          )
+        }
+      }
+
+      declaracao.status = Status.EmAnalise
+
+      declaracao.dataEnvioAnalise = DataUtils.getCurrentData()
+
+      declaracao.responsavelEnvioAnalise = new mongoose.Types.ObjectId(adminId)
+
+      const responsavel = await Usuario.findById(adminId).select("nome").lean()
+      const responsavelNome = responsavel ? responsavel.nome : "Desconhecido"
+
+      const analistasIds = Object.values(analistasPorTipo).flat()
+
+      const analistasList = await Usuario.find({
+        _id: { $in: analistasIds }
+      })
+        .select("nome _id")
+        .lean()
+
+      const responsavelReporte: TimeLine = {
+        nomeEvento: `${Eventos.EnvioParaAnalise}:`,
+        dataEvento: DataUtils.getCurrentData(),
+        autorEvento: responsavelNome,
+        analistaResponsavel: Object.values(analistasPorTipo).flatMap((ids) =>
+          ids.map((id) => {
+            const analistaIndex = analistasList.find(
+              (analista) => analista._id.toString() === id
+            )
+            return analistaIndex ? analistaIndex.nome : "Desconhecido"
+          })
+        )
+      }
+
+      // Adiciona o evento à linha do tempo da declaração
+      await this.adicionarEvento(
+        declaracao._id as mongoose.Types.ObjectId,
+        responsavelReporte
+      )
+
+      await declaracao.save({ validateBeforeSave: false })
+
+      const declaracaoPopulada = await Declaracoes.findById(declaracao._id)
+        .populate({ path: "responsavelEnvioAnalise", select: "nome" })
+        .exec()
+
+      if (!declaracaoPopulada) {
+        throw new Error("Erro ao obter a declaração com os nomes.")
+      }
+
+      return declaracaoPopulada
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.error(`Erro: ${error.message}`)
+        throw new Error(error.message)
+      } else {
+        logger.error(`Erro inesperado: ${JSON.stringify(error)}`)
+        throw new Error(
+          "Ocorreu um erro inesperado. Por favor, tente novamente."
+        )
+      }
+    }
+  }
+  /**
+   * Atualiza o status dos tipos de bens de uma declaração e adiciona comentários se fornecidos.
+   * Faz a verficação necessária para saber se o autorID é admin ou analyst. Caso seja admin,o endpoint para alterar analistas de uma declaração deve ser chamado.
+   * @param declaracaoId - O ID da declaração a ser atualizada.
+   * @param statusBens - Objeto contendo os status e comentários para cada tipo de bem.
+   * @param autorId - O ID do administrador ou analista que está realizando a atualização.
+   * @returns Mensagem de sucesso e o objeto atualizado.
+   * @throws Erros se a declaração não for encontrada ou ocorrer falha na validação.
+   */
+  // Método  para atualizar o status de diferentes tipos de bens de uma declaração
+  async atualizarStatusBens(
+    declaracaoId: string,
+    statusBens: Partial<
+      Record<
+        "museologico" | "arquivistico" | "bibliografico",
+        { status: Status; comentario?: string }
+      >
+    >,
+    autorId: string
+  ) {
+    const declaracao = await Declaracoes.findById(declaracaoId)
+    if (!declaracao) {
+      throw new Error("Declaração não encontrada.")
+    }
+
+    // Buscar o autor e garantir que o campo profile foi populado
+    const autor = await Usuario.findById(autorId).populate("profile", "name")
+    if (!autor) {
+      throw new Error("Autor não encontrado.")
+    }
+
+    // Verificar se o perfil está populado e acessar `name`
+    const perfilUsuario =
+      typeof autor.profile === "object" && "name" in autor.profile
+        ? autor.profile.name
+        : null
+
+    if (!perfilUsuario) {
+      throw new Error("Perfil do usuário não encontrado ou inválido.")
+    }
+
+    const tiposVinculados: string[] = []
+
+    // Esse trecho de verificações checa se o determinado tipo existe na declaração e se a propriedade analistasResponsaveis é um array
+    // Feito essas verificações,adiciona o tipo  ao array tiposVinculados
+
+    if (
+      declaracao.arquivistico &&
+      Array.isArray(declaracao.arquivistico.analistasResponsaveis)
+    ) {
+      if (
+        declaracao.arquivistico.analistasResponsaveis.includes(
+          new mongoose.Types.ObjectId(autorId)
+        )
+      ) {
+        tiposVinculados.push("arquivistico")
       }
     }
 
-    // Atualiza informações da declaração
-    declaracao.analistasResponsaveis = analistas.map(
-      (id) => new mongoose.Types.ObjectId(id)
-    )
-    declaracao.status = Status.EmAnalise
-    declaracao.dataEnvioAnalise = DataUtils.getCurrentData()
-    declaracao.responsavelEnvioAnalise = new mongoose.Types.ObjectId(adminId)
-
-    const analistasNomes = await Usuario.find({
-      _id: { $in: declaracao.analistasResponsaveis }
-    })
-      .select("nome")
-      .lean()
-
-    const responsavel = await Usuario.findById(adminId).select("nome").lean()
-
-    declaracao.analistasResponsaveisNome = analistasNomes.map(
-      (analista) => analista.nome
-    )
-    declaracao.responsavelEnvioAnaliseNome = responsavel ? responsavel.nome : ""
-    const responsavelReporte: TimeLine = {
-      nomeEvento: ` ${Eventos.EnvioParaAnalise}  ${declaracao.analistasResponsaveisNome.toString()}`,
-      dataEvento: new Date(),
-      autorEvento: responsavel ? responsavel.nome : "Desconhecido"
+    if (
+      declaracao.bibliografico &&
+      Array.isArray(declaracao.bibliografico.analistasResponsaveis)
+    ) {
+      if (
+        declaracao.bibliografico.analistasResponsaveis.includes(
+          new mongoose.Types.ObjectId(autorId)
+        )
+      ) {
+        tiposVinculados.push("bibliografico")
+      }
     }
 
-    await this.adicionarEvento(
-      declaracao._id as unknown as mongoose.Types.ObjectId,
-      responsavelReporte
-    )
-    await declaracao.save({ validateBeforeSave: false })
-
-    const declaracaoComNomes = await Declaracoes.findById(declaracao._id)
-      .populate({ path: "analistasResponsaveis", select: "nome" })
-      .populate({ path: "responsavelEnvioAnalise", select: "nome" })
-      .exec()
-
-    if (!declaracaoComNomes) {
-      throw new Error("Erro ao obter a declaração com os nomes.")
+    if (
+      declaracao.museologico &&
+      Array.isArray(declaracao.museologico.analistasResponsaveis)
+    ) {
+      if (
+        declaracao.museologico.analistasResponsaveis.includes(
+          new mongoose.Types.ObjectId(autorId)
+        )
+      ) {
+        tiposVinculados.push("museologico")
+      }
     }
 
-    return declaracaoComNomes
+    if (perfilUsuario === "admin") {
+      const tiposPermitidos = Object.keys(statusBens) as Array<
+        keyof typeof statusBens
+      >
+
+      for (const tipo of tiposPermitidos) {
+        if (!tiposVinculados.includes(tipo)) {
+          throw new Error(
+            `Você não tem permissão para alterar o status do tipo ${tipo}, pois não possui tal especificidade ou não está vinculado corretamente a esse tipo.`
+          )
+        }
+      }
+    }
+
+    if (perfilUsuario === "analyst") {
+      const tiposPermitidos = Object.keys(statusBens) as Array<
+        keyof typeof statusBens
+      >
+
+      // Verificar se o analista está tentando alterar um tipo ao qual não está vinculado
+      for (const tipo of tiposPermitidos) {
+        if (!tiposVinculados.includes(tipo)) {
+          throw new Error(
+            `Você não está vinculado ao tipo ${tipo} e não pode alterar o status desse tipo.`
+          )
+        }
+      }
+    }
+
+    for (const [tipo, { status, comentario }] of Object.entries(
+      statusBens
+    ) as Array<
+      [keyof DeclaracaoModel, { status: Status; comentario?: string }]
+    >) {
+      if (declaracao[tipo]) {
+        declaracao[tipo].status = status
+
+        if (comentario) {
+          declaracao[tipo].comentarios = declaracao[tipo].comentarios || []
+          declaracao[tipo].comentarios.push({
+            autor: autorId,
+            autorNome: autor.nome,
+            mensagem: comentario,
+            data: DataUtils.getCurrentData()
+          })
+        }
+        declaracao.timeLine.push({
+          nomeEvento: `Alteração de status do tipo ${tipo} para ${status}`,
+          dataEvento: DataUtils.getCurrentData(),
+          autorEvento: autor.nome,
+          analistaResponsavel: [autor.nome]
+        })
+      }
+    }
+
+    // Adicionar à timeLine a mudança de status
+
+    // Atualizar status da declaração
+    // Atualizar status da declaração
+    const todosStatus = [
+      declaracao.arquivistico?.status,
+      declaracao.bibliografico?.status,
+      declaracao.museologico?.status
+    ].filter(Boolean) // Remove valores undefined caso um tipo não esteja presente
+
+    // Verificar se todos os status dos bens estão definidos como "Em Conformidade" ou "Não Conformidade"
+    const todosFinalizados = todosStatus.every(
+      (status) =>
+        status === Status.EmConformidade || status === Status.NaoConformidade
+    )
+
+    // Atualizar o status da declaração
+    if (todosFinalizados) {
+      // Se todos os bens estiverem "Em Conformidade", a declaração também deve estar "Em Conformidade"
+      if (todosStatus.every((status) => status === Status.EmConformidade)) {
+        declaracao.status = Status.EmConformidade
+      } else {
+        // Caso contrário, a declaração deve ser "Não Conformidade" se houver algum bem "Não Conformidade"
+        declaracao.status = Status.NaoConformidade
+      }
+    } else {
+      // Se ainda houver bens pendentes, manter a declaração "Em Análise"
+      declaracao.status = Status.EmAnalise
+    }
+
+    await declaracao.save()
+
+    return {
+      message: "Status dos bens atualizado com sucesso.",
+      declaracao
+    }
   }
+
+  /**
+   * Restaura uma declaração para o status 'Recebida' quando ela está com status 'Excluída'.
+   * Verifica se há versões mais recentes da declaração que não estão com status 'Excluída'
+   * antes de permitir a restauração.
+   *
+   * @param declaracaoId - ID da declaração que será restaurada
+   * @returns Um objeto com a mensagem de sucesso ou erro
+   * @throws Error caso a declaração não possa ser restaurada
+   */
+  async restauraDeclaracao(declaracaoId: string) {
+    const objectId = new mongoose.Types.ObjectId(declaracaoId)
+    const declaracao = await Declaracoes.findById(objectId)
+    console.log(declaracao)
+    if (!declaracao) {
+      throw new Error("Declaração não encontrada.")
+    }
+
+    // Verifica se o status da declaração é 'Excluída'
+    if (declaracao.status !== Status.Excluida) {
+      throw new Error(
+        "Somente declarações com status 'Excluída' podem ser restauradas para 'Recebida'."
+      )
+    }
+
+    const declaracoesMaisNovas = await Declaracoes.find({
+      museu_id: declaracao.museu_id,
+      anoDeclaracao: declaracao.anoDeclaracao,
+      versao: { $gt: declaracao.versao }
+    }).lean()
+
+    const existeVersaoNaoExcluida = declaracoesMaisNovas.some(
+      (decl) => decl.status !== Status.Excluida
+    )
+
+    if (existeVersaoNaoExcluida) {
+      throw new Error(
+        "Não é possível restaurar esta declaração porque há versões mais recentes de declaração para esse museu e ano correspondente."
+      )
+    }
+
+    declaracao.status = Status.Recebida
+
+    await declaracao.save()
+
+    return {
+      message: "Declaração restaurada com sucesso para 'Recebida'.",
+      declaracao
+    }
+  }
+
   async listarAnalistasPorEspecificidades(
     especificidades: string[]
   ): Promise<IUsuario[]> {
     const analistas = await Usuario.find<IUsuario>({
-      tipoAnalista: { $in: especificidades }
+      especialidadeAnalista: { $in: especificidades }
     })
-      .select("nome tipoAnalista")
+      .select("nome especialidadeAnalista")
       .lean<IUsuario[]>()
 
     return analistas
