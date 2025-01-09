@@ -21,18 +21,19 @@ class UsuarioController {
         especialidadeAnalista
       })
 
-      const especialidades =
-        profile === "admin"
-          ? ["museologico", "arquivistico", "bibliografico"]
-          : especialidadeAnalista
+      let especialidades = especialidadeAnalista // Dessa forma,possibilida o Admin conseguir analisar declarações.
 
+      if (perfilExistente.name === "admin") {
+        especialidades = ["museologico", "arquivistico", "bibliografico"]
+      }
+
+      // Cria o usuário
       await UsuarioService.criarUsuario({
         nome,
         email,
         senha,
         profile,
-        especialidadeAnalista:
-          perfilExistente.name === "analyst" ? especialidades : null
+        especialidadeAnalista: especialidades
       })
 
       return res.status(201).json({ mensagem: "Usuário criado com sucesso." })
@@ -48,6 +49,7 @@ class UsuarioController {
         .json({ mensagem: "Erro desconhecido ao criar usuário." })
     }
   }
+
   async getUsuarios(req: Request, res: Response) {
     try {
       const { perfil } = req.query
