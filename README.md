@@ -124,9 +124,16 @@ ADMIN_SITE_URL="https://localhost:5173"
   pnpm run create:permissions
 ```
 
-### Rodando todos os scripts de uma só vez
+### Vincula as permissões ao perfil declarant
+
 ``` bash
-pnpm run create:default-profiles && pnpm run create:admin-user && pnpm run create:data && pnpm run create:permissions
+  pnpm run add:permissions-declarant
+```
+
+### Rodando todos os scripts de uma só vez
+
+``` bash
+pnpm run create:default-profiles && pnpm run create:admin-user && pnpm run create:data && pnpm run create:permissions && pnpm run add:permissions-declarant
 ```
 
 ## Inicializando os serviços:
