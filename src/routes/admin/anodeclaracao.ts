@@ -139,7 +139,7 @@ routes.post("/", userPermissionMiddleware('criarAnoDeclaracao'), AnoDeclaracaoCo
  *       '500':
  *         description: Erro ao listar os períodos vigentes.
  */
-routes.get("/getPeriodoDeclaracaoVigente/", adminMiddleware, AnoDeclaracaoController.getPeriodoDeclaracaoVigente)
+routes.get("/getPeriodoDeclaracaoVigente/", AnoDeclaracaoController.getPeriodoDeclaracaoVigente)
 
 /**
  * @swagger
@@ -286,7 +286,7 @@ routes.get(
  */
 routes.get(
   "/getByAno/:ano",
-  permissionCheckMiddleware("getAnoDeclaracaoByAno"),
+  userPermissionMiddleware("getAnoDeclaracaoByAno"),
   AnoDeclaracaoController.getAnoDeclaracaoByAno
 )
 
