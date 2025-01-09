@@ -15,7 +15,9 @@
     "create:permissions": "sucrase-node src/scripts/setPermissions.ts",
     "list:users": "sucrase-node src/scripts/listUsers.ts",
     "prepare": "[[ $NODE_ENV == 'development' ]] && husky install || true",
-    "lint:fix": "eslint --cache --fix src"
+    "lint:fix": "eslint --cache --fix src",
+    "add:permissions-declarant": "sucrase-node src/scripts/addPermissionsToDeclarant.ts"
+
   },
   "keywords": [],
   "author": "",
