@@ -1,6 +1,6 @@
 import express from "express"
 import DeclaracaoController from "../../controllers/DeclaracaoController"
-import { adminMiddleware } from "../../middlewares/AuthMiddlewares"
+import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 
 const routes = express.Router()
 const declaracaoController = new DeclaracaoController()
@@ -39,30 +39,30 @@ const declaracaoController = new DeclaracaoController()
  */
 routes.get(
   "/anos-validos/:qtdAnos",
-  adminMiddleware,
+  userPermissionMiddleware('getAnosValidos'),
   declaracaoController.getAnosValidos.bind(declaracaoController)
 )
 routes.get(
   "/analistas",
-  adminMiddleware,
+  userPermissionMiddleware('listarAnalistas'),
   declaracaoController.listarAnalistas.bind(declaracaoController)
 )
 
 routes.put(
   "/:id/analises",
-  adminMiddleware,
+  userPermissionMiddleware('enviarParaAnalise'),
   declaracaoController.enviarParaAnalise.bind(declaracaoController)
 )
 
 routes.get(
   "/:id/timeline",
-  adminMiddleware,
+  userPermissionMiddleware('getTimeLine'),
   declaracaoController.getTimeLine.bind(declaracaoController)
 )
 
 routes.put(
   "/:id/analises-concluir",
-  adminMiddleware,
+  userPermissionMiddleware('concluirAnalise'),
   declaracaoController.concluirAnalise.bind(declaracaoController)
 )
 
@@ -82,7 +82,7 @@ routes.put(
  */
 routes.post(
   "/declaracoesFiltradas",
-  adminMiddleware,
+  userPermissionMiddleware('getDeclaracaoFiltrada'),
   declaracaoController.getDeclaracaoFiltrada
 )
 
@@ -102,7 +102,7 @@ routes.post(
  */
 routes.post(
   "/declaracoesFiltradas",
-  adminMiddleware,
+  userPermissionMiddleware('getDeclaracaoFiltrada'),
   declaracaoController.getDeclaracaoFiltrada
 )
 
@@ -136,7 +136,7 @@ routes.post(
  */
 routes.put(
   "/atualizarStatus/:id",
-  adminMiddleware,
+  userPermissionMiddleware('atualizarStatusDeclaracao'),
   declaracaoController.atualizarStatusDeclaracao
 )
 
@@ -159,7 +159,7 @@ routes.put(
 
 routes.get(
   "/analistas-filtrados",
-  adminMiddleware,
+  userPermissionMiddleware('getDeclaracoesAgrupadasPorAnalista'),
   declaracaoController.getDeclaracoesAgrupadasPorAnalista.bind(
     declaracaoController
   )
@@ -188,6 +188,6 @@ routes.get(
  *       '500':
  *         description: Erro ao buscar declaração.
  */
-routes.get("/:id", adminMiddleware, declaracaoController.getDeclaracao)
+routes.get("/:id", userPermissionMiddleware('getDeclaracao'), declaracaoController.getDeclaracao)
 
 export default routes

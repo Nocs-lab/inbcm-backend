@@ -1,16 +1,18 @@
 import express from "express"
 import DeclaracaoController from "../../controllers/DeclaracaoController"
 import uploadMiddleware from "../../middlewares/UploadMiddleware"
+import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 import uploadPeriodoMiddleware from "../../middlewares/UploadPeriodoMiddleware"
 import retificacaoPeriodoMiddleware from "../../middlewares/RetificacaoPeriodoMiddleware"
-import { userMiddleware } from "../../middlewares/AuthMiddlewares"
+
+
 
 const routes = express.Router()
 const declaracaoController = new DeclaracaoController()
 
 routes.get(
   "/listar-itens/:museuId/:ano/:tipo",
-  userMiddleware,
+  userPermissionMiddleware('listarItensPorTipodeBem'),
   declaracaoController.listarItensPorTipodeBem.bind(declaracaoController)
 )
 /**
@@ -47,7 +49,7 @@ routes.get(
  */
 routes.get(
   "/anos-validos/:qtdAnos",
-  userMiddleware,
+  userPermissionMiddleware('getAnosValidos'),
   declaracaoController.getAnosValidos.bind(declaracaoController)
 )
 /**
@@ -119,8 +121,8 @@ routes.get(
 routes.post(
   "/uploads/:museu/:anoDeclaracao",
   uploadMiddleware,
+  userPermissionMiddleware('uploadDeclaracao'),
   uploadPeriodoMiddleware,
-  userMiddleware,
   declaracaoController.uploadDeclaracao
 )
 
@@ -199,8 +201,8 @@ routes.post(
 routes.put(
   "/retificar/:museu/:anoDeclaracao/:idDeclaracao",
   uploadMiddleware,
+  userPermissionMiddleware('retificarDeclaracao'),
   retificacaoPeriodoMiddleware,
-  userMiddleware,
   declaracaoController.retificarDeclaracao.bind(declaracaoController)
 )
 
@@ -242,7 +244,7 @@ routes.put(
  */
 routes.get(
   "/download/:museu/:anoDeclaracao/:tipoArquivo",
-  userMiddleware,
+  userPermissionMiddleware('downloadDeclaracao'),
   declaracaoController.downloadDeclaracao
 )
 
@@ -260,7 +262,7 @@ routes.get(
  *       '500':
  *         description: Erro ao buscar declarações.
  */
-routes.get("/", userMiddleware, declaracaoController.getDeclaracoes)
+routes.get("/", userPermissionMiddleware('getDeclaracoes'),declaracaoController.getDeclaracoes)
 
 /**
  * @swagger
@@ -285,7 +287,7 @@ routes.get("/", userMiddleware, declaracaoController.getDeclaracoes)
  *       '500':
  *         description: Erro ao buscar declaração.
  */
-routes.get("/:id", userMiddleware, declaracaoController.getDeclaracao)
+routes.get("/:id", userPermissionMiddleware('getDeclaracao'), declaracaoController.getDeclaracao)
 
 /**
  * @swagger
@@ -320,7 +322,7 @@ routes.get("/:id", userMiddleware, declaracaoController.getDeclaracao)
  */
 routes.get(
   "/:museu/:anoDeclaracao",
-  userMiddleware,
+  userPermissionMiddleware('getDeclaracaoAno'),
   declaracaoController.getDeclaracaoAno
 )
 /**
@@ -406,7 +408,7 @@ routes.get(
  */
 routes.get(
   "/:museuId/itens/:anoInicio/:anoFim",
-  userMiddleware,
+  userPermissionMiddleware('getItensPorAnoETipo'),
   declaracaoController.getItensPorAnoETipo
 )
 
@@ -432,6 +434,8 @@ routes.get(
  *       500:
  *         description: Erro interno ao tentar excluir a declaração.
  */
-routes.delete("/:id", userMiddleware, declaracaoController.excluirDeclaracao)
+routes.delete("/:id",
+userPermissionMiddleware('excluirDeclaracao'),
+declaracaoController.excluirDeclaracao)
 
 export default routes

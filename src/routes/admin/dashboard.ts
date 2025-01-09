@@ -1,5 +1,5 @@
 import express from "express"
-import { adminMiddleware } from "../../middlewares/AuthMiddlewares"
+import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 import DeclaracaoController from "../../controllers/DeclaracaoController"
 
 const declaracaoController = new DeclaracaoController()
@@ -20,7 +20,7 @@ const routes = express.Router()
  *    '500':
  *      description: Erro ao obter dados para o dashboard.
  * */
-routes.get("/", adminMiddleware, declaracaoController.getDashboard)
+routes.get("/", userPermissionMiddleware('getDashboard'), declaracaoController.getDashboard)
 
 /**
  * @swagger
@@ -36,7 +36,7 @@ routes.get("/", adminMiddleware, declaracaoController.getDashboard)
  */
 routes.get(
   "/getStatusEnum",
-  adminMiddleware,
+  userPermissionMiddleware('getStatusEnum'),
   declaracaoController.getStatusEnum
 )
 
@@ -125,7 +125,7 @@ routes.get(
  */
 routes.get(
   "/filtroDashBoard",
-  adminMiddleware,
+  userPermissionMiddleware('filtroDashBoard'),
   declaracaoController.filtroDashBoard
 )
 

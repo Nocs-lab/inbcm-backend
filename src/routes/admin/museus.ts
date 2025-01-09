@@ -1,5 +1,5 @@
 import express from "express"
-import { adminMiddleware } from "../../middlewares/AuthMiddlewares"
+import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 import MuseuController from "../../controllers/MuseuController"
 
 const routes = express.Router()
@@ -23,17 +23,17 @@ const routes = express.Router()
  *       '500':
  *         description: Erro ao listar museus.
  */
-routes.get("/", adminMiddleware, MuseuController.listarMuseus)
-routes.get("/listarCidades", adminMiddleware, MuseuController.listarMunicipios)
+routes.get("/", userPermissionMiddleware('listarMuseus'), MuseuController.listarMuseus)
+routes.get("/listarCidades", userPermissionMiddleware('listarMunicipios'), MuseuController.listarMunicipios)
 
 routes.put(
   "/vincular-usuario",
-  adminMiddleware,
+  userPermissionMiddleware('vincularUsuarioAoMuseu'),
   MuseuController.vincularUsuarioAoMuseu
 )
 routes.put(
   "/desvincular-usuario",
-  adminMiddleware,
+  userPermissionMiddleware('desvincularUsuarioDoMuseu'),
   MuseuController.desvincularUsuarioDoMuseu
 )
 

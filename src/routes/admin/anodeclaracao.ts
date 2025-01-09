@@ -1,7 +1,6 @@
 import express from "express"
 import {
-  permissionCheckMiddleware,
-  adminMiddleware
+  userPermissionMiddleware
 } from "../../middlewares/AuthMiddlewares"
 import AnoDeclaracaoController from "../../controllers/AnoDeclaracaoController"
 
@@ -90,7 +89,7 @@ const routes = express.Router()
  *       '500':
  *         description: Erro ao criar o ano de declaração.
  */
-routes.post("/", adminMiddleware, AnoDeclaracaoController.criarAnoDeclaracao)
+routes.post("/", userPermissionMiddleware('criarAnoDeclaracao'), AnoDeclaracaoController.criarAnoDeclaracao)
 
 /**
  * @swagger
@@ -182,7 +181,7 @@ routes.get("/getPeriodoDeclaracaoVigente/", adminMiddleware, AnoDeclaracaoContro
  *       '500':
  *         description: Erro ao obter os anos de declaração.
  */
-routes.get("/", adminMiddleware, AnoDeclaracaoController.getAnoDeclaracao)
+routes.get("/", userPermissionMiddleware('getAnoDeclaracao'), AnoDeclaracaoController.getAnoDeclaracao)
 
 /**
  * @swagger
@@ -209,7 +208,7 @@ routes.get("/", adminMiddleware, AnoDeclaracaoController.getAnoDeclaracao)
  */
 routes.get(
   "/:id",
-  permissionCheckMiddleware("getAnoDeclaracaoById"),
+  userPermissionMiddleware("getAnoDeclaracaoById"),
   AnoDeclaracaoController.getAnoDeclaracaoById
 )
 
@@ -353,7 +352,7 @@ routes.get(
  */
 routes.put(
   "/:id",
-  permissionCheckMiddleware("updateAnoDeclaracao"),
+  userPermissionMiddleware("updateAnoDeclaracao"),
   AnoDeclaracaoController.updateAnoDeclaracao
 )
 
@@ -382,7 +381,7 @@ routes.put(
  */
 routes.delete(
   "/:id",
-  permissionCheckMiddleware("deleteAnoDeclaracao"),
+  userPermissionMiddleware("deleteAnoDeclaracao"),
   AnoDeclaracaoController.deleteAnoDeclaracao
 )
 

@@ -7,35 +7,69 @@ const setPermissions = async () => {
 
   const permissions = [
     {
-      name: "createProfile",
-      label: "Criar Perfil",
-      description: "Permite criar novos perfis de usuário"
+      name: "listarItensPorTipodeBem",
+      label: "Listar Itens por Tipo de Bem",
+      description: "Permite listar os itens de um determinado tipo de bem."
     },
     {
-      name: "getProfiles",
-      label: "Listar Perfis",
-      description: "Permite visualizar a lista de perfis de usuário"
+      name: "getAnosValidos",
+      label: "Obter Anos Válidos",
+      description: "Permite obter os anos válidos para as declarações."
     },
     {
-      name: "getProfileById",
-      label: "Visualizar Perfil",
-      description: "Permite visualizar detalhes de um perfil de usuário"
+      name: "uploadDeclaracao",
+      label: "Fazer Upload de Declaração",
+      description: "Permite fazer o upload de uma declaração."
     },
     {
-      name: "updateProfile",
-      label: "Atualizar Perfil",
-      description: "Permite atualizar as informações de um perfil de usuário"
+      name: "retificarDeclaracao",
+      label: "Retificar Declaração",
+      description: "Permite retificar uma declaração previamente enviada."
     },
     {
-      name: "deleteProfile",
-      label: "Deletar Perfil",
-      description: "Permite excluir um perfil de usuário"
+      name: "downloadDeclaracao",
+      label: "Fazer Download de Declaração",
+      description: "Permite fazer o download de uma declaração."
     },
     {
-      name: "addPermissions",
-      label: "Adicionar Permissões",
-      description:
-        "Permite adicionar ou modificar permissões em perfis de usuário"
+      name: "getDeclaracoes",
+      label: "Listar Declarações",
+      description: "Permite listar todas as declarações cadastradas."
+    },
+    {
+      name: "getDeclaracao",
+      label: "Visualizar Declaração",
+      description: "Permite visualizar os detalhes de uma declaração específica."
+    },
+    {
+      name: "getDeclaracaoAno",
+      label: "Visualizar Declaração por Ano",
+      description: "Permite visualizar as declarações de um ano específico."
+    },
+    {
+      name: "getItensPorAnoETipo",
+      label: "Listar Itens por Ano e Tipo",
+      description: "Permite listar itens por ano e tipo de bem."
+    },
+    {
+      name: "excluirDeclaracao",
+      label: "Excluir Declaração",
+      description: "Permite excluir uma declaração."
+    },
+    {
+      name: "userMuseus",
+      label: "Gerenciar Usuários de Museus",
+      description: "Permite gerenciar os usuários de museus."
+    },
+    {
+      name: "gerarRecibo",
+      label: "Gerar Recibo",
+      description: "Permite gerar um recibo para uma declaração ou transação."
+    },
+    {
+      name: "getTimeLine",
+      label: "Visualizar Linha do Tempo",
+      description: "Permite visualizar a linha do tempo das declarações ou eventos."
     }
   ]
 

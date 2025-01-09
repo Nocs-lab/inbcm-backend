@@ -1,6 +1,7 @@
 import express from "express"
 import rateLimit from "express-rate-limit"
 import AuthService from "../../service/AuthService"
+import { IProfile } from "../../models/Profile"
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -48,6 +49,7 @@ routes.post("/login", limiter, async (req, res) => {
     admin: true
   })
 
+
   res.cookie("token", token, {
     httpOnly: true,
     expires: new Date(Date.now() + 60 * 60 * 1000),
@@ -67,7 +69,8 @@ routes.post("/login", limiter, async (req, res) => {
 
   res.json({
     name: user.nome,
-    email: user.email
+    email: user.email,
+    perfil: (user.profile as IProfile).name
   })
 })
 
