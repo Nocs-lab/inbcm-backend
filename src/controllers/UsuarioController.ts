@@ -21,13 +21,18 @@ class UsuarioController {
         especialidadeAnalista
       })
 
+      const especialidades =
+        profile === "admin"
+          ? ["museologico", "arquivistico", "bibliografico"]
+          : especialidadeAnalista
+
       await UsuarioService.criarUsuario({
         nome,
         email,
         senha,
         profile,
         especialidadeAnalista:
-          perfilExistente.name === "analyst" ? especialidadeAnalista : null
+          perfilExistente.name === "analyst" ? especialidades : null
       })
 
       return res.status(201).json({ mensagem: "Usuário criado com sucesso." })
