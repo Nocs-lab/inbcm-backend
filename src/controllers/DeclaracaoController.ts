@@ -11,6 +11,7 @@ import { DataUtils } from "../utils/dataUtils"
 import { Status } from "../enums/Status"
 import { Eventos } from "../enums/Eventos"
 import logger from "../utils/logger"
+import { IProfile } from "../models/Profile"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -289,34 +290,103 @@ export class DeclaracaoController {
   // Retorna todas as declarações do usuário logado
   async getDeclaracoes(req: Request, res: Response) {
     try {
-      // Realiza a agregação para obter a última declaração de cada museu em cada ano
-      const resultado = await Declaracoes.aggregate([
-        {
-          $match: {
-            responsavelEnvio: new mongoose.Types.ObjectId(req.user.id),
-            status: { $ne: Status.Excluida },
-            ultimaDeclaracao: true
+      const userId = req.user?.id
+
+      if (!userId) {
+        return res.status(400).json({ message: "Usuário não autenticado." })
+      }
+
+      // Buscar usuário com o profile populado
+      const user = await Usuario.findById(userId).populate("profile")
+
+      // Verificar se o usuário existe e se o profile foi populado corretamente
+      if (!user || !user.profile) {
+        return res
+          .status(400)
+          .json({ message: "Profile do usuário não foi populado." })
+      }
+
+      const { id, profile, especialidadeAnalista } = user
+
+      // Verifique se o profile é válido
+      if (!profile.name) {
+        return res
+          .status(400)
+          .json({ message: "O profile do usuário não contém nome válido." })
+      }
+
+      const match: any = {
+        status: { $ne: Status.Excluida },
+        ultimaDeclaracao: true
+      }
+
+      // Aplique a lógica com base no tipo de profile
+      switch (profile.name) {
+        case "declrant":
+          match.responsavelEnvio =
+            mongoose.Types.ObjectId.createFromHexString(id)
+          break
+
+        case "analyst":
+          if (especialidadeAnalista.includes("museologico")) {
+            match["museologico.analistasResponsaveis"] =
+              mongoose.Types.ObjectId.createFromHexString(id)
           }
-        },
-        {
-          $sort: { anoDeclaracao: 1, museu_nome: 1, createdAt: -1 } // Ordena por ano, museu e createdAt decrescente
-        },
+          if (especialidadeAnalista.includes("arquivistico")) {
+            match["arquivistico.analistasResponsaveis"] =
+              mongoose.Types.ObjectId.createFromHexString(id)
+          }
+          if (especialidadeAnalista.includes("bibliografico")) {
+            match["bibliografico.analistasResponsaveis"] =
+              mongoose.Types.ObjectId.createFromHexString(id)
+          }
+          break
+
+        case "admin":
+          break
+
+        default:
+          return res
+            .status(403)
+            .json({ message: "Perfil de usuário inválido." })
+      }
+
+      const resultado = await Declaracoes.aggregate([
+        { $match: match },
+        { $sort: { anoDeclaracao: 1, museu_nome: 1, createdAt: -1 } },
         {
           $group: {
             _id: { museu_id: "$museu_id", anoDeclaracao: "$anoDeclaracao" },
             latestDeclaracao: { $first: "$$ROOT" }
           }
         },
-        {
-          $replaceRoot: { newRoot: "$latestDeclaracao" }
-        }
+        { $replaceRoot: { newRoot: "$latestDeclaracao" } }
       ])
 
-      // Popula os documentos de museu referenciados pelo campo museu_id nas declarações agregadas
-      const declaracoes = await Museu.populate(resultado, { path: "museu_id" })
+      // Agora, filtramos os campos de acordo com a especialidade do usuário
+      const declaracoesFiltradas = resultado.map((declaracao: any) => {
+        if (especialidadeAnalista.includes("museologico")) {
+          // Excluir os campos que não são do tipo museológico
+          delete declaracao.arquivistico
+          delete declaracao.bibliografico
+        } else if (especialidadeAnalista.includes("arquivistico")) {
+          // Excluir os campos que não são do tipo arquivístico
+          delete declaracao.museologico
+          delete declaracao.bibliografico
+        } else if (especialidadeAnalista.includes("bibliografico")) {
+          // Excluir os campos que não são do tipo bibliográfico
+          delete declaracao.museologico
+          delete declaracao.arquivistico
+        }
+        return declaracao
+      })
 
-      // Retorna o resultado final
-      return res.status(200).json(declaracoes)
+      // Popula o campo "museu_id" com as informações do museu
+      const declaracoesComMuseu = await Museu.populate(declaracoesFiltradas, {
+        path: "museu_id"
+      })
+
+      return res.status(200).json(declaracoesComMuseu)
     } catch (error) {
       logger.error("Erro ao buscar declarações:", error)
       return res.status(500).json({ message: "Erro ao buscar declarações." })
