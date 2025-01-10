@@ -299,24 +299,48 @@ export class DeclaracaoController {
       // Filtragem dos dados de acordo com o perfil do usuário
       if (user.profile.name === "analyst") {
         const especialidadeAnalista = user.especialidadeAnalista
+        const analistaId = userId // ID do analista logado
 
-        // Filtra os campos da declaração com base na especialidade do analista
-        if (especialidadeAnalista.includes("museologico")) {
-          // Retira os campos que não pertencem ao analista museológico
-          const { arquivistico, bibliografico, ...declaracaoMuseologico } =
-            declaracao.toObject()
-          return res.status(200).json(declaracaoMuseologico)
-        } else if (especialidadeAnalista.includes("arquivistico")) {
-          // Retira os campos que não pertencem ao analista arquivístico
-          const { museologico, bibliografico, ...declaracaoArquivistico } =
-            declaracao.toObject()
-          return res.status(200).json(declaracaoArquivistico)
-        } else if (especialidadeAnalista.includes("bibliografico")) {
-          // Retira os campos que não pertencem ao analista bibliográfico
-          const { museologico, arquivistico, ...declaracaoBibliografico } =
-            declaracao.toObject()
-          return res.status(200).json(declaracaoBibliografico)
+        // Inicializa um objeto para armazenar os dados filtrados
+        const dadosFiltrados: any = {}
+
+        // Verifica cada tipo (museológico, arquivístico, bibliográfico) na declaração
+        if (
+          especialidadeAnalista.includes("museologico") &&
+          declaracao.museologico &&
+          Array.isArray(declaracao.museologico.analistasResponsaveis) &&
+          declaracao.museologico.analistasResponsaveis.includes(analistaId)
+        ) {
+          dadosFiltrados.museologico = declaracao.museologico
         }
+
+        if (
+          especialidadeAnalista.includes("arquivistico") &&
+          declaracao.arquivistico &&
+          Array.isArray(declaracao.arquivistico.analistasResponsaveis) &&
+          declaracao.arquivistico.analistasResponsaveis.includes(analistaId)
+        ) {
+          dadosFiltrados.arquivistico = declaracao.arquivistico
+        }
+
+        if (
+          especialidadeAnalista.includes("bibliografico") &&
+          declaracao.bibliografico &&
+          Array.isArray(declaracao.bibliografico.analistasResponsaveis) &&
+          declaracao.bibliografico.analistasResponsaveis.includes(analistaId)
+        ) {
+          dadosFiltrados.bibliografico = declaracao.bibliografico
+        }
+
+        // Se o analista não tiver permissão para ver nenhum bem, retorna um erro
+        if (Object.keys(dadosFiltrados).length === 0) {
+          return res
+            .status(404)
+            .json({ message: "Nenhum bem encontrado para o analista logado." })
+        }
+
+        // Retorna a declaração com os tipos de bens filtrados
+        return res.status(200).json(dadosFiltrados)
       }
 
       // Se não for analista, retorna todos os dados da declaração
