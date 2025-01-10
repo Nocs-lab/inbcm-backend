@@ -11,7 +11,6 @@ import { DataUtils } from "../utils/dataUtils"
 import { Status } from "../enums/Status"
 import { Eventos } from "../enums/Eventos"
 import logger from "../utils/logger"
-import { IProfile } from "../models/Profile"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService

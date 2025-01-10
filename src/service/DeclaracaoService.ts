@@ -1176,7 +1176,10 @@ class DeclaracaoService {
         throw new Error("Declaração não encontrada.")
       }
 
-      if (declaracao.status !== Status.Recebida) {
+      if (
+        declaracao.status !== Status.Recebida &&
+        declaracao.status !== Status.EmAnalise
+      ) {
         logger.warn(
           `Status inválido para envio. Status atual: ${declaracao.status}`
         )
