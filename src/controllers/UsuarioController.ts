@@ -6,7 +6,7 @@ import { UsuarioService } from "../service/UserService"
 
 class UsuarioController {
   async registerUsuario(req: Request, res: Response) {
-    const { nome, email, senha, profile, tipoAnalista } = req.body
+    const { nome, email, senha, profile, especialidadeAnalista } = req.body
 
     if (!nome || !email || !senha || !profile) {
       return res
@@ -18,15 +18,22 @@ class UsuarioController {
       const perfilExistente = await UsuarioService.validarUsuario({
         email,
         profile,
-        tipoAnalista
+        especialidadeAnalista
       })
 
+      let especialidades = especialidadeAnalista // Dessa forma,possibilida o Admin conseguir analisar declarações.
+
+      if (perfilExistente.name === "admin") {
+        especialidades = ["museologico", "arquivistico", "bibliografico"]
+      }
+
+      // Cria o usuário
       await UsuarioService.criarUsuario({
         nome,
         email,
         senha,
         profile,
-        tipoAnalista: perfilExistente.name === "analyst" ? tipoAnalista : null
+        especialidadeAnalista: especialidades
       })
 
       return res.status(201).json({ mensagem: "Usuário criado com sucesso." })
@@ -42,6 +49,7 @@ class UsuarioController {
         .json({ mensagem: "Erro desconhecido ao criar usuário." })
     }
   }
+
   async getUsuarios(req: Request, res: Response) {
     try {
       const { perfil } = req.query
