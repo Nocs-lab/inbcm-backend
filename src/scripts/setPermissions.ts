@@ -72,6 +72,11 @@ const setPermissions = async () => {
       label: "Visualizar Linha do Tempo",
       description:
         "Permite visualizar a linha do tempo das declarações ou eventos."
+    },
+    {
+      name: "atualizarStatusBensDeclaracao",
+      label: "Atualizar status por tipo de bem",
+      description: "Permite alterar status por tipo de bem"
     }
   ]
 
