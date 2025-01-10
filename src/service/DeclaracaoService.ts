@@ -1300,161 +1300,185 @@ class DeclaracaoService {
     >,
     autorId: string
   ) {
-    const declaracao = await Declaracoes.findById(declaracaoId)
-    if (!declaracao) {
-      throw new Error("Declaração não encontrada.")
-    }
-
-    // Buscar o autor e garantir que o campo profile foi populado
-    const autor = await Usuario.findById(autorId).populate("profile", "name")
-    if (!autor) {
-      throw new Error("Autor não encontrado.")
-    }
-
-    // Verificar se o perfil está populado e acessar `name`
-    const perfilUsuario =
-      typeof autor.profile === "object" && "name" in autor.profile
-        ? autor.profile.name
-        : null
-
-    if (!perfilUsuario) {
-      throw new Error("Perfil do usuário não encontrado ou inválido.")
-    }
-
-    const tiposVinculados: string[] = []
-
-    // Esse trecho de verificações checa se o determinado tipo existe na declaração e se a propriedade analistasResponsaveis é um array
-    // Feito essas verificações,adiciona o tipo  ao array tiposVinculados
-
-    if (
-      declaracao.arquivistico &&
-      Array.isArray(declaracao.arquivistico.analistasResponsaveis)
-    ) {
-      if (
-        declaracao.arquivistico.analistasResponsaveis.includes(
-          new mongoose.Types.ObjectId(autorId)
-        )
-      ) {
-        tiposVinculados.push("arquivistico")
+    try {
+      // Buscar a declaração
+      const declaracao = await Declaracoes.findById(declaracaoId)
+      if (!declaracao) {
+        throw new Error("Declaração não encontrada.")
       }
-    }
 
-    if (
-      declaracao.bibliografico &&
-      Array.isArray(declaracao.bibliografico.analistasResponsaveis)
-    ) {
-      if (
-        declaracao.bibliografico.analistasResponsaveis.includes(
-          new mongoose.Types.ObjectId(autorId)
-        )
-      ) {
-        tiposVinculados.push("bibliografico")
+      // Buscar o autor e garantir que o campo profile foi populado
+      const autor = await Usuario.findById(autorId).populate("profile", "name")
+      if (!autor) {
+        throw new Error("Autor não encontrado.")
       }
-    }
 
-    if (
-      declaracao.museologico &&
-      Array.isArray(declaracao.museologico.analistasResponsaveis)
-    ) {
-      if (
-        declaracao.museologico.analistasResponsaveis.includes(
-          new mongoose.Types.ObjectId(autorId)
-        )
-      ) {
-        tiposVinculados.push("museologico")
+      // Verificar se o perfil está populado e acessar `name`
+      const perfilUsuario =
+        typeof autor.profile === "object" && "name" in autor.profile
+          ? autor.profile.name
+          : null
+
+      console.log("Perfil do Usuário:", perfilUsuario) // Verifique se o perfil do usuário está correto
+
+      if (!perfilUsuario) {
+        throw new Error("Perfil do usuário não encontrado ou inválido.")
       }
-    }
 
-    if (perfilUsuario === "admin") {
-      const tiposPermitidos = Object.keys(statusBens) as Array<
-        keyof typeof statusBens
-      >
+      const tiposVinculados: string[] = []
 
-      for (const tipo of tiposPermitidos) {
-        if (!tiposVinculados.includes(tipo)) {
-          throw new Error(
-            `Você não tem permissão para alterar o status do tipo ${tipo}, pois não possui tal especificidade ou não está vinculado corretamente a esse tipo.`
+      // Verificar se o analista está vinculado aos tipos de bem e adicionar aos tiposVinculados
+      if (
+        declaracao.arquivistico &&
+        Array.isArray(declaracao.arquivistico.analistasResponsaveis)
+      ) {
+        console.log(
+          "Analistas responsáveis pelo tipo Arquivístico:",
+          declaracao.arquivistico.analistasResponsaveis
+        )
+        if (
+          declaracao.arquivistico.analistasResponsaveis.includes(
+            new mongoose.Types.ObjectId(autorId)
           )
+        ) {
+          tiposVinculados.push("arquivistico")
         }
       }
-    }
 
-    if (perfilUsuario === "analyst") {
-      const tiposPermitidos = Object.keys(statusBens) as Array<
-        keyof typeof statusBens
-      >
-
-      // Verificar se o analista está tentando alterar um tipo ao qual não está vinculado
-      for (const tipo of tiposPermitidos) {
-        if (!tiposVinculados.includes(tipo)) {
-          throw new Error(
-            `Você não está vinculado ao tipo ${tipo} e não pode alterar o status desse tipo.`
+      if (
+        declaracao.bibliografico &&
+        Array.isArray(declaracao.bibliografico.analistasResponsaveis)
+      ) {
+        console.log(
+          "Analistas responsáveis pelo tipo Bibliográfico:",
+          declaracao.bibliografico.analistasResponsaveis
+        )
+        if (
+          declaracao.bibliografico.analistasResponsaveis.includes(
+            new mongoose.Types.ObjectId(autorId)
           )
+        ) {
+          tiposVinculados.push("bibliografico")
         }
       }
-    }
 
-    for (const [tipo, { status, comentario }] of Object.entries(
-      statusBens
-    ) as Array<
-      [keyof DeclaracaoModel, { status: Status; comentario?: string }]
-    >) {
-      if (declaracao[tipo]) {
-        declaracao[tipo].status = status
+      if (
+        declaracao.museologico &&
+        Array.isArray(declaracao.museologico.analistasResponsaveis)
+      ) {
+        console.log(
+          "Analistas responsáveis pelo tipo Museológico:",
+          declaracao.museologico.analistasResponsaveis
+        )
+        if (
+          declaracao.museologico.analistasResponsaveis.includes(
+            new mongoose.Types.ObjectId(autorId)
+          )
+        ) {
+          tiposVinculados.push("museologico")
+        }
+      }
 
-        if (comentario) {
-          declaracao[tipo].comentarios = declaracao[tipo].comentarios || []
-          declaracao[tipo].comentarios.push({
-            autor: autorId,
-            autorNome: autor.nome,
-            mensagem: comentario,
-            data: DataUtils.getCurrentData()
+      console.log("Tipos Vinculados ao Autor:", tiposVinculados) // Verifique os tipos vinculados ao autor
+
+      // Verificar se o usuário tem permissão para alterar o status com base no perfil
+      if (perfilUsuario === "admin") {
+        const tiposPermitidos = Object.keys(statusBens) as Array<
+          keyof typeof statusBens
+        >
+
+        for (const tipo of tiposPermitidos) {
+          if (!tiposVinculados.includes(tipo)) {
+            throw new Error(
+              `Você não tem permissão para alterar o status do tipo ${tipo}, pois não possui tal especificidade ou não está vinculado corretamente a esse tipo.`
+            )
+          }
+        }
+      }
+
+      if (perfilUsuario === "analyst") {
+        const tiposPermitidos = Object.keys(statusBens) as Array<
+          keyof typeof statusBens
+        >
+
+        // Verificar se o analista está tentando alterar um tipo ao qual não está vinculado
+        for (const tipo of tiposPermitidos) {
+          if (!tiposVinculados.includes(tipo)) {
+            throw new Error(
+              `Você não está vinculado ao tipo ${tipo} e não pode alterar o status desse tipo.`
+            )
+          }
+        }
+      }
+
+      // Atualizar os status dos bens
+      for (const [tipo, { status, comentario }] of Object.entries(
+        statusBens
+      ) as Array<
+        [keyof DeclaracaoModel, { status: Status; comentario?: string }]
+      >) {
+        if (declaracao[tipo]) {
+          declaracao[tipo].status = status
+
+          if (comentario) {
+            declaracao[tipo].comentarios = declaracao[tipo].comentarios || []
+            declaracao[tipo].comentarios.push({
+              autor: autorId,
+              autorNome: autor.nome,
+              mensagem: comentario,
+              data: DataUtils.getCurrentData()
+            })
+          }
+
+          declaracao.timeLine.push({
+            nomeEvento: `Alteração de status do tipo ${tipo} para ${status}`,
+            dataEvento: DataUtils.getCurrentData(),
+            autorEvento: autor.nome,
+            analistaResponsavel: [autor.nome]
           })
         }
-        declaracao.timeLine.push({
-          nomeEvento: `Alteração de status do tipo ${tipo} para ${status}`,
-          dataEvento: DataUtils.getCurrentData(),
-          autorEvento: autor.nome,
-          analistaResponsavel: [autor.nome]
-        })
       }
-    }
 
-    // Adicionar à timeLine a mudança de status
+      // Adicionar à timeLine a mudança de status
 
-    // Atualizar status da declaração
-    // Atualizar status da declaração
-    const todosStatus = [
-      declaracao.arquivistico?.status,
-      declaracao.bibliografico?.status,
-      declaracao.museologico?.status
-    ].filter(Boolean) // Remove valores undefined caso um tipo não esteja presente
+      // Atualizar status da declaração
+      const todosStatus = [
+        declaracao.arquivistico?.status,
+        declaracao.bibliografico?.status,
+        declaracao.museologico?.status
+      ].filter(Boolean) // Remove valores undefined caso um tipo não esteja presente
 
-    // Verificar se todos os status dos bens estão definidos como "Em Conformidade" ou "Não Conformidade"
-    const todosFinalizados = todosStatus.every(
-      (status) =>
-        status === Status.EmConformidade || status === Status.NaoConformidade
-    )
+      console.log("Status dos Bens:", todosStatus) // Verifique os status dos bens
 
-    // Atualizar o status da declaração
-    if (todosFinalizados) {
-      // Se todos os bens estiverem "Em Conformidade", a declaração também deve estar "Em Conformidade"
-      if (todosStatus.every((status) => status === Status.EmConformidade)) {
-        declaracao.status = Status.EmConformidade
+      // Verificar se todos os status dos bens estão definidos como "Em Conformidade" ou "Não Conformidade"
+      const todosFinalizados = todosStatus.every(
+        (status) =>
+          status === Status.EmConformidade || status === Status.NaoConformidade
+      )
+
+      // Atualizar o status da declaração
+      if (todosFinalizados) {
+        // Se todos os bens estiverem "Em Conformidade", a declaração também deve estar "Em Conformidade"
+        if (todosStatus.every((status) => status === Status.EmConformidade)) {
+          declaracao.status = Status.EmConformidade
+        } else {
+          // Caso contrário, a declaração deve ser "Não Conformidade" se houver algum bem "Não Conformidade"
+          declaracao.status = Status.NaoConformidade
+        }
       } else {
-        // Caso contrário, a declaração deve ser "Não Conformidade" se houver algum bem "Não Conformidade"
-        declaracao.status = Status.NaoConformidade
+        // Se ainda houver bens pendentes, manter a declaração "Em Análise"
+        declaracao.status = Status.EmAnalise
       }
-    } else {
-      // Se ainda houver bens pendentes, manter a declaração "Em Análise"
-      declaracao.status = Status.EmAnalise
-    }
 
-    await declaracao.save()
+      await declaracao.save()
 
-    return {
-      message: "Status dos bens atualizado com sucesso.",
-      declaracao
+      return {
+        message: "Status dos bens atualizado com sucesso.",
+        declaracao
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar status dos bens:", error)
+      throw new Error("Erro inesperado ao atualizar o status.")
     }
   }
 

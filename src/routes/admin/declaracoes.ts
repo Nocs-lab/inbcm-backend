@@ -136,7 +136,7 @@ routes.post(
  */
 routes.put(
   "/atualizarStatus/:id",
-  userPermissionMiddleware("atualizarStatusDeclaracao"),
+  userPermissionMiddleware("atualizarStatusBensDeclaracao"),
   declaracaoController.atualizarStatusBensDeclaracao
 )
 
