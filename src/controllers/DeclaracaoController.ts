@@ -282,7 +282,7 @@ export class DeclaracaoController {
           model: Museu
         })
 
-      // Se a declaração não existir, informa que não há declaração disponível
+      // Se a declaração não existir
       if (!declaracao) {
         return res.status(200).json({
           message: "Nenhuma declaração encontrada para o usuário atual.",
@@ -297,15 +297,14 @@ export class DeclaracaoController {
           .json({ message: "Não é possível acessar declaração." })
       }
 
-      // Filtragem dos dados de acordo com o perfil do usuário
+      // Filtragem de dados para analistas
       if (user.profile.name === "analyst") {
-        const especialidadeAnalista = user.especialidadeAnalista
-        const analistaId = userId // ID do analista logado
+        const especialidadeAnalista = user.especialidadeAnalista || []
+        const analistaId = userId
 
         // Inicializa um objeto para armazenar os dados filtrados
         const dadosFiltrados: any = {}
 
-        // Verifica cada tipo (museológico, arquivístico, bibliográfico) na declaração
         if (
           especialidadeAnalista.includes("museologico") &&
           declaracao.museologico &&
@@ -339,11 +338,19 @@ export class DeclaracaoController {
             .json({ message: "Nenhum bem encontrado para o analista logado." })
         }
 
+        // Inclui os dados do museu
+        dadosFiltrados.museu = declaracao.museu_id
+
         return res.status(200).json(dadosFiltrados)
       }
 
-      // Se não for analista, retorna todos os dados da declaração
-      return res.status(200).json(declaracao)
+      // Inclui os dados do museu no retorno geral
+      const respostaCompleta = {
+        ...declaracao.toObject(),
+        museu: declaracao.museu_id
+      }
+
+      return res.status(200).json(respostaCompleta)
     } catch (error) {
       logger.error("Erro ao buscar declaração:", error)
       return res.status(500).json({ message: "Erro ao buscar declaração." })
