@@ -282,10 +282,15 @@ export class DeclaracaoController {
           model: Museu
         })
 
+      // Se a declaração não existir, informa que não há declaração disponível
       if (!declaracao) {
-        return res.status(404).json({ message: "Declaração não encontrada." })
+        return res.status(200).json({
+          message: "Nenhuma declaração encontrada para o usuário atual.",
+          dados: null
+        })
       }
 
+      // Se a declaração não for a última, restringe o acesso
       if (declaracao.ultimaDeclaracao === false) {
         return res
           .status(404)
@@ -360,16 +365,15 @@ export class DeclaracaoController {
       if (!user || !user.profile) {
         return res
           .status(400)
-          .json({ message: "Profile do usuário não foi populado." })
+          .json({ message: "Perfil do usuário não foi encontrado." })
       }
 
       const { id, profile, especialidadeAnalista } = user
 
-      // Verifique se o profile é válido
       if (!profile.name) {
         return res
           .status(400)
-          .json({ message: "O profile do usuário não contém nome válido." })
+          .json({ message: "O perfil do usuário não contém nome válido." })
       }
 
       const match: any = {
@@ -377,18 +381,13 @@ export class DeclaracaoController {
         ultimaDeclaracao: true
       }
 
-      console.log("Match inicial:", match)
-
-      // Aplique a lógica com base no tipo de profile
+      // Ajustar lógica baseada no tipo de perfil
       switch (profile.name) {
         case "declarant":
           match.responsavelEnvio = new mongoose.Types.ObjectId(id)
           break
 
         case "analyst":
-          console.log("Especialidades do Analista:", especialidadeAnalista)
-
-          // Para analistas, verifica se o analista está presente em qualquer tipo de bem
           const analistaId = new mongoose.Types.ObjectId(id)
           match.$or = [
             { "museologico.analistasResponsaveis": analistaId },
@@ -398,7 +397,7 @@ export class DeclaracaoController {
           break
 
         case "admin":
-          // Administrador tem acesso a todas as declarações
+          // Administradores têm acesso total, sem filtros adicionais
           break
 
         default:
@@ -407,7 +406,7 @@ export class DeclaracaoController {
             .json({ message: "Perfil de usuário inválido." })
       }
 
-      // Executando a agregação
+      // Executar agregação no banco
       const resultado = await Declaracoes.aggregate([
         { $match: match },
         { $sort: { anoDeclaracao: 1, museu_nome: 1, createdAt: -1 } },
@@ -420,29 +419,22 @@ export class DeclaracaoController {
         { $replaceRoot: { newRoot: "$latestDeclaracao" } }
       ])
 
-      // Se não houver declarações, informe
+      // Caso o usuário não tenha declarações vinculadas, retorna uma lista vazia
       if (resultado.length === 0) {
-        console.log("Nenhuma declaração encontrada para os critérios.")
-        return res
-          .status(404)
-          .json({ message: "Nenhuma declaração encontrada." })
+        return res.status(200).json([])
       }
 
-      // Filtra as declarações com base nas especialidades do analista
+      // Filtrar declarações de acordo com as especialidades do analista
       const declaracoesFiltradas = resultado.map((declaracao: any) => {
-        // Mantém apenas os tipos de bens associados à especialidade do analista
         if (especialidadeAnalista.includes("museologico")) {
-          // Remove os campos não associados ao tipo museológico
           delete declaracao.arquivistico
           delete declaracao.bibliografico
         }
         if (especialidadeAnalista.includes("arquivistico")) {
-          // Remove os campos não associados ao tipo arquivístico
           delete declaracao.museologico
           delete declaracao.bibliografico
         }
         if (especialidadeAnalista.includes("bibliografico")) {
-          // Remove os campos não associados ao tipo bibliográfico
           delete declaracao.museologico
           delete declaracao.arquivistico
         }
@@ -454,7 +446,7 @@ export class DeclaracaoController {
         path: "museu_id"
       })
 
-      // Retorna as declarações com o museu populado
+      // Retorna as declarações filtradas e com museu populado
       return res.status(200).json(declaracoesComMuseu)
     } catch (error) {
       logger.error("Erro ao buscar declarações:", error)
