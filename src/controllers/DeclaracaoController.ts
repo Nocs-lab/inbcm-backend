@@ -259,22 +259,26 @@ export class DeclaracaoController {
       const userId = req.user?.id
       const isAdmin = req.user?.admin
 
+      // Verifica se o usuário está logado
       if (!userId) {
         return res.status(400).json({ message: "Usuário não autenticado." })
       }
 
       const user = await Usuario.findById(userId).populate("profile")
 
+      // Verifica se o perfil do usuário foi encontrado
       if (!user || !user.profile) {
         return res
           .status(400)
           .json({ message: "Perfil do usuário não foi encontrado." })
       }
 
+      // Se for admin, não precisa filtrar nada
       const selectFields = isAdmin
         ? ""
         : "-responsavelEnvioAnaliseNome -analistasResponsaveisNome -responsavelEnvioAnalise -analistasResponsaveis"
 
+      // Buscar a declaração com o campo de museu populado
       const declaracao = await Declaracoes.findById(id)
         .select(selectFields)
         .populate({
@@ -282,75 +286,45 @@ export class DeclaracaoController {
           model: Museu
         })
 
-      // Se a declaração não existir
       if (!declaracao) {
-        return res.status(200).json({
-          message: "Nenhuma declaração encontrada para o usuário atual.",
-          dados: null
-        })
+        return res.status(404).json({ message: "Declaração não encontrada." })
       }
 
-      // Se a declaração não for a última, restringe o acesso
       if (declaracao.ultimaDeclaracao === false) {
         return res
           .status(404)
           .json({ message: "Não é possível acessar declaração." })
       }
 
-      // Filtragem de dados para analistas
+      // Verifica a especialidade do analista
       if (user.profile.name === "analyst") {
-        const especialidadeAnalista = user.especialidadeAnalista || []
-        const analistaId = userId
+        const especialidadeAnalista = user.especialidadeAnalista
+        const declaracaoObjeto = declaracao.toObject()
 
-        // Inicializa um objeto para armazenar os dados filtrados
-        const dadosFiltrados: any = {}
+        // Retorna todos os arquivos que o analista tem permissão para acessar
+        const declaracaoFiltrada: any = {}
 
-        if (
-          especialidadeAnalista.includes("museologico") &&
-          declaracao.museologico &&
-          Array.isArray(declaracao.museologico.analistasResponsaveis) &&
-          declaracao.museologico.analistasResponsaveis.includes(analistaId)
-        ) {
-          dadosFiltrados.museologico = declaracao.museologico
+        if (especialidadeAnalista.includes("museologico")) {
+          declaracaoFiltrada.museologico = declaracaoObjeto.museologico
         }
 
-        if (
-          especialidadeAnalista.includes("arquivistico") &&
-          declaracao.arquivistico &&
-          Array.isArray(declaracao.arquivistico.analistasResponsaveis) &&
-          declaracao.arquivistico.analistasResponsaveis.includes(analistaId)
-        ) {
-          dadosFiltrados.arquivistico = declaracao.arquivistico
+        if (especialidadeAnalista.includes("arquivistico")) {
+          declaracaoFiltrada.arquivistico = declaracaoObjeto.arquivistico
         }
 
-        if (
-          especialidadeAnalista.includes("bibliografico") &&
-          declaracao.bibliografico &&
-          Array.isArray(declaracao.bibliografico.analistasResponsaveis) &&
-          declaracao.bibliografico.analistasResponsaveis.includes(analistaId)
-        ) {
-          dadosFiltrados.bibliografico = declaracao.bibliografico
+        if (especialidadeAnalista.includes("bibliografico")) {
+          declaracaoFiltrada.bibliografico = declaracaoObjeto.bibliografico
         }
 
-        if (Object.keys(dadosFiltrados).length === 0) {
-          return res
-            .status(404)
-            .json({ message: "Nenhum bem encontrado para o analista logado." })
-        }
-
-        // Inclui os dados do museu
-        dadosFiltrados.museu = declaracao.museu_id
-
-        return res.status(200).json(dadosFiltrados)
+        // Retorna todos os campos relevantes para o analista
+        return res.status(200).json({
+          ...declaracaoObjeto,
+          ...declaracaoFiltrada
+        })
       }
 
-      // Inclui os dados do museu no retorno geral
-      const respostaCompleta = {
-        ...declaracao.toObject(),
-        museu: declaracao.museu_id
-      }
-
-      return res.status(200).json(respostaCompleta)
+      // Se não for analista, retorna todos os dados da declaração
+      return res.status(200).json(declaracao)
     } catch (error) {
       logger.error("Erro ao buscar declaração:", error)
       return res.status(500).json({ message: "Erro ao buscar declaração." })
