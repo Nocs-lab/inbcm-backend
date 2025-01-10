@@ -39,30 +39,30 @@ const declaracaoController = new DeclaracaoController()
  */
 routes.get(
   "/anos-validos/:qtdAnos",
-  userPermissionMiddleware('getAnosValidos'),
+  userPermissionMiddleware("getAnosValidos"),
   declaracaoController.getAnosValidos.bind(declaracaoController)
 )
 routes.get(
   "/analistas",
-  userPermissionMiddleware('listarAnalistas'),
+  userPermissionMiddleware("listarAnalistas"),
   declaracaoController.listarAnalistas.bind(declaracaoController)
 )
 
 routes.put(
   "/:id/analises",
-  userPermissionMiddleware('enviarParaAnalise'),
+  userPermissionMiddleware("enviarParaAnalise"),
   declaracaoController.enviarParaAnalise.bind(declaracaoController)
 )
 
 routes.get(
   "/:id/timeline",
-  userPermissionMiddleware('getTimeLine'),
+  userPermissionMiddleware("getTimeLine"),
   declaracaoController.getTimeLine.bind(declaracaoController)
 )
 
 routes.put(
   "/:id/analises-concluir",
-  userPermissionMiddleware('concluirAnalise'),
+  userPermissionMiddleware("concluirAnalise"),
   declaracaoController.concluirAnalise.bind(declaracaoController)
 )
 
@@ -82,7 +82,7 @@ routes.put(
  */
 routes.post(
   "/declaracoesFiltradas",
-  userPermissionMiddleware('getDeclaracaoFiltrada'),
+  userPermissionMiddleware("getDeclaracaoFiltrada"),
   declaracaoController.getDeclaracaoFiltrada
 )
 
@@ -102,7 +102,7 @@ routes.post(
  */
 routes.post(
   "/declaracoesFiltradas",
-  userPermissionMiddleware('getDeclaracaoFiltrada'),
+  userPermissionMiddleware("getDeclaracaoFiltrada"),
   declaracaoController.getDeclaracaoFiltrada
 )
 
@@ -136,8 +136,166 @@ routes.post(
  */
 routes.put(
   "/atualizarStatus/:id",
-  userPermissionMiddleware('atualizarStatusDeclaracao'),
-  declaracaoController.atualizarStatusDeclaracao
+  userPermissionMiddleware("atualizarStatusBensDeclaracao"),
+  declaracaoController.atualizarStatusBensDeclaracao
+)
+
+/**
+ * @swagger
+ * /restaurar/{declaracaoId}:
+ *   put:
+ *     summary: Restaura uma declaração excluída para o status "Recebida".
+ *     description: Restaura uma declaração com status "Excluída", caso não existam versões mais recentes não excluídas para o mesmo museu e ano correspondente.
+ *     tags:
+ *       - Declarações
+ *     parameters:
+ *       - in: path
+ *         name: declaracaoId
+ *         required: true
+ *         description: ID da declaração que será restaurada.
+ *         schema:
+ *           type: string
+ *     security:
+ *       - bearerAuth: [] # Para autenticação JWT, se aplicável.
+ *     responses:
+ *       200:
+ *         description: Declaração restaurada com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Declaração restaurada com sucesso para 'Recebida'.
+ *                 declaracao:
+ *                   $ref: '#/components/schemas/Declaracao' # Esquema de declaração, se definido.
+ *       400:
+ *         description: Erro na restauração da declaração.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Não é possível restaurar esta declaração porque há versões mais recentes de declaração.
+ *       404:
+ *         description: Declaração não encontrada.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Declaração não encontrada.
+ */
+routes.put(
+  "/restaurar/:declaracaoId",
+  userPermissionMiddleware("restaurarDeclaracao"),
+  declaracaoController.restaurarDeclaracao
+)
+
+/**
+ * @swagger
+ * /alterar-analistas/{declaracaoId}/{arquivoTipo}:
+ *   put:
+ *     summary: Altera o analista responsável por um arquivo vinculado a uma declaração.
+ *     description: Atualiza o analista responsável por um arquivo específico de uma declaração. Registra o evento na timeline e salva as alterações.
+ *     tags:
+ *       - Declarações
+ *     parameters:
+ *       - in: path
+ *         name: declaracaoId
+ *         required: true
+ *         description: ID da declaração que contém o arquivo.
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: arquivoTipo
+ *         required: true
+ *         description: Tipo do arquivo dentro da declaração (arquivistico, bibliografico, museologico).
+ *         schema:
+ *           type: string
+ *           enum: [arquivistico, bibliografico, museologico]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               analistaId:
+ *                 type: string
+ *                 description: ID do novo analista que será vinculado ao arquivo.
+ *                 example: "64a3f890b3f45b0010c8e123"
+ *     responses:
+ *       200:
+ *         description: Analista alterado com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Analista vinculado ao arquivo bibliografico com sucesso.
+ *                 arquivo:
+ *                   type: object
+ *                   description: Informações do arquivo atualizado.
+ *                   properties:
+ *                     analistasResponsaveisNome:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["Novo Analista"]
+ *                 timeLine:
+ *                   type: array
+ *                   description: Linha do tempo da declaração atualizada com o evento.
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       nomeEvento:
+ *                         type: string
+ *                         example: Mudança de analista
+ *                       dataEvento:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-01-07T12:00:00Z"
+ *                       autorEvento:
+ *                         type: string
+ *                         example: "Autor da Mudança"
+ *                       analistaResponsavel:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                         example: ["Novo Analista"]
+ *       400:
+ *         description: Erro na alteração do analista.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Declaração não encontrada.
+ *       500:
+ *         description: Erro interno no servidor.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Erro desconhecido
+ */
+routes.put(
+  "/alterar-analistas/:declaracaoId/:arquivoTipo",
+  userPermissionMiddleware("alterarAnalistaArquivo"),
+  declaracaoController.alterarAnalistaArquivo
 )
 
 /**
@@ -159,7 +317,7 @@ routes.put(
 
 routes.get(
   "/analistas-filtrados",
-  userPermissionMiddleware('getDeclaracoesAgrupadasPorAnalista'),
+  userPermissionMiddleware("getDeclaracoesAgrupadasPorAnalista"),
   declaracaoController.getDeclaracoesAgrupadasPorAnalista.bind(
     declaracaoController
   )
@@ -188,6 +346,10 @@ routes.get(
  *       '500':
  *         description: Erro ao buscar declaração.
  */
-routes.get("/:id", userPermissionMiddleware('getDeclaracao'), declaracaoController.getDeclaracao)
+routes.get(
+  "/:id",
+  userPermissionMiddleware("getDeclaracao"),
+  declaracaoController.getDeclaracao
+)
 
 export default routes
