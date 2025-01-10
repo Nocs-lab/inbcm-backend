@@ -39,7 +39,8 @@ const setPermissions = async () => {
     {
       name: "getDeclaracao",
       label: "Visualizar Declaração",
-      description: "Permite visualizar os detalhes de uma declaração específica."
+      description:
+        "Permite visualizar os detalhes de uma declaração específica."
     },
     {
       name: "getDeclaracaoAno",
@@ -69,7 +70,8 @@ const setPermissions = async () => {
     {
       name: "getTimeLine",
       label: "Visualizar Linha do Tempo",
-      description: "Permite visualizar a linha do tempo das declarações ou eventos."
+      description:
+        "Permite visualizar a linha do tempo das declarações ou eventos."
     }
   ]
 
