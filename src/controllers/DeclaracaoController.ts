@@ -328,6 +328,10 @@ export class DeclaracaoController {
   }
 
   // Retorna todas as declarações do usuário logado
+  // Retorna todas as declarações do usuário logado
+  // Retorna todas as declarações do usuário logado
+  // Retorna todas as declarações do usuário logado
+  // Retorna todas as declarações do usuário logado
   async getDeclaracoes(req: Request, res: Response) {
     try {
       const userId = req.user?.id
@@ -360,29 +364,28 @@ export class DeclaracaoController {
         ultimaDeclaracao: true
       }
 
+      console.log("Match inicial:", match)
+
       // Aplique a lógica com base no tipo de profile
       switch (profile.name) {
         case "declarant":
-          match.responsavelEnvio =
-            mongoose.Types.ObjectId.createFromHexString(id)
+          match.responsavelEnvio = new mongoose.Types.ObjectId(id)
           break
 
         case "analyst":
-          if (especialidadeAnalista.includes("museologico")) {
-            match["museologico.analistasResponsaveis"] =
-              mongoose.Types.ObjectId.createFromHexString(id)
-          }
-          if (especialidadeAnalista.includes("arquivistico")) {
-            match["arquivistico.analistasResponsaveis"] =
-              mongoose.Types.ObjectId.createFromHexString(id)
-          }
-          if (especialidadeAnalista.includes("bibliografico")) {
-            match["bibliografico.analistasResponsaveis"] =
-              mongoose.Types.ObjectId.createFromHexString(id)
-          }
+          console.log("Especialidades do Analista:", especialidadeAnalista)
+
+          // Para analistas, verifica se o analista está presente em qualquer tipo de bem
+          const analistaId = new mongoose.Types.ObjectId(id)
+          match.$or = [
+            { "museologico.analistasResponsaveis": analistaId },
+            { "arquivistico.analistasResponsaveis": analistaId },
+            { "bibliografico.analistasResponsaveis": analistaId }
+          ]
           break
 
         case "admin":
+          // Administrador tem acesso a todas as declarações
           break
 
         default:
@@ -391,6 +394,9 @@ export class DeclaracaoController {
             .json({ message: "Perfil de usuário inválido." })
       }
 
+      console.log("Match Final:", match)
+
+      // Executando a agregação
       const resultado = await Declaracoes.aggregate([
         { $match: match },
         { $sort: { anoDeclaracao: 1, museu_nome: 1, createdAt: -1 } },
@@ -403,29 +409,45 @@ export class DeclaracaoController {
         { $replaceRoot: { newRoot: "$latestDeclaracao" } }
       ])
 
-      // Agora, filtramos os campos de acordo com a especialidade do usuário
+      console.log("Resultado da Agregação:", resultado)
+
+      // Se não houver declarações, informe
+      if (resultado.length === 0) {
+        console.log("Nenhuma declaração encontrada para os critérios.")
+        return res
+          .status(404)
+          .json({ message: "Nenhuma declaração encontrada." })
+      }
+
+      // Filtra as declarações com base nas especialidades do analista
       const declaracoesFiltradas = resultado.map((declaracao: any) => {
+        // Mantém apenas os tipos de bens associados à especialidade do analista
         if (especialidadeAnalista.includes("museologico")) {
-          // Excluir os campos que não são do tipo museológico
+          // Remove os campos não associados ao tipo museológico
           delete declaracao.arquivistico
           delete declaracao.bibliografico
-        } else if (especialidadeAnalista.includes("arquivistico")) {
-          // Excluir os campos que não são do tipo arquivístico
+        }
+        if (especialidadeAnalista.includes("arquivistico")) {
+          // Remove os campos não associados ao tipo arquivístico
           delete declaracao.museologico
           delete declaracao.bibliografico
-        } else if (especialidadeAnalista.includes("bibliografico")) {
-          // Excluir os campos que não são do tipo bibliográfico
+        }
+        if (especialidadeAnalista.includes("bibliografico")) {
+          // Remove os campos não associados ao tipo bibliográfico
           delete declaracao.museologico
           delete declaracao.arquivistico
         }
         return declaracao
       })
 
+      console.log("Declarações Filtradas:", declaracoesFiltradas)
+
       // Popula o campo "museu_id" com as informações do museu
       const declaracoesComMuseu = await Museu.populate(declaracoesFiltradas, {
         path: "museu_id"
       })
 
+      // Retorna as declarações com o museu populado
       return res.status(200).json(declaracoesComMuseu)
     } catch (error) {
       logger.error("Erro ao buscar declarações:", error)
