@@ -18,6 +18,7 @@ const limiter = rateLimit({
 export const userPermissionMiddleware: (permission: string) => Handler =
   (permission) => async (req, res, next) => {
     try {
+      console.log(permission)
       // Aplica o rate limiter antes de processar a lógica do middleware
       limiter(req, res, async () => {
         // Lógica para ambiente de desenvolvimento
@@ -33,6 +34,8 @@ export const userPermissionMiddleware: (permission: string) => Handler =
           const user = await Usuario.findOne({
             email: email
           })
+
+          console.log(email)
 
           if (user) {
             // Verifica a senha do usuário
@@ -60,10 +63,12 @@ export const userPermissionMiddleware: (permission: string) => Handler =
         // Decodifica o token JWT para obter o payload
         const payload = jwt.verify(token, config.JWT_SECRET) as jwt.JwtPayload
 
+        console.log(111111)
+        console.log(payload)
+
         // Adiciona informações do usuário ao objeto `req`
         req.user = {
-          id: payload.sub!,
-          admin: payload.admin
+          id: payload.sub
         }
 
         // Recupera credenciais do cabeçalho de autorização
@@ -71,28 +76,37 @@ export const userPermissionMiddleware: (permission: string) => Handler =
           req.headers["authorization"]?.split(" ")[1] ?? " : ",
           "base64"
         )
+        console.log(req.user.id)
+
+        const idUser = req.user.id
+
+        console.log(idUser)
 
         // Busca o usuário com base no ID presente no token
-        const user = await Usuario.findOne({
-          id_: req.user.id
+        const userp = await Usuario.findOne({
+          id_: idUser
         })
+
+        console.log(userp)
 
         // Se o perfil no payload for 'admin', permite o acesso direto
         if (payload.profile == "admin") return next()
 
         // Verifica se o usuário existe
-        if (!user) return res.status(401).send("Usuário não identificado.")
+        if (!userp) return res.status(401).send("Usuário não identificado.")
 
         // Recupera o ID do perfil associado ao usuário
-        const profile_id = user.profile.toString()
+        const profile_id = userp.profile.toString()
 
         // Busca o perfil no banco de dados
-        const profile = await Profile.findOne({ _id: profile_id })
+        const profile = await Profile.findOne({ name: payload.profile })
 
         if (!profile) return res.status(401).send("Profile não identificado.")
 
         // Caso o perfil seja 'admin', permite o acesso direto
         if (profile.name === "admin") return next()
+
+        console.log(profile.name)
 
         // Busca as permissões associadas ao perfil
         const permissions = await Permission.find({
@@ -105,6 +119,7 @@ export const userPermissionMiddleware: (permission: string) => Handler =
         )
 
         // Verifica se a permissão requerida está presente
+
         if (!permissionsNames.includes(permission)) {
           return res
             .status(403)
