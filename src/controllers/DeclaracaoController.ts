@@ -257,12 +257,29 @@ export class DeclaracaoController {
   async getDeclaracao(req: Request, res: Response) {
     try {
       const { id } = req.params
+      const userId = req.user?.id
       const isAdmin = req.user?.admin
 
+      // Verifica se o usuário está logado
+      if (!userId) {
+        return res.status(400).json({ message: "Usuário não autenticado." })
+      }
+
+      const user = await Usuario.findById(userId).populate("profile")
+
+      // Verifica se o perfil do usuário foi encontrado
+      if (!user || !user.profile) {
+        return res
+          .status(400)
+          .json({ message: "Perfil do usuário não foi encontrado." })
+      }
+
+      // Se for admin, não precisa filtrar nada
       const selectFields = isAdmin
         ? ""
         : "-responsavelEnvioAnaliseNome -analistasResponsaveisNome -responsavelEnvioAnalise -analistasResponsaveis"
 
+      // Buscar a declaração com o campo de museu populado
       const declaracao = await Declaracoes.findById(id)
         .select(selectFields)
         .populate({
@@ -280,6 +297,30 @@ export class DeclaracaoController {
           .json({ message: "Não é possível acessar declaração." })
       }
 
+      // Filtragem dos dados de acordo com o perfil do usuário
+      if (user.profile.name === "analyst") {
+        const especialidadeAnalista = user.especialidadeAnalista
+
+        // Filtra os campos da declaração com base na especialidade do analista
+        if (especialidadeAnalista.includes("museologico")) {
+          // Retira os campos que não pertencem ao analista museológico
+          const { arquivistico, bibliografico, ...declaracaoMuseologico } =
+            declaracao.toObject()
+          return res.status(200).json(declaracaoMuseologico)
+        } else if (especialidadeAnalista.includes("arquivistico")) {
+          // Retira os campos que não pertencem ao analista arquivístico
+          const { museologico, bibliografico, ...declaracaoArquivistico } =
+            declaracao.toObject()
+          return res.status(200).json(declaracaoArquivistico)
+        } else if (especialidadeAnalista.includes("bibliografico")) {
+          // Retira os campos que não pertencem ao analista bibliográfico
+          const { museologico, arquivistico, ...declaracaoBibliografico } =
+            declaracao.toObject()
+          return res.status(200).json(declaracaoBibliografico)
+        }
+      }
+
+      // Se não for analista, retorna todos os dados da declaração
       return res.status(200).json(declaracao)
     } catch (error) {
       logger.error("Erro ao buscar declaração:", error)
@@ -322,7 +363,7 @@ export class DeclaracaoController {
 
       // Aplique a lógica com base no tipo de profile
       switch (profile.name) {
-        case "declrant":
+        case "declarant":
           match.responsavelEnvio =
             mongoose.Types.ObjectId.createFromHexString(id)
           break
