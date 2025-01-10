@@ -10,7 +10,7 @@ export interface IUsuario extends Document {
   senha: string
   profile: IProfile | Types.ObjectId
   ativo: boolean
-  tipoAnalista: string[]
+  especialidadeAnalista: string[]
 }
 
 export const UsuarioSchema = new Schema<IUsuario>({
@@ -21,7 +21,7 @@ export const UsuarioSchema = new Schema<IUsuario>({
   profile: { type: Schema.Types.ObjectId, required: true, ref: "profiles" },
   ativo: { type: Boolean, default: true },
   museus: [{ type: mongoose.Schema.Types.ObjectId, ref: "museus" }],
-  tipoAnalista: [
+  especialidadeAnalista: [
     {
       type: String,
       enum: ["museologico", "arquivistico", "bibliografico"],
