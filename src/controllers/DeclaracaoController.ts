@@ -259,10 +259,6 @@ export class DeclaracaoController {
       const userId = req.user?.id
       const userRole = req.user?.role // Role do usuário: 'admin', 'analyst', 'declarant'
 
-      console.log("ID da declaração:", id)
-      console.log("ID do usuário:", userId)
-      console.log("Função do usuário:", userRole)
-
       if (!userId) {
         return res.status(400).json({ message: "Usuário não autenticado." })
       }
@@ -270,12 +266,12 @@ export class DeclaracaoController {
       // Define os campos que serão omitidos ou incluídos com base no perfil do usuário
       let selectFields = ""
       if (userRole === "admin") {
-        selectFields = "" // Administradores acessam todos os campos
+        selectFields = ""
       } else if (userRole === "declarant") {
-        selectFields = "" // Declarantes também podem ver todos os dados
+        selectFields = ""
       } else if (userRole === "analyst") {
         selectFields =
-          "-responsavelEnvioAnaliseNome -analistasResponsaveisNome -responsavelEnvioAnalise -analistasResponsaveis" // Analistas veem apenas os dados relevantes
+          "-responsavelEnvioAnaliseNome -analistasResponsaveisNome -responsavelEnvioAnalise -analistasResponsaveis"
       }
 
       console.log("Campos a serem selecionados:", selectFields)
@@ -289,33 +285,22 @@ export class DeclaracaoController {
         })
 
       if (!declaracao) {
-        console.log("Declaração não encontrada.")
         return res.status(404).json({ message: "Declaração não encontrada." })
       }
 
-      console.log("Declaração encontrada:", declaracao)
-
       if (!declaracao.ultimaDeclaracao) {
-        console.log("Declaração não é a última versão.")
         return res
           .status(403)
           .json({ message: "Não é permitido acessar esta declaração." })
       }
 
-      // Lógica de filtragem para usuários não administradores ou declarantes
       if (userRole !== "admin" && userRole !== "declarant") {
-        const declaracaoObjeto = declaracao.toObject() // Converte para objeto manipulável
+        const declaracaoObjeto = declaracao.toObject()
         const userObjectId = new mongoose.Types.ObjectId(userId)
 
-        console.log("Objeto da declaração convertido:", declaracaoObjeto)
-        console.log("ID do usuário convertido:", userObjectId)
-
-        // Campos válidos que podem ser filtrados
         const camposValidos: Array<
           "museologico" | "bibliografico" | "arquivistico"
         > = ["museologico", "bibliografico", "arquivistico"]
-
-        console.log("Campos válidos para filtragem:", camposValidos)
 
         // Inicializa um objeto para armazenar os campos filtrados
         const declaracaoFiltrada = camposValidos.reduce(
@@ -355,17 +340,12 @@ export class DeclaracaoController {
           delete declaracaoObjeto.arquivistico
         }
 
-        console.log("Declaração filtrada:", declaracaoFiltrada)
-
-        // Retorna a declaração com os campos filtrados para o usuário
         return res.status(200).json({
-          ...declaracaoObjeto, // Inclui os dados gerais da declaração
-          ...declaracaoFiltrada // Adiciona apenas os campos permitidos
+          ...declaracaoObjeto,
+          ...declaracaoFiltrada
         })
       }
 
-      // Retorna a declaração completa para administradores e declarantes
-      console.log("Declaração para administrador ou declarant:", declaracao)
       return res.status(200).json(declaracao)
     } catch (error) {
       console.error("Erro ao buscar declaração:", error)
