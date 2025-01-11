@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { Declaracoes, TimeLine, Usuario } from "../models"
+import { Declaracoes, Usuario } from "../models"
 import DeclaracaoService from "../service/DeclaracaoService"
 import { generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
@@ -15,13 +15,15 @@ import logger from "../utils/logger"
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
 
+  // Faz o bind do contexto atual para os métodos
   constructor() {
     this.declaracaoService = new DeclaracaoService()
-    // Faz o bind do contexto atual para as funções
+
     this.uploadDeclaracao = this.uploadDeclaracao.bind(this)
     this.getDeclaracaoFiltrada = this.getDeclaracaoFiltrada.bind(this)
     this.getStatusEnum = this.getStatusEnum.bind(this)
-    this.atualizarStatusDeclaracao = this.atualizarStatusDeclaracao.bind(this)
+    this.atualizarStatusBensDeclaracao =
+      this.atualizarStatusBensDeclaracao.bind(this)
     this.getDeclaracoes = this.getDeclaracoes.bind(this)
     this.getDeclaracao = this.getDeclaracao.bind(this)
     this.getDeclaracaoAno = this.getDeclaracaoAno.bind(this)
@@ -30,6 +32,63 @@ export class DeclaracaoController {
     this.excluirDeclaracao = this.excluirDeclaracao.bind(this)
     this.getTimeLine = this.getTimeLine.bind(this)
     this.filtroDashBoard = this.filtroDashBoard.bind(this)
+    this.restaurarDeclaracao = this.restaurarDeclaracao.bind(this)
+    this.alterarAnalistaArquivo = this.alterarAnalistaArquivo.bind(this)
+  }
+
+  /**
+   * Altera o analista responsável por um arquivo vinculado a uma declaração.
+   *
+   * @param req - O objeto de requisição, contendo os parâmetros da URL e o usuário autenticado.
+   * @param res - O objeto de resposta para enviar a resposta ao cliente.
+   *
+   * @param req.params.declaracaoId - O ID da declaração à qual o arquivo está vinculado.
+   * @param req.params.arquivoTipo - O tipo do arquivo cujo analista será alterado.
+   * Deve ser um dos seguintes valores: "arquivistico", "bibliografico" ou "museologico".
+   *
+   * @param req.user.id - O ID do usuário autenticado que será usado como analista e autor da alteração.
+   *
+   * A função utiliza o serviço de declarações para alterar o analista responsável pelo arquivo,
+   * garantindo que o `analistaId` e o `autorId` sejam atribuídos corretamente.
+   *
+   * @returns Retorna um objeto JSON com o resultado da operação, ou uma mensagem de erro em caso de falha.
+   *
+   * Exemplo de resposta bem-sucedida:
+   * {
+   *   mensagem: "Analista atualizado com sucesso",
+   *   arquivoAtualizado: {
+   *     tipo: "museologico",
+   *     analistaId: "12345",
+   *     autorId: "12345",
+   *     dataAlteracao: "2025-01-07T12:00:00Z"
+   *   }
+   * }
+   *
+   * @throws Retorna status 400 com uma mensagem de erro em caso de falhas esperadas
+   * (como parâmetros inválidos ou ausência de permissões).
+   * @throws Retorna status 500 em caso de erros inesperados no servidor.
+   */
+
+  async alterarAnalistaArquivo(req: Request, res: Response) {
+    try {
+      const { declaracaoId, arquivoTipo } = req.params
+      const analistaId = req.user?.id
+      const autorId = req.user?.id
+
+      const resultado = await this.declaracaoService.alterarAnalistaArquivo(
+        declaracaoId,
+        arquivoTipo as "arquivistico" | "bibliografico" | "museologico",
+        analistaId,
+        autorId
+      )
+
+      return res.status(200).json(resultado)
+    } catch (error) {
+      if (error instanceof Error) {
+        return res.status(400).json({ message: error.message })
+      }
+      return res.status(500).json({ message: "Erro desconhecido" })
+    }
   }
 
   async filtroDashBoard(req: Request, res: Response) {
@@ -128,91 +187,45 @@ export class DeclaracaoController {
     }
   }
 
-  async atualizarStatusDeclaracao(req: Request, res: Response) {
+  /**
+   * Atualiza os status dos bens vinculados a uma declaração e altera o status geral da declaração.
+   *
+   * @param req - O objeto de requisição, contendo o ID da declaração na URL e o status dos bens no corpo.
+   * @param res - O objeto de resposta para enviar a resposta ao cliente.
+   *
+   * @param req.body.statusBens - Um objeto contendo os novos status para os bens vinculados à declaração.
+   * Cada chave deste objeto representa um tipo de bem (museológico, arquivístico, bibliográfico), e o valor associado é um objeto
+   * contendo o novo `status` e, opcionalmente, um `comentario` explicativo sobre a alteração.
+   *
+   * Exemplo de estrutura de `statusBens`:
+   * {
+   *   museologico: { status: Status.EmConformidade, comentario: "Comentário sobre o bem museológico" },
+   *   arquivistico: { status: Status.EmConformidade },
+   *   bibliografico: { status: Status.NaoConformidade, comentario: "Comentário sobre o bem bibliográfico" }
+   * }
+   *
+   * @param req.body.autorId - O ID do autor (usuário) responsável pela atualização dos status dos bens.
+   */
+
+  async atualizarStatusBensDeclaracao(req: Request, res: Response) {
     try {
       const { id } = req.params
-      const { status } = req.body
-      const adminId = req.user?.id
+      const { statusBens } = req.body
+      const autorId = req.user?.id
 
-      const declaracao = await Declaracoes.findById(id)
-      if (!declaracao) {
-        return res.status(404).json({ message: "Declaração não encontrada." })
-      }
+      const resultado = await this.declaracaoService.atualizarStatusBens(
+        id,
+        statusBens,
+        autorId
+      )
 
-      if (status === Status.Recebida) {
-        const declaracoesMaisNovas = await Declaracoes.find({
-          museu_id: declaracao.museu_id,
-          anoDeclaracao: declaracao.anoDeclaracao,
-          versao: { $gt: declaracao.versao }
-        }).lean()
-
-        const existeVersaoNaoExcluida = declaracoesMaisNovas.some(
-          (decl) => decl.status !== Status.Excluida
-        )
-
-        if (existeVersaoNaoExcluida) {
-          return res.status(400).json({
-            message:
-              "Não é possível restaurar esta declaração porque há versões mais recentes que não estão com status 'Excluída'."
-          })
-        }
-
-        if (declaracao.status !== Status.Excluida) {
-          return res.status(400).json({
-            message:
-              "Somente declarações com status 'Excluída' podem ser restauradas para 'Recebida'."
-          })
-        }
-      }
-
-      const admin = await Usuario.findById(adminId).select("nome").lean()
-      if (!admin) {
-        return res
-          .status(404)
-          .json({ message: "Administrador não encontrado." })
-      }
-
-      declaracao.responsavelEnvioAnaliseNome = admin.nome
-
-      const evento: TimeLine = {
-        nomeEvento: "",
-        dataEvento: DataUtils.getCurrentData(),
-        autorEvento: ""
-      }
-
-      switch (status) {
-        case Status.Recebida:
-          evento.nomeEvento = Eventos.DeclaracaoRestaurada
-          evento.autorEvento = declaracao.responsavelEnvioAnaliseNome
-          break
-
-        case Status.EmConformidade:
-          evento.nomeEvento = `Resultado da análise: ${Status.EmConformidade}`
-          evento.autorEvento = declaracao.analistasResponsaveisNome.join(", ")
-          break
-
-        case Status.NaoConformidade:
-          evento.nomeEvento = `Resultado da análise: ${Status.NaoConformidade}`
-          evento.autorEvento = declaracao.analistasResponsaveisNome.join(", ")
-          break
-
-        default:
-          break
-      }
-
-      if (evento.nomeEvento) {
-        declaracao.timeLine.push(evento)
-      }
-
-      declaracao.status = status
-      await declaracao.save()
-
-      return res.status(200).json({ message: "Status atualizado com sucesso." })
+      return res.status(200).json(resultado)
     } catch (error) {
-      logger.error("Erro ao atualizar o status da declaração:", error)
-      return res.status(500).json({
-        message: "Erro ao atualizar o status da declaração."
-      })
+      if (error instanceof Error) {
+        return res.status(400).json({ message: error.message })
+      }
+
+      return res.status(500).json({ message: "Erro desconhecido" })
     }
   }
 
@@ -243,12 +256,27 @@ export class DeclaracaoController {
   async getDeclaracao(req: Request, res: Response) {
     try {
       const { id } = req.params
-      const isAdmin = req.user?.admin
+      const userId = req.user?.id
+      const userRole = req.user?.role // Role do usuário: 'admin', 'analyst', 'declarant'
 
-      const selectFields = isAdmin
-        ? ""
-        : "-responsavelEnvioAnaliseNome -analistasResponsaveisNome -responsavelEnvioAnalise -analistasResponsaveis"
+      if (!userId) {
+        return res.status(400).json({ message: "Usuário não autenticado." })
+      }
 
+      // Define os campos que serão omitidos ou incluídos com base no perfil do usuário
+      let selectFields = ""
+      if (userRole === "admin") {
+        selectFields = ""
+      } else if (userRole === "declarant") {
+        selectFields = ""
+      } else if (userRole === "analyst") {
+        selectFields =
+          "-responsavelEnvioAnaliseNome -analistasResponsaveisNome -responsavelEnvioAnalise -analistasResponsaveis"
+      }
+
+      console.log("Campos a serem selecionados:", selectFields)
+
+      // Busca a declaração pelo ID
       const declaracao = await Declaracoes.findById(id)
         .select(selectFields)
         .populate({
@@ -260,15 +288,67 @@ export class DeclaracaoController {
         return res.status(404).json({ message: "Declaração não encontrada." })
       }
 
-      if (declaracao.ultimaDeclaracao === false) {
+      if (!declaracao.ultimaDeclaracao) {
         return res
-          .status(404)
-          .json({ message: "Não é possível acessar declaração." })
+          .status(403)
+          .json({ message: "Não é permitido acessar esta declaração." })
+      }
+
+      if (userRole !== "admin" && userRole !== "declarant") {
+        const declaracaoObjeto = declaracao.toObject()
+        const userObjectId = new mongoose.Types.ObjectId(userId)
+
+        const camposValidos: Array<
+          "museologico" | "bibliografico" | "arquivistico"
+        > = ["museologico", "bibliografico", "arquivistico"]
+
+        // Inicializa um objeto para armazenar os campos filtrados
+        const declaracaoFiltrada = camposValidos.reduce(
+          (acc, campo) => {
+            const campoDados = declaracaoObjeto[campo]
+            console.log(`Verificando campo: ${campo}`)
+            console.log("Dados do campo:", campoDados)
+
+            if (
+              campoDados?.analistasResponsaveis?.some(
+                (id: mongoose.Types.ObjectId) => id.equals(userObjectId)
+              )
+            ) {
+              console.log(
+                `Usuário ${userId} é responsável por este campo: ${campo}`
+              )
+              acc[campo] = campoDados // Adiciona o campo se o usuário for responsável
+            } else {
+              console.log(
+                `Usuário ${userId} NÃO é responsável por este campo: ${campo}`
+              )
+            }
+
+            return acc
+          },
+          {} as Record<string, any>
+        )
+
+        // Filtra os campos que não devem ser retornados (caso o usuário não seja responsável)
+        if (declaracaoFiltrada.museologico === undefined) {
+          delete declaracaoObjeto.museologico
+        }
+        if (declaracaoFiltrada.bibliografico === undefined) {
+          delete declaracaoObjeto.bibliografico
+        }
+        if (declaracaoFiltrada.arquivistico === undefined) {
+          delete declaracaoObjeto.arquivistico
+        }
+
+        return res.status(200).json({
+          ...declaracaoObjeto,
+          ...declaracaoFiltrada
+        })
       }
 
       return res.status(200).json(declaracao)
     } catch (error) {
-      logger.error("Erro ao buscar declaração:", error)
+      console.error("Erro ao buscar declaração:", error)
       return res.status(500).json({ message: "Erro ao buscar declaração." })
     }
   }
@@ -276,34 +356,98 @@ export class DeclaracaoController {
   // Retorna todas as declarações do usuário logado
   async getDeclaracoes(req: Request, res: Response) {
     try {
-      // Realiza a agregação para obter a última declaração de cada museu em cada ano
+      const userId = req.user?.id
+
+      if (!userId) {
+        return res.status(400).json({ message: "Usuário não autenticado." })
+      }
+
+      // Buscar usuário com o profile populado
+      const user = await Usuario.findById(userId).populate("profile")
+
+      // Verificar se o usuário existe e se o profile foi populado corretamente
+      if (!user || !user.profile) {
+        return res
+          .status(400)
+          .json({ message: "Profile do usuário não foi populado." })
+      }
+
+      const { id, profile, especialidadeAnalista } = user
+
+      // Verifique se o profile é válido
+      if (!profile.name) {
+        return res
+          .status(400)
+          .json({ message: "O profile do usuário não contém nome válido." })
+      }
+
+      const match: any = {
+        status: { $ne: Status.Excluida },
+        ultimaDeclaracao: true
+      }
+
+      console.log("Match inicial:", match)
+
+      // Aplique a lógica com base no tipo de profile
+      switch (profile.name) {
+        case "declarant":
+          match.responsavelEnvio = new mongoose.Types.ObjectId(id)
+          break
+
+        case "analyst":
+          console.log("Especialidades do Analista:", especialidadeAnalista)
+
+          // Para analistas, verifica se o analista está presente em qualquer tipo de bem
+          const analistaId = new mongoose.Types.ObjectId(id)
+          match.$or = [
+            { "museologico.analistasResponsaveis": analistaId },
+            { "arquivistico.analistasResponsaveis": analistaId },
+            { "bibliografico.analistasResponsaveis": analistaId }
+          ]
+          break
+
+        case "admin":
+          // Administrador tem acesso a todas as declarações
+          break
+
+        default:
+          return res
+            .status(403)
+            .json({ message: "Perfil de usuário inválido." })
+      }
+
+      console.log("Match Final:", match)
+
+      // Executando a agregação
       const resultado = await Declaracoes.aggregate([
-        {
-          $match: {
-            responsavelEnvio: new mongoose.Types.ObjectId(req.user.id),
-            status: { $ne: Status.Excluida },
-            ultimaDeclaracao: true
-          }
-        },
-        {
-          $sort: { anoDeclaracao: 1, museu_nome: 1, createdAt: -1 } // Ordena por ano, museu e createdAt decrescente
-        },
+        { $match: match },
+        { $sort: { anoDeclaracao: 1, museu_nome: 1, createdAt: -1 } },
         {
           $group: {
             _id: { museu_id: "$museu_id", anoDeclaracao: "$anoDeclaracao" },
             latestDeclaracao: { $first: "$$ROOT" }
           }
         },
-        {
-          $replaceRoot: { newRoot: "$latestDeclaracao" }
-        }
+        { $replaceRoot: { newRoot: "$latestDeclaracao" } }
       ])
 
-      // Popula os documentos de museu referenciados pelo campo museu_id nas declarações agregadas
-      const declaracoes = await Museu.populate(resultado, { path: "museu_id" })
+      console.log("Resultado da Agregação:", resultado)
 
-      // Retorna o resultado final
-      return res.status(200).json(declaracoes)
+      // Se não houver declarações, informe
+      if (resultado.length === 0) {
+        console.log("Nenhuma declaração encontrada para os critérios.")
+        return res
+          .status(404)
+          .json({ message: "Nenhuma declaração encontrada." })
+      }
+
+      // Popula o campo "museu_id" com as informações do museu
+      const declaracoesComMuseu = await Museu.populate(resultado, {
+        path: "museu_id"
+      })
+
+      // Retorna as declarações com o museu populado
+      return res.status(200).json(declaracoesComMuseu)
     } catch (error) {
       logger.error("Erro ao buscar declarações:", error)
       return res.status(500).json({ message: "Erro ao buscar declarações." })
@@ -690,6 +834,33 @@ export class DeclaracaoController {
   async retificarDeclaracao(req: Request, res: Response) {
     return this.criarDeclaracao(req, res)
   }
+  /**
+   * Controlador responsável por chamar o método de serviço para restaurar uma declaração
+   * para o status 'Recebida' quando ela estiver com status 'Excluída'.
+   *
+   * @param req - A requisição HTTP contendo o ID da declaração a ser restaurada
+   * @param res - A resposta HTTP que será retornada para o cliente
+   * @returns A resposta HTTP com sucesso ou erro, dependendo do resultado da operação
+   */
+  async restaurarDeclaracao(req: Request, res: Response) {
+    try {
+      const { declaracaoId } = req.params
+
+      const resultado =
+        await this.declaracaoService.restauraDeclaracao(declaracaoId)
+
+      return res.status(200).json(resultado)
+    } catch (error) {
+      if (error instanceof Error) {
+        return res.status(400).json({
+          message:
+            "Não é possível restaurar esta declaração porque há versões mais recentes de declaração."
+        })
+      } else {
+        return res.status(400).json({ message: "Ocorreu um erro inesperado." })
+      }
+    }
+  }
 
   /**
    * Lista todos os analistas disponíveis para análise de declarações.
@@ -704,9 +875,8 @@ export class DeclaracaoController {
    */
   async listarAnalistas(req: Request, res: Response): Promise<Response> {
     try {
-      const { especificidade } = req.query
+      const { especificidade, nomeAnalista } = req.query
 
-      // Converter especificidades em array e remover espaços extras, se fornecido
       const especificidadesArray = especificidade
         ? especificidade
             .toString()
@@ -730,9 +900,11 @@ export class DeclaracaoController {
         }
       }
 
-      // Consultar analistas (com ou sem filtro)
-      const analistas =
-        await this.declaracaoService.listarAnalistas(especificidadesArray)
+      // Consultar analistas (com ou sem filtro de especificidade e nome)
+      const analistas = await this.declaracaoService.listarAnalistas(
+        especificidadesArray,
+        nomeAnalista?.toString()
+      )
 
       return res.status(200).json(analistas)
     } catch (error) {
@@ -761,6 +933,12 @@ export class DeclaracaoController {
     const { id } = req.params
     const { analistas } = req.body
     const adminId = req.user?.id
+
+    if (!analistas || !adminId) {
+      return res
+        .status(400)
+        .json({ message: "Analistas ou adminId não fornecidos." })
+    }
 
     try {
       const declaracao = await this.declaracaoService.enviarParaAnalise(

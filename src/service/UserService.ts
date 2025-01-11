@@ -9,16 +9,16 @@ export class UsuarioService {
    * Valida as informações do usuário antes de criar.
    * @param email Email do usuário.
    * @param profile ID do perfil do usuário.
-   * @param tipoAnalista Tipo de analista (opcional).
+   * @param especialidadeAnalista Tipo de analista (opcional).
    */
   static async validarUsuario({
     email,
     profile,
-    tipoAnalista
+    especialidadeAnalista
   }: {
     email: string
     profile: string
-    tipoAnalista?: string[]
+    especialidadeAnalista?: string[]
   }) {
     const usuarioExistente = await Usuario.findOne({ email })
     if (usuarioExistente) {
@@ -32,9 +32,9 @@ export class UsuarioService {
 
     if (perfilExistente.name === "analyst") {
       if (
-        !tipoAnalista ||
-        !Array.isArray(tipoAnalista) ||
-        tipoAnalista.some(
+        !especialidadeAnalista ||
+        !Array.isArray(especialidadeAnalista) ||
+        especialidadeAnalista.some(
           (tipo) =>
             !["museologico", "arquivistico", "bibliografico"].includes(tipo)
         )
@@ -54,20 +54,20 @@ export class UsuarioService {
    * @param email Email do usuário.
    * @param senha Senha do usuário.
    * @param profile ID do perfil do usuário.
-   * @param tipoAnalista Tipo de analista (opcional).
+   * @param especialidadeAnalista Tipo de analista (opcional).
    */
   static async criarUsuario({
     nome,
     email,
     senha,
     profile,
-    tipoAnalista
+    especialidadeAnalista
   }: {
     nome: string
     email: string
     senha: string
     profile: string
-    tipoAnalista?: string[]
+    especialidadeAnalista?: string[]
   }) {
     const senhaHash = await argon2.hash(senha)
 
@@ -77,7 +77,7 @@ export class UsuarioService {
       senha: senhaHash,
       profile,
       ativo: true,
-      tipoAnalista
+      especialidadeAnalista
     })
 
     await novoUsuario.save()
