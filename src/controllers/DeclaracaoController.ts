@@ -11,6 +11,7 @@ import { DataUtils } from "../utils/dataUtils"
 import { Status } from "../enums/Status"
 import { Eventos } from "../enums/Eventos"
 import logger from "../utils/logger"
+import { IProfile } from "../models/Profile"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -34,6 +35,7 @@ export class DeclaracaoController {
     this.filtroDashBoard = this.filtroDashBoard.bind(this)
     this.restaurarDeclaracao = this.restaurarDeclaracao.bind(this)
     this.alterarAnalistaArquivo = this.alterarAnalistaArquivo.bind(this)
+    this.getDeclaracaoDeclarant = this.getDeclaracaoDeclarant.bind(this)
   }
 
   /**
@@ -253,32 +255,66 @@ export class DeclaracaoController {
     }
   }
 
-  async getDeclaracao(req: Request, res: Response) {
+  async getDeclaracaoDeclarant(req: Request, res: Response) {
     try {
       const { id } = req.params
       const userId = req.user?.id
-      const userRole = req.user?.role // Role do usuário: 'admin', 'analyst', 'declarant'
 
       if (!userId) {
         return res.status(400).json({ message: "Usuário não autenticado." })
       }
 
-      // Define os campos que serão omitidos ou incluídos com base no perfil do usuário
-      let selectFields = ""
-      if (userRole === "admin") {
-        selectFields = ""
-      } else if (userRole === "declarant") {
-        selectFields = ""
-      } else if (userRole === "analyst") {
-        selectFields =
-          "-responsavelEnvioAnaliseNome -analistasResponsaveisNome -responsavelEnvioAnalise -analistasResponsaveis"
+      const user = await Usuario.findById(userId).populate("profile")
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado." })
       }
 
-      console.log("Campos a serem selecionados:", selectFields)
+      const userProfile = (user.profile as IProfile).name
+      if (userProfile !== "declarant") {
+        return res
+          .status(403)
+          .json({ message: "Acesso não autorizado. Perfil inválido." })
+      }
 
-      // Busca a declaração pelo ID
+      const declaracao = await Declaracoes.findById(id).populate({
+        path: "museu_id",
+        model: Museu
+      })
+
+      if (!declaracao) {
+        return res.status(404).json({ message: "Declaração não encontrada." })
+      }
+
+      return res.status(200).json(declaracao)
+    } catch (error) {
+      console.error("Erro ao buscar declaração:", error)
+      return res.status(500).json({ message: "Erro ao buscar declaração." })
+    }
+  }
+
+  async getDeclaracao(req: Request, res: Response) {
+    try {
+      const { id } = req.params
+      const userId = req.user?.id
+
+      const user = await Usuario.findById(userId).populate("profile")
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado." })
+      }
+
+      const userProfile = (user.profile as IProfile).name
+      if (userProfile !== "admin" && userProfile !== "analyst") {
+        return res
+          .status(403)
+          .json({ message: "Acesso não autorizado. Perfil inválido." })
+      }
+
+      if (!userId) {
+        return res.status(400).json({ message: "Usuário não autenticado." })
+      }
+
       const declaracao = await Declaracoes.findById(id)
-        .select(selectFields)
+
         .populate({
           path: "museu_id",
           model: Museu
@@ -294,7 +330,7 @@ export class DeclaracaoController {
           .json({ message: "Não é permitido acessar esta declaração." })
       }
 
-      if (userRole !== "admin" && userRole !== "declarant") {
+      if (userProfile) {
         const declaracaoObjeto = declaracao.toObject()
         const userObjectId = new mongoose.Types.ObjectId(userId)
 

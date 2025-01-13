@@ -77,6 +77,11 @@ const setPermissions = async () => {
       name: "atualizarStatusBensDeclaracao",
       label: "Atualizar status por tipo de bem",
       description: "Permite alterar status por tipo de bem"
+    },
+    {
+      name: "getDeclaracaoDeclarant",
+      label: "Visualizar declaracao para perfil declarante",
+      description: "Permite visualizar uma declaracao"
     }
   ]
 
