@@ -43,6 +43,8 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          build-args: |
+            SHORT_SHA=${{ env.SHORT_SHA }}
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_REPOSITORY }}:${{ github.event_name }}-${{ env.SHORT_SHA }}
             ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_REPOSITORY }}:latest
@@ -52,13 +54,13 @@ jobs:
 
 # Environment update
 
-  updating_environment:   
+  updating_environment:
     needs: push_to_registry
     runs-on: ubuntu-latest
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
-      
+
       - name: Create file .env
         run: echo "${{ secrets.ENVS_UPDATE }}" > .env
 
