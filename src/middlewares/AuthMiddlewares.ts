@@ -6,6 +6,7 @@ import { Permission } from "../models/Permission"
 import { verify } from "@node-rs/argon2"
 import config from "../config"
 import { rateLimit } from "express-rate-limit"
+import { IUsuario } from "../models/Usuario"
 
 // Configuração do rate limiter para limitar requisições
 const limiter = rateLimit({
@@ -40,7 +41,7 @@ export const userPermissionMiddleware: (permission: string) => Handler =
               req.user = {
                 id: user.id,
                 admin: user.admin
-              }
+              } as unknown as IUsuario;
             } else {
               throw new Error("Senha incorreta") // Erro caso a senha não corresponda
             }
@@ -63,7 +64,7 @@ export const userPermissionMiddleware: (permission: string) => Handler =
         // Adiciona informações do usuário ao objeto `req`
         req.user = {
           id: payload.sub
-        }
+        } as unknown as IUsuario;
 
         // Recupera credenciais do cabeçalho de autorização
         const [email, password] = Buffer.from(
