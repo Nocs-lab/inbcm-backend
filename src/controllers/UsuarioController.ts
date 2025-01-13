@@ -87,6 +87,23 @@ class UsuarioController {
     }
   }
 
+  async getUsuario(req: Request, res: Response) {
+    const userId = req.user?.id
+
+    try {
+      const usuario = await Usuario.findById(userId)
+        .populate("museus")
+        .populate("profile", "name _id");
+      if (!usuario) {
+        return res.status(404).json({ mensagem: "Usuário não encontrado." })
+      }
+      return res.status(200).json(usuario)
+    } catch (error) {
+      logger.error("Erro ao buscar usuário:", error)
+      return res.status(500).json({ mensagem: "Erro ao buscar usuário." })
+    }
+  }
+
   async atualizarUsuario(req: Request, res: Response) {
     const { id } = req.params
     const { nome, email, senha, profile } = req.body
