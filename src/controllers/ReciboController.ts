@@ -2,6 +2,7 @@ import { Request, Response } from "express"
 import mongoose from "mongoose"
 import { gerarPDFRecibo } from "../service/ReciboService"
 import logger from "../utils/logger"
+import { Declaracoes } from "../models"
 
 class ReciboController {
   /**
@@ -29,5 +30,55 @@ class ReciboController {
       res.status(500).json({ error: "Erro ao gerar o recibo." })
     }
   }
+
+  async validarRecibo(req: Request, res: Response): Promise<Response> {
+    try {
+      const { hashDeclaracao } = req.params
+
+      logger.info(`Iniciando validação de recibo para hash: ${hashDeclaracao}`)
+
+      if (!hashDeclaracao) {
+        logger.warn("Hash da declaração não fornecido.")
+        return res
+          .status(400)
+          .json({ mensagem: "Hash da declaração é obrigatório." })
+      }
+
+      const declaracao = await Declaracoes.findOne({
+        hashDeclaracao,
+        status: { $ne: "Excluído" }
+      })
+
+      if (!declaracao) {
+        logger.warn(
+          `Declaração não encontrada ou está excluída. Hash: ${hashDeclaracao}`
+        )
+        return res
+          .status(404)
+          .json({ mensagem: "Declaração não encontrada ou está excluída." })
+      }
+
+      const totalItens =
+        (declaracao.museologico?.quantidadeItens || 0) +
+        (declaracao.arquivistico?.quantidadeItens || 0) +
+        (declaracao.bibliografico?.quantidadeItens || 0)
+
+      logger.info(
+        `Declaração encontrada. Hash: ${hashDeclaracao}, Total de itens: ${totalItens}`
+      )
+
+      return res.status(200).json({
+        mensagem:
+          "Declaração reconhecida e emitida pelo sistema Inventário Nacional de Bens Culturais Musealizados (INBCM).",
+        declaracao,
+        totalItens
+      })
+    } catch (erro) {
+      return res
+        .status(500)
+        .json({ mensagem: "Erro interno ao validar recibo." })
+    }
+  }
 }
+
 export default ReciboController
