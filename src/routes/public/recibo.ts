@@ -29,6 +29,10 @@ const routes = express.Router()
  *       '500':
  *         description: Erro ao gerar o recibo.
  */
-routes.get("/:idDeclaracao", userPermissionMiddleware('gerarRecibo'), reciboController.gerarRecibo)
+routes.get(
+  "/:idDeclaracao",
+  userPermissionMiddleware("gerarRecibo"),
+  reciboController.gerarRecibo
+)
 
 export default routes

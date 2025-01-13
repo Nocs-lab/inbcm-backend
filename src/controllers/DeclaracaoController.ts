@@ -282,7 +282,7 @@ export class DeclaracaoController {
       })
 
       if (!declaracao) {
-        return res.status(404).json({ message: "Declaração não encontrada." })
+        return res.status(204).json({ message: "Declaração não encontrada." })
       }
 
       return res.status(200).json(declaracao)
@@ -295,26 +295,14 @@ export class DeclaracaoController {
   async getDeclaracao(req: Request, res: Response) {
     try {
       const { id } = req.params
-      const userId = req.user?.id
+      const isAdmin = req.user?.admin
 
-      const user = await Usuario.findById(userId).populate("profile")
-      if (!user) {
-        return res.status(404).json({ message: "Usuário não encontrado." })
-      }
-
-      const userProfile = (user.profile as IProfile).name
-      if (userProfile !== "admin" && userProfile !== "analyst") {
-        return res
-          .status(403)
-          .json({ message: "Acesso não autorizado. Perfil inválido." })
-      }
-
-      if (!userId) {
-        return res.status(400).json({ message: "Usuário não autenticado." })
-      }
+      const selectFields = isAdmin
+        ? ""
+        : "-responsavelEnvioAnaliseNome -analistasResponsaveisNome -responsavelEnvioAnalise -analistasResponsaveis"
 
       const declaracao = await Declaracoes.findById(id)
-
+        .select(selectFields)
         .populate({
           path: "museu_id",
           model: Museu
@@ -324,67 +312,15 @@ export class DeclaracaoController {
         return res.status(404).json({ message: "Declaração não encontrada." })
       }
 
-      if (!declaracao.ultimaDeclaracao) {
+      if (declaracao.ultimaDeclaracao === false) {
         return res
-          .status(403)
-          .json({ message: "Não é permitido acessar esta declaração." })
-      }
-
-      if (userProfile) {
-        const declaracaoObjeto = declaracao.toObject()
-        const userObjectId = new mongoose.Types.ObjectId(userId)
-
-        const camposValidos: Array<
-          "museologico" | "bibliografico" | "arquivistico"
-        > = ["museologico", "bibliografico", "arquivistico"]
-
-        // Inicializa um objeto para armazenar os campos filtrados
-        const declaracaoFiltrada = camposValidos.reduce(
-          (acc, campo) => {
-            const campoDados = declaracaoObjeto[campo]
-            console.log(`Verificando campo: ${campo}`)
-            console.log("Dados do campo:", campoDados)
-
-            if (
-              campoDados?.analistasResponsaveis?.some(
-                (id: mongoose.Types.ObjectId) => id.equals(userObjectId)
-              )
-            ) {
-              console.log(
-                `Usuário ${userId} é responsável por este campo: ${campo}`
-              )
-              acc[campo] = campoDados // Adiciona o campo se o usuário for responsável
-            } else {
-              console.log(
-                `Usuário ${userId} NÃO é responsável por este campo: ${campo}`
-              )
-            }
-
-            return acc
-          },
-          {} as Record<string, any>
-        )
-
-        // Filtra os campos que não devem ser retornados (caso o usuário não seja responsável)
-        if (declaracaoFiltrada.museologico === undefined) {
-          delete declaracaoObjeto.museologico
-        }
-        if (declaracaoFiltrada.bibliografico === undefined) {
-          delete declaracaoObjeto.bibliografico
-        }
-        if (declaracaoFiltrada.arquivistico === undefined) {
-          delete declaracaoObjeto.arquivistico
-        }
-
-        return res.status(200).json({
-          ...declaracaoObjeto,
-          ...declaracaoFiltrada
-        })
+          .status(404)
+          .json({ message: "Não é possível acessar declaração." })
       }
 
       return res.status(200).json(declaracao)
     } catch (error) {
-      console.error("Erro ao buscar declaração:", error)
+      logger.error("Erro ao buscar declaração:", error)
       return res.status(500).json({ message: "Erro ao buscar declaração." })
     }
   }
@@ -392,98 +328,32 @@ export class DeclaracaoController {
   // Retorna todas as declarações do usuário logado
   async getDeclaracoes(req: Request, res: Response) {
     try {
-      const userId = req.user?.id
-
-      if (!userId) {
-        return res.status(400).json({ message: "Usuário não autenticado." })
-      }
-
-      // Buscar usuário com o profile populado
-      const user = await Usuario.findById(userId).populate("profile")
-
-      // Verificar se o usuário existe e se o profile foi populado corretamente
-      if (!user || !user.profile) {
-        return res
-          .status(400)
-          .json({ message: "Profile do usuário não foi populado." })
-      }
-
-      const { id, profile, especialidadeAnalista } = user
-
-      // Verifique se o profile é válido
-      if (!profile.name) {
-        return res
-          .status(400)
-          .json({ message: "O profile do usuário não contém nome válido." })
-      }
-
-      const match: any = {
-        status: { $ne: Status.Excluida },
-        ultimaDeclaracao: true
-      }
-
-      console.log("Match inicial:", match)
-
-      // Aplique a lógica com base no tipo de profile
-      switch (profile.name) {
-        case "declarant":
-          match.responsavelEnvio = new mongoose.Types.ObjectId(id)
-          break
-
-        case "analyst":
-          console.log("Especialidades do Analista:", especialidadeAnalista)
-
-          // Para analistas, verifica se o analista está presente em qualquer tipo de bem
-          const analistaId = new mongoose.Types.ObjectId(id)
-          match.$or = [
-            { "museologico.analistasResponsaveis": analistaId },
-            { "arquivistico.analistasResponsaveis": analistaId },
-            { "bibliografico.analistasResponsaveis": analistaId }
-          ]
-          break
-
-        case "admin":
-          // Administrador tem acesso a todas as declarações
-          break
-
-        default:
-          return res
-            .status(403)
-            .json({ message: "Perfil de usuário inválido." })
-      }
-
-      console.log("Match Final:", match)
-
-      // Executando a agregação
+      // Realiza a agregação para obter a última declaração de cada museu em cada ano
       const resultado = await Declaracoes.aggregate([
-        { $match: match },
-        { $sort: { anoDeclaracao: 1, museu_nome: 1, createdAt: -1 } },
+        {
+          $match: {
+            responsavelEnvio: new mongoose.Types.ObjectId(req.user.id),
+            status: { $ne: Status.Excluida },
+            ultimaDeclaracao: true
+          }
+        },
+        {
+          $sort: { anoDeclaracao: 1, museu_nome: 1, createdAt: -1 } // Ordena por ano, museu e createdAt decrescente
+        },
         {
           $group: {
             _id: { museu_id: "$museu_id", anoDeclaracao: "$anoDeclaracao" },
             latestDeclaracao: { $first: "$$ROOT" }
           }
         },
-        { $replaceRoot: { newRoot: "$latestDeclaracao" } }
+        {
+          $replaceRoot: { newRoot: "$latestDeclaracao" }
+        }
       ])
 
-      console.log("Resultado da Agregação:", resultado)
+      const declaracoes = await Museu.populate(resultado, { path: "museu_id" })
 
-      // Se não houver declarações, informe
-      if (resultado.length === 0) {
-        console.log("Nenhuma declaração encontrada para os critérios.")
-        return res
-          .status(404)
-          .json({ message: "Nenhuma declaração encontrada." })
-      }
-
-      // Popula o campo "museu_id" com as informações do museu
-      const declaracoesComMuseu = await Museu.populate(resultado, {
-        path: "museu_id"
-      })
-
-      // Retorna as declarações com o museu populado
-      return res.status(200).json(declaracoesComMuseu)
+      return res.status(200).json(declaracoes)
     } catch (error) {
       logger.error("Erro ao buscar declarações:", error)
       return res.status(500).json({ message: "Erro ao buscar declarações." })
