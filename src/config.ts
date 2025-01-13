@@ -18,7 +18,8 @@ const parsed = {
   MINIO_PORT: process.env.MINIO_PORT ?? "9000",
   MINIO_USE_SSL: process.env.MINIO_USE_SSL ?? "false",
   MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY ?? "",
-  MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY ?? ""
+  MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY ?? "",
+  SHORT_SHA: process.env.SHORT_SHA ?? "dev"
 }
 logger.info("Carregando configurações...")
 
@@ -39,7 +40,8 @@ const schema = z.object({
     .transform((val) => parseInt(val, 10)),
   MINIO_USE_SSL: z.enum(["true", "false"]),
   MINIO_ACCESS_KEY: z.string().min(1),
-  MINIO_SECRET_KEY: z.string().min(1)
+  MINIO_SECRET_KEY: z.string().min(1),
+  SHORT_SHA: z.string().min(1)
 })
 
 const config = schema.parse(parsedEnv)
