@@ -1066,6 +1066,7 @@ class DeclaracaoService {
 
     // Atualiza os analistas responsáveis
     const analistaAnterior = arquivo.analistasResponsaveisNome?.[0] || "N/A"
+    logger.info(analistaAnterior)
     arquivo.analistasResponsaveis = [new mongoose.Types.ObjectId(analistaId)]
     arquivo.analistasResponsaveisNome = [analista.nome]
 
