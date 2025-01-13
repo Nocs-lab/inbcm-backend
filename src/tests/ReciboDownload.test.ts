@@ -83,8 +83,6 @@ describe("GET /public/recibo/:idDeclaracao", () => {
       "attachment; filename=recibo.pdf"
     )
     expect(response.headers["content-type"]).toBe("application/pdf")
-    console.log("Response Headers:", response.headers)
-    console.log("Response Body Length:", response.body.length)
 
     expect(response.body).toBeInstanceOf(Buffer)
   })
