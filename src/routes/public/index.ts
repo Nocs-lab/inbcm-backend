@@ -5,6 +5,8 @@ import museusRoutes from "./museus"
 import permissionsRoutes from "./permissions"
 import reciboRoutes from "./recibo"
 import timeLineRoutes from "./timeline"
+import userRoutes from "./user"
+
 
 const routes = express.Router()
 
@@ -14,5 +16,6 @@ routes.use("/museus", museusRoutes)
 routes.use("/permissions", permissionsRoutes)
 routes.use("/recibo", reciboRoutes)
 routes.use("/timeline", timeLineRoutes)
+routes.use("/users", userRoutes)
 
 export default routes
