@@ -433,14 +433,6 @@ export class DeclaracaoController {
 
       console.log("Resultado da Agregação:", resultado)
 
-      // Se não houver declarações, informe
-      if (resultado.length === 0) {
-        console.log("Nenhuma declaração encontrada para os critérios.")
-        return res
-          .status(404)
-          .json({ message: "Nenhuma declaração encontrada." })
-      }
-
       // Popula o campo "museu_id" com as informações do museu
       const declaracoesComMuseu = await Museu.populate(resultado, {
         path: "museu_id"
