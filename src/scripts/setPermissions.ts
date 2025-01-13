@@ -7,6 +7,11 @@ const setPermissions = async () => {
 
   const permissions = [
     {
+      name: "getUsuario",
+      label: "Pegar dados do usuário logado",
+      description: "Apresentar os dados do usuário logado, bem como informações do profile e museus relacionados."
+    },
+    {
       name: "listarItensPorTipodeBem",
       label: "Listar Itens por Tipo de Bem",
       description: "Permite listar os itens de um determinado tipo de bem."

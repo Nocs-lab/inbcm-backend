@@ -21,7 +21,8 @@ const addPermissionsToDeclarant = async () => {
     "excluirDeclaracao",
     "userMuseus",
     "gerarRecibo",
-    "getTimeLine"
+    "getTimeLine",
+    "getUsuario"
   ]
 
   try {
