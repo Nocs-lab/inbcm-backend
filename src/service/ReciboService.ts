@@ -6,6 +6,7 @@ import { IUsuario } from "../models/Usuario"
 import path from "path"
 import { DataUtils } from "../utils/dataUtils"
 import { TDocumentDefinitions } from "pdfmake/interfaces"
+import HTTPError from "../utils/error"
 
 /**
  * Obtém uma declaração pelo seu ID.
@@ -17,8 +18,9 @@ import { TDocumentDefinitions } from "pdfmake/interfaces"
 async function buscaDeclaracao(declaracaoId: mongoose.Types.ObjectId) {
   const declaracao = await Declaracoes.findById(declaracaoId)
   if (!declaracao) {
-    throw new Error(
-      `Declaração não encontrada para o ID especificado: ${declaracaoId}`
+    throw new HTTPError(
+      `Declaração não encontrada para o ID especificado: ${declaracaoId}`,
+      404
     )
   }
   return declaracao
@@ -34,7 +36,10 @@ async function buscaDeclaracao(declaracaoId: mongoose.Types.ObjectId) {
 async function buscaMuseu(museuId: mongoose.Types.ObjectId) {
   const museu = await Museu.findById(museuId)
   if (!museu) {
-    throw new Error(`Museu não encontrado para o ID especificado: ${museuId}`)
+    throw new HTTPError(
+      `Museu não encontrado para o ID especificado: ${museuId}`,
+      404
+    )
   }
   return museu
 }
@@ -42,8 +47,9 @@ async function buscaMuseu(museuId: mongoose.Types.ObjectId) {
 async function buscaUsuario(usuarioId: mongoose.Types.ObjectId) {
   const usuario = await Usuario.findById(usuarioId)
   if (!usuario) {
-    throw new Error(
-      `Usuário não encontrado para o ID especificado: ${usuarioId}`
+    throw new HTTPError(
+      `Usuário não encontrado para o ID especificado: ${usuarioId}`,
+      404
     )
   }
   return usuario
@@ -405,7 +411,7 @@ async function gerarPDFRecibo(
       pdfDoc.end()
     })
   } catch (error) {
-    throw new Error("Erro ao gerar o recibo.")
+    throw new HTTPError("Erro ao gerar o recibo.", 500)
   }
 }
 

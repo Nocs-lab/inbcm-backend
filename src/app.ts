@@ -1,5 +1,5 @@
 import "express-async-errors"
-import express from "express"
+import express, { ErrorRequestHandler } from "express"
 import routes from "./routes"
 import helmet from "helmet"
 import morgan from "morgan"
@@ -13,8 +13,22 @@ import * as OpenApiValidator from "express-openapi-validator"
 import sanitizeMongo from "./middlewares/sanitizers/mongo"
 import sanitizeHtml from "./middlewares/sanitizers/html"
 import logger from "./utils/logger"
+import HTTPError from "./utils/error"
 
 const app = express()
+
+// Middleware para tratar erros
+routes.use(((err, _req, res, next) => {
+  if (res.headersSent) {
+    return next(err)
+  }
+
+  if (err instanceof HTTPError) {
+    res.status(err.status).json({ message: err.message })
+  } else {
+    res.status(500).json({ message: "Ocorreu um erro inesperado" })
+  }
+}) as ErrorRequestHandler)
 
 app.set("trust proxy", process.env.NODE_ENV === "production")
 
