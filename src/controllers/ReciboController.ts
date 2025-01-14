@@ -53,9 +53,7 @@ class ReciboController {
         logger.warn(
           `Declaração não encontrada ou está excluída. Hash: ${hashDeclaracao}`
         )
-        return res
-          .status(404)
-          .json({ mensagem: "Declaração não encontrada ou está excluída." })
+        return res.status(404).json({ mensagem: "Declaração não encontrada." })
       }
 
       const totalItens =
