@@ -4,7 +4,6 @@ import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 
 const routes = express.Router()
 
-
 routes.get(
   "/",
   userPermissionMiddleware("getUsuario"),

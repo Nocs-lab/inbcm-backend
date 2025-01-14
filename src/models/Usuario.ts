@@ -25,20 +25,20 @@ export const UsuarioSchema = new Schema<IUsuario>({
     {
       type: String,
       enum: ["museologico", "arquivistico", "bibliografico"],
-      default: [],
-    },
-  ],
-});
+      default: []
+    }
+  ]
+})
 
 // Customização para ocultar campos
 UsuarioSchema.set("toJSON", {
   transform: (doc, ret) => {
-    delete ret.ativo;
-    delete ret.senha;
-    delete ret.admin;
-    return ret;
-  },
-});
+    delete ret.ativo
+    delete ret.senha
+    delete ret.admin
+    return ret
+  }
+})
 
 interface IRefreshToken extends Document {
   expiresAt: Date

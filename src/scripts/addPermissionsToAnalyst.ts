@@ -15,11 +15,12 @@ const addPermissionsToAnalyst = async () => {
     "getDeclaracaoAno",
     "gerarRecibo",
     "getTimeLine",
-    "atualizarStatusBensDeclaracao"
+    "atualizarStatusBensDeclaracao",
+    "atualizarUsuario",
+    "getUsuario"
   ]
 
   try {
-    // Encontra o perfil 'analyst'
     const analystProfile = await Profile.findOne({ name: "analyst" })
 
     if (!analystProfile) {
