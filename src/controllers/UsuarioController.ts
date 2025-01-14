@@ -93,7 +93,7 @@ class UsuarioController {
     try {
       const usuario = await Usuario.findById(userId)
         .populate("museus")
-        .populate("profile", "name _id");
+        .populate("profile", "name _id")
       if (!usuario) {
         return res.status(404).json({ mensagem: "Usuário não encontrado." })
       }

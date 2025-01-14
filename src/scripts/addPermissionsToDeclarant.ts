@@ -22,7 +22,8 @@ const addPermissionsToDeclarant = async () => {
     "userMuseus",
     "gerarRecibo",
     "getTimeLine",
-    "getUsuario"
+    "getUsuario",
+    "atualizarUsuario"
   ]
 
   try {
@@ -45,12 +46,22 @@ const addPermissionsToDeclarant = async () => {
       }
 
       // Verifica se a permissão já existe no perfil
-      if (!declarantProfile.permissions.includes(permission._id as mongoose.Types.ObjectId)) {
+      if (
+        !declarantProfile.permissions.includes(
+          permission._id as mongoose.Types.ObjectId
+        )
+      ) {
         // Adiciona o ID da permissão ao array de permissões do perfil
-        declarantProfile.permissions.push(permission._id as mongoose.Types.ObjectId)
-        logger.info(`Permissão "${permissionName}" adicionada ao perfil 'declarant'.`)
+        declarantProfile.permissions.push(
+          permission._id as mongoose.Types.ObjectId
+        )
+        logger.info(
+          `Permissão "${permissionName}" adicionada ao perfil 'declarant'.`
+        )
       } else {
-        logger.info(`O perfil 'declarant' já possui a permissão "${permissionName}".`)
+        logger.info(
+          `O perfil 'declarant' já possui a permissão "${permissionName}".`
+        )
       }
     }
 
