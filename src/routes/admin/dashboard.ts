@@ -20,7 +20,11 @@ const routes = express.Router()
  *    '500':
  *      description: Erro ao obter dados para o dashboard.
  * */
-routes.get("/", userPermissionMiddleware('getDashboard'), declaracaoController.getDashboard)
+routes.get(
+  "/",
+  userPermissionMiddleware("getDashboard"),
+  declaracaoController.getDashboard
+)
 
 /**
  * @swagger
@@ -36,7 +40,7 @@ routes.get("/", userPermissionMiddleware('getDashboard'), declaracaoController.g
  */
 routes.get(
   "/getStatusEnum",
-  userPermissionMiddleware('getStatusEnum'),
+  userPermissionMiddleware("getStatusEnum"),
   declaracaoController.getStatusEnum
 )
 
@@ -125,9 +129,8 @@ routes.get(
  */
 routes.get(
   "/filtroDashBoard",
-  userPermissionMiddleware('filtroDashBoard'),
+  userPermissionMiddleware("filtroDashBoard"),
   declaracaoController.filtroDashBoard
 )
-
 
 export default routes

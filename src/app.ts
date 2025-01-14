@@ -19,7 +19,6 @@ const app = express()
 
 // Middleware para tratar erros
 routes.use(((err, _req, res, next) => {
-  logger.warning(err)
   if (res.headersSent) {
     return next(err)
   }
