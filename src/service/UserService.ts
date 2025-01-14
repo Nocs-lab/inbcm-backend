@@ -3,6 +3,7 @@ import { Usuario } from "../models/Usuario"
 import { IProfile, Profile } from "../models/Profile"
 import { Types } from "mongoose"
 import { IMuseu } from "../models"
+import HTTPError from "../utils/error"
 
 export class UsuarioService {
   /**
@@ -22,12 +23,12 @@ export class UsuarioService {
   }) {
     const usuarioExistente = await Usuario.findOne({ email })
     if (usuarioExistente) {
-      throw new Error("Email já está em uso.")
+      throw new HTTPError("Email já está em uso.", 400)
     }
 
     const perfilExistente = await Profile.findById(profile)
     if (!perfilExistente) {
-      throw new Error("Perfil não encontrado.")
+      throw new HTTPError("Perfil não encontrado.", 404)
     }
 
     if (perfilExistente.name === "analyst") {
@@ -39,8 +40,9 @@ export class UsuarioService {
             !["museologico", "arquivistico", "bibliografico"].includes(tipo)
         )
       ) {
-        throw new Error(
-          "O tipo de analista deve ser fornecido como um array e conter apenas os seguintes valores: museologico, arquivistico, bibliografico."
+        throw new HTTPError(
+          "O tipo de analista deve ser fornecido como um array e conter apenas os seguintes valores: museologico, arquivistico, bibliografico.",
+          400
         )
       }
     }
@@ -107,7 +109,7 @@ export class UsuarioService {
     if (perfil && perfil.length > 0) {
       const profiles = await Profile.find({ name: { $in: perfil } })
       if (profiles.length === 0) {
-        throw new Error("Perfis fornecidos são inválidos.")
+        throw new HTTPError("Perfis fornecidos são inválidos.", 400)
       }
 
       query.profile = { $in: profiles.map((p) => p._id as Types.ObjectId) }

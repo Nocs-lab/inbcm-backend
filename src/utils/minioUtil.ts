@@ -1,6 +1,7 @@
 import { format } from "date-fns"
 import minioClient from "../db/minioClient"
 import { Readable } from "stream"
+import HTTPError from "./error"
 
 /**
  * Implementa regra de negócio para definição de nomenclatura dos arquivos.
@@ -58,7 +59,7 @@ export async function getLatestPathArchive(
 
     return objects.length > 0 ? objects[0].name : null
   } catch (error) {
-    throw new Error("Erro ao listar objetos no MinIO")
+    throw new HTTPError("Erro ao listar objetos no MinIO", 500)
   }
 }
 
