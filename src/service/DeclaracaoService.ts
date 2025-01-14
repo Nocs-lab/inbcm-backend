@@ -91,8 +91,6 @@ class DeclaracaoService {
         }
       ])
 
-      console.log(declaracoes)
-
       // Chamando os métodos para poder construir o json
       const cards = await this.showCards(declaracoes)
       const quantidadePorEstadoERegiao =
@@ -1038,15 +1036,8 @@ class DeclaracaoService {
     analistaId: string,
     autorId: string
   ) {
-    console.log(
-      "Iniciando a alteração do analista para a declaração:",
-      declaracaoId
-    )
-
     const objectId = new mongoose.Types.ObjectId(declaracaoId)
     const declaracao = await Declaracoes.findById(objectId)
-
-    console.log("Declaração encontrada:", declaracao)
 
     if (!declaracao) {
       throw new Error("Declaração não encontrada.")
@@ -1054,7 +1045,6 @@ class DeclaracaoService {
 
     // Verifica se o analista existe
     const analista = await Usuario.findById(analistaId)
-    console.log("Analista encontrado:", analista)
 
     if (!analista) {
       throw new Error("Analista não encontrado.")
@@ -1062,7 +1052,6 @@ class DeclaracaoService {
 
     // Verifica quem realizou a alteração (autor)
     const autor = await Usuario.findById(autorId)
-    console.log("Autor da alteração:", autor)
 
     if (!autor) {
       throw new Error("Autor da alteração não encontrado.")
@@ -1077,16 +1066,9 @@ class DeclaracaoService {
 
     // Atualiza os analistas responsáveis
     const analistaAnterior = arquivo.analistasResponsaveisNome?.[0] || "N/A"
+    logger.info(analistaAnterior)
     arquivo.analistasResponsaveis = [new mongoose.Types.ObjectId(analistaId)]
     arquivo.analistasResponsaveisNome = [analista.nome]
-
-    console.log("Preparando para salvar a declaração com o novo analista:", {
-      arquivoTipo,
-      analistaId,
-      analistaNome: analista.nome,
-      analistaAnterior,
-      arquivo
-    })
 
     const evento = {
       nomeEvento: "Mudança de analista",
@@ -1096,10 +1078,8 @@ class DeclaracaoService {
     }
 
     const declaracaoAtualizada = await this.adicionarEvento(objectId, evento)
-    console.log(declaracaoAtualizada)
-    await declaracao.save()
 
-    console.log("Evento de mudança de analista adicionado à timeline:", evento)
+    await declaracao.save()
 
     return {
       message: `Analista vinculado ao arquivo ${arquivoTipo} com sucesso.`,
@@ -1329,10 +1309,6 @@ class DeclaracaoService {
         declaracao.arquivistico &&
         Array.isArray(declaracao.arquivistico.analistasResponsaveis)
       ) {
-        console.log(
-          "Analistas responsáveis pelo tipo Arquivístico:",
-          declaracao.arquivistico.analistasResponsaveis
-        )
         if (
           declaracao.arquivistico.analistasResponsaveis.includes(
             new mongoose.Types.ObjectId(autorId)
@@ -1346,10 +1322,6 @@ class DeclaracaoService {
         declaracao.bibliografico &&
         Array.isArray(declaracao.bibliografico.analistasResponsaveis)
       ) {
-        console.log(
-          "Analistas responsáveis pelo tipo Bibliográfico:",
-          declaracao.bibliografico.analistasResponsaveis
-        )
         if (
           declaracao.bibliografico.analistasResponsaveis.includes(
             new mongoose.Types.ObjectId(autorId)
@@ -1363,10 +1335,6 @@ class DeclaracaoService {
         declaracao.museologico &&
         Array.isArray(declaracao.museologico.analistasResponsaveis)
       ) {
-        console.log(
-          "Analistas responsáveis pelo tipo Museológico:",
-          declaracao.museologico.analistasResponsaveis
-        )
         if (
           declaracao.museologico.analistasResponsaveis.includes(
             new mongoose.Types.ObjectId(autorId)
@@ -1440,8 +1408,6 @@ class DeclaracaoService {
         declaracao.museologico?.status
       ].filter(Boolean) // Remove valores undefined caso um tipo não esteja presente
 
-      console.log("Status dos Bens:", todosStatus) // Verifique os status dos bens
-
       // Verificar se todos os status dos bens estão definidos como "Em Conformidade" ou "Não Conformidade"
       const todosFinalizados = todosStatus.every(
         (status) =>
@@ -1486,7 +1452,7 @@ class DeclaracaoService {
   async restauraDeclaracao(declaracaoId: string) {
     const objectId = new mongoose.Types.ObjectId(declaracaoId)
     const declaracao = await Declaracoes.findById(objectId)
-    console.log(declaracao)
+
     if (!declaracao) {
       throw new Error("Declaração não encontrada.")
     }

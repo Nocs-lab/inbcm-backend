@@ -1,10 +1,14 @@
 import { Profile } from "../models/Profile"
 import connect from "../db/conn"
+import logger from "../utils/logger"
 
 const createProfiles = async () => {
   await connect()
 
   try {
+    logger.info("Conexão com o banco de dados estabelecida.")
+
+    // Verifica e cria o perfil "admin"
     const adminExists = await Profile.findOne({ name: "admin" })
     if (!adminExists) {
       const adminProfile = new Profile({
@@ -14,11 +18,12 @@ const createProfiles = async () => {
         isProtected: true
       })
       await adminProfile.save()
-      console.log("Perfil 'admin' criado com sucesso!")
+      logger.info('Perfil "admin" criado com sucesso.')
     } else {
-      console.log("Perfil 'admin' já existe.")
+      logger.info('Perfil "admin" já existe. Nenhuma ação necessária.')
     }
 
+    // Verifica e cria o perfil "declarant"
     const declarantExists = await Profile.findOne({ name: "declarant" })
     if (!declarantExists) {
       const declarantProfile = new Profile({
@@ -28,11 +33,12 @@ const createProfiles = async () => {
         isProtected: true
       })
       await declarantProfile.save()
-      console.log("Perfil 'declarant' criado com sucesso!")
+      logger.info('Perfil "declarant" criado com sucesso.')
     } else {
-      console.log("Perfil 'declarant' já existe.")
+      logger.info('Perfil "declarant" já existe. Nenhuma ação necessária.')
     }
 
+    // Verifica e cria o perfil "analyst"
     const analystExists = await Profile.findOne({ name: "analyst" })
     if (!analystExists) {
       const analystProfile = new Profile({
@@ -42,19 +48,22 @@ const createProfiles = async () => {
         isProtected: true
       })
       await analystProfile.save()
-      console.log("Perfil 'analyst' criado com sucesso!")
+      logger.info('Perfil "analyst" criado com sucesso.')
     } else {
-      console.log("Perfil 'analyst' já existe.")
+      logger.info('Perfil "analyst" já existe. Nenhuma ação necessária.')
     }
   } catch (error) {
-    logger.error("Erro ao criar os perfis:", error)
+    logger.error("Erro ao criar os perfis:", { error })
     throw error
   }
 }
 
 createProfiles()
-  .then(() => process.exit(0))
+  .then(() => {
+    logger.info("Criação de perfis concluída com sucesso.")
+    process.exit(0)
+  })
   .catch((err) => {
-    logger.error(err)
+    logger.error("Erro fatal durante a criação dos perfis:", { err })
     process.exit(1)
   })

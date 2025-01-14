@@ -254,8 +254,6 @@ export class DeclaracaoController {
     }
   }
 
-
-
   async getDeclaracao(req: Request, res: Response) {
     try {
       const { id } = req.params
@@ -1185,9 +1183,3 @@ export class DeclaracaoController {
 }
 
 export default DeclaracaoController
-
-
-
-
-
-
