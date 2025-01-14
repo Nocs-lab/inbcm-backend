@@ -9,7 +9,8 @@ const setPermissions = async () => {
     {
       name: "getUsuario",
       label: "Pegar dados do usuário logado",
-      description: "Apresentar os dados do usuário logado, bem como informações do profile e museus relacionados."
+      description:
+        "Apresentar os dados do usuário logado, bem como informações do profile e museus relacionados."
     },
     {
       name: "listarItensPorTipodeBem",
@@ -82,6 +83,11 @@ const setPermissions = async () => {
       name: "atualizarStatusBensDeclaracao",
       label: "Atualizar status por tipo de bem",
       description: "Permite alterar status por tipo de bem"
+    },
+    {
+      name: "atualizarUsuario",
+      label: "Atualizar dados conforme os perfis",
+      description: "Permite alterar dados conforme o perfil logado"
     }
   ]
 
