@@ -704,13 +704,11 @@ export class DeclaracaoController {
   async downloadDeclaracao(req: Request, res: Response) {
     try {
       const { museu, anoDeclaracao, tipoArquivo } = req.params
-      const user_id = req.user.id
 
       // Verifique a declaração para o usuário
       const declaracao = await Declaracoes.findOne({
         museu_id: museu,
-        anoDeclaracao,
-        responsavelEnvio: user_id
+        anoDeclaracao
       })
 
       if (!declaracao) {
