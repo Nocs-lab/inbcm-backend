@@ -1,17 +1,16 @@
 import { Usuario } from "../models"
 import connect from "../db/conn"
-
+import logger from "../utils/logger"
 const listUsers = async () => {
   await connect()
 
   const users = await Usuario.find()
-
-  console.log(users)
+  logger.info(users)
 }
 
 listUsers()
   .then(() => {
-    console.log("Usuários listados com sucesso!")
+    logger.info("Usuarios listados com sucesso.")
     process.exit(0)
   })
   .catch((err) => {

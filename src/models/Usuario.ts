@@ -1,22 +1,42 @@
 import mongoose, { Schema, Types, Document } from "mongoose"
+import { IProfile } from "./Profile"
+import { IMuseu } from "./Museu"
 
 export interface IUsuario extends Document {
   nome: string
   email: string
-  museus: string[]
-  senha: string
+  museus: IMuseu[]
   admin: boolean
-  papel_usuario: string
+  senha: string
+  profile: IProfile | Types.ObjectId
+  ativo: boolean
+  especialidadeAnalista: string[]
 }
-const UsuarioSchema = new Schema<IUsuario>({
+
+export const UsuarioSchema = new Schema<IUsuario>({
   nome: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  senha: { type: String, required: true },
   admin: { type: Boolean, default: false },
-  papel_usuario: {
-    type: String,
-    enum: ["administrador", "analista"],
-    default: "analista"
+  senha: { type: String, required: true },
+  profile: { type: Schema.Types.ObjectId, required: true, ref: "profiles" },
+  ativo: { type: Boolean, default: true },
+  museus: [{ type: mongoose.Schema.Types.ObjectId, ref: "museus" }],
+  especialidadeAnalista: [
+    {
+      type: String,
+      enum: ["museologico", "arquivistico", "bibliografico"],
+      default: []
+    }
+  ]
+})
+
+// Customização para ocultar campos
+UsuarioSchema.set("toJSON", {
+  transform: (doc, ret) => {
+    delete ret.ativo
+    delete ret.senha
+    delete ret.admin
+    return ret
   }
 })
 

@@ -12,8 +12,36 @@ export interface Arquivo {
   tipoEnvio?: TipoEnvio
   dataEnvio?: Date
   versao: number
+  comentarios: string[]
+  analistasResponsaveis?: mongoose.Types.ObjectId[]
+  analistasResponsaveisNome?: string[]
 }
 
+export interface TimeLine {
+  nomeEvento: string
+  dataEvento: Date
+  autorEvento?: string
+  analistaResponsavel?: string[]
+}
+
+const TimeLineSchema = new Schema<TimeLine>(
+  {
+    nomeEvento: String,
+    dataEvento: { type: Date, default: Date.now() },
+    autorEvento: String,
+    analistaResponsavel: [String]
+  },
+  { _id: false, versionKey: false }
+)
+const ComentarioSchema = new Schema(
+  {
+    autor: { type: String, required: true },
+    mensagem: { type: String, required: true },
+    data: { type: Date, default: Date.now },
+    autorNome: { type: String, required: true }
+  },
+  { _id: false, versionKey: false }
+)
 const ArquivoSchema = new Schema<Arquivo>(
   {
     nome: String,
@@ -21,13 +49,16 @@ const ArquivoSchema = new Schema<Arquivo>(
     status: {
       type: String,
       enum: Object.values(Status),
-      default: Status.NaoEnviado
+      default: Status.Recebida
     },
     pendencias: [String],
     quantidadeItens: { type: Number, default: 0 },
     hashArquivo: String,
     dataEnvio: { type: Date, default: Date.now() },
-    versao: { type: Number, default: 0 }
+    versao: { type: Number, default: 0 },
+    comentarios: [ComentarioSchema],
+    analistasResponsaveis: [{ type: Schema.Types.ObjectId, ref: "usuarios" }],
+    analistasResponsaveisNome: [{ type: String }]
   },
   { _id: false, versionKey: false }
 )
@@ -37,6 +68,7 @@ export interface DeclaracaoModel extends Document {
   museu_nome: string
   anoDeclaracao: string
   responsavelEnvio: mongoose.Types.ObjectId
+  responsavelEnvioNome: string
   hashDeclaracao: string
   dataCriacao?: Date
   dataAtualizacao?: Date
@@ -52,6 +84,13 @@ export interface DeclaracaoModel extends Document {
   createdAt?: Date
   updatedAt?: Date
   ultimaDeclaracao: boolean
+  dataRecebimento?: Date
+  dataEnvioAnalise?: Date
+  responsavelEnvioAnalise?: mongoose.Types.ObjectId
+  responsavelEnvioAnaliseNome: string
+  dataAnalise?: Date
+  dataFimAnalise?: Date
+  timeLine: TimeLine[]
 }
 
 export type ArquivoTypes =
@@ -70,6 +109,10 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
       ref: "usuarios",
       required: true
     },
+    responsavelEnvioNome: {
+      type: String,
+      required: true
+    },
     hashDeclaracao: String,
     dataCriacao: { type: Date, default: Date.now() },
     dataAtualizacao: { type: Date, default: Date.now() },
@@ -84,10 +127,20 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
     arquivistico: ArquivoSchema,
     bibliografico: ArquivoSchema,
     museologico: ArquivoSchema,
-    ultimaDeclaracao: { type: Boolean, default: true }
+    ultimaDeclaracao: { type: Boolean, default: true },
+    dataRecebimento: { type: Date },
+    dataEnvioAnalise: { type: Date },
+    responsavelEnvioAnalise: { type: Schema.Types.ObjectId, ref: "usuarios" },
+    responsavelEnvioAnaliseNome: { type: String },
+    dataAnalise: { type: Date },
+    dataFimAnalise: { type: Date },
+    timeLine: [TimeLineSchema]
   },
   { timestamps: true, versionKey: false }
 )
+DeclaracaoSchema.virtual("arquivos").get(function () {
+  return [this.arquivistico, this.bibliografico, this.museologico]
+})
 
 DeclaracaoSchema.pre("save", function (next) {
   if (this.dataCriacao) {
@@ -101,4 +154,3 @@ export const Declaracoes = mongoose.model<DeclaracaoModel>(
   "Declaracoes",
   DeclaracaoSchema
 )
-export default Declaracoes

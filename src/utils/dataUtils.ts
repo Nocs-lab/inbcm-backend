@@ -1,7 +1,16 @@
-export function gerarDataFormatada(data: Date): string {
-  return data.toLocaleDateString("pt-BR")
-}
+import { formatInTimeZone } from "date-fns-tz"
 
-export function gerarHoraFormatada(data: Date): string {
-  return data.toLocaleTimeString("pt-BR")
+export class DataUtils {
+  static getCurrentData() {
+    return new Date()
+  }
+  static gerarDataFormatada(data: Date = this.getCurrentData()): string {
+    const timeZone = "America/Sao_Paulo"
+    return formatInTimeZone(data, timeZone, "dd/MM/yyyy")
+  }
+
+  static gerarHoraFormatada(data: Date = this.getCurrentData()): string {
+    const timeZone = "America/Sao_Paulo"
+    return formatInTimeZone(data, timeZone, "HH:mm:ss")
+  }
 }

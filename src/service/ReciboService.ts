@@ -4,8 +4,9 @@ import PdfPrinter from "pdfmake"
 import { IMuseu } from "../models/Museu"
 import { IUsuario } from "../models/Usuario"
 import path from "path"
-import { gerarDataFormatada, gerarHoraFormatada } from "../utils/dataUtils"
+import { DataUtils } from "../utils/dataUtils"
 import { TDocumentDefinitions } from "pdfmake/interfaces"
+import HTTPError from "../utils/error"
 
 /**
  * Obtém uma declaração pelo seu ID.
@@ -17,8 +18,9 @@ import { TDocumentDefinitions } from "pdfmake/interfaces"
 async function buscaDeclaracao(declaracaoId: mongoose.Types.ObjectId) {
   const declaracao = await Declaracoes.findById(declaracaoId)
   if (!declaracao) {
-    throw new Error(
-      `Declaração não encontrada para o ID especificado: ${declaracaoId}`
+    throw new HTTPError(
+      `Declaração não encontrada para o ID especificado: ${declaracaoId}`,
+      404
     )
   }
   return declaracao
@@ -34,7 +36,10 @@ async function buscaDeclaracao(declaracaoId: mongoose.Types.ObjectId) {
 async function buscaMuseu(museuId: mongoose.Types.ObjectId) {
   const museu = await Museu.findById(museuId)
   if (!museu) {
-    throw new Error(`Museu não encontrado para o ID especificado: ${museuId}`)
+    throw new HTTPError(
+      `Museu não encontrado para o ID especificado: ${museuId}`,
+      404
+    )
   }
   return museu
 }
@@ -42,8 +47,9 @@ async function buscaMuseu(museuId: mongoose.Types.ObjectId) {
 async function buscaUsuario(usuarioId: mongoose.Types.ObjectId) {
   const usuario = await Usuario.findById(usuarioId)
   if (!usuario) {
-    throw new Error(
-      `Usuário não encontrado para o ID especificado: ${usuarioId}`
+    throw new HTTPError(
+      `Usuário não encontrado para o ID especificado: ${usuarioId}`,
+      404
     )
   }
   return usuario
@@ -68,7 +74,8 @@ function formatarDadosRecibo(
     (declaracao.museologico?.quantidadeItens || 0)
 
   const formatValue = (value: number | undefined): string =>
-    value === undefined || value === 0 ? "---" : value.toString()
+    value === undefined || value === 0 ? "0" : value.toString()
+
   const tipoDeclaracao = declaracao.retificacao ? "retificadora" : "original"
 
   return {
@@ -83,14 +90,18 @@ function formatarDadosRecibo(
     municipio: museu.endereco.municipio,
     uf: museu.endereco.uf,
     nomeDeclarante: usuario.nome,
-    data: gerarDataFormatada(new Date()),
-    hora: gerarHoraFormatada(new Date()),
+    data: DataUtils.gerarDataFormatada(declaracao.dataRecebimento),
+    hora: DataUtils.gerarHoraFormatada(declaracao.dataRecebimento),
     numeroRecibo: declaracao.hashDeclaracao,
     totalBensDeclarados: formatValue(totalBensDeclarados),
     bensMuseologicos: formatValue(declaracao.museologico?.quantidadeItens),
     bensBibliograficos: formatValue(declaracao.bibliografico?.quantidadeItens),
     bensArquivisticos: formatValue(declaracao.arquivistico?.quantidadeItens),
-    tipoDeclaracao: tipoDeclaracao.toUpperCase()
+    tipoDeclaracao: tipoDeclaracao.toUpperCase(),
+    statusDeclaracao: declaracao.status,
+    statusArquivoArquivistico: declaracao.arquivistico?.status || "---",
+    statusArquivoMuseologico: declaracao.museologico?.status || "---",
+    statusArquivoBibliografico: declaracao.bibliografico?.status || "---"
   }
 }
 
@@ -148,13 +159,41 @@ async function gerarPDFRecibo(
             ]
           }
         },
+        { text: "\n\n" },
         {
-          text: "\nRECIBO DE ENTREGA DE DECLARAÇÃO DE AJUSTE ANUAL\n",
+          text: "INVENTÁRIO NACIONAL DE BENS CULTURAIS MUSEALIZADOS\nRECIBO DE ENTREGA DE DECLARAÇÃO DE AJUSTE ANUAL\n",
           style: "title"
         },
         {
           text: `DECLARAÇÃO ${dadosFormatados.tipoDeclaracao}`,
           style: "title"
+        },
+
+        { text: "\n\n" },
+        { text: "\n\n" },
+
+        {
+          table: {
+            widths: ["33%", "67%"],
+            body: [
+              [
+                {
+                  text: "Situação da declaração",
+                  bold: true,
+                  fillColor: "#D9D9D9",
+                  border: [true, true, true, true]
+                },
+                {
+                  text: dadosFormatados.statusDeclaracao,
+                  fillColor: "#F5F5F5",
+                  border: [true, true, true, true]
+                }
+              ]
+            ]
+          },
+          layout: {
+            defaultBorder: true
+          }
         },
         { text: "\n\n" },
         { text: "Identificação do declarante", style: "title" },
@@ -201,32 +240,93 @@ async function gerarPDFRecibo(
             }
           }
         },
-        { text: "\nBens declarados", style: "sectionHeader" },
+        {
+          text: "\nBens declarados",
+          style: "sectionHeader"
+        },
         {
           table: {
             headerRows: 1,
-            widths: ["*", "*"],
+            widths: ["*", "*", "*"],
             body: [
-             
               [
-                { text: "Bens museológicos", style: "tableHeader" },
-                { text: dadosFormatados.bensMuseologicos, style: "tableData" }
-              ],
-              [
-                { text: "Bens bibliográficos", style: "tableHeader" },
-                { text: dadosFormatados.bensBibliograficos, style: "tableData" }
-              ],
-              [
-                { text: "Bens arquivísticos", style: "tableHeader" },
-                { text: dadosFormatados.bensArquivisticos, style: "tableData" }
-              ],
-              [
-                { text: "TOTAL DE BENS DECLARADOS", style: "tableHeader" },
                 {
-                  text: dadosFormatados.totalBensDeclarados,
-                  style: "tableData"
+                  text: "Acervo",
+                  style: "tableHeader",
+                  fillColor: "#D9D9D9",
+                  alignment: "center"
+                },
+                {
+                  text: "Situação",
+                  style: "tableHeader",
+                  fillColor: "#D9D9D9",
+                  alignment: "center"
+                },
+                {
+                  text: "Quantidade de itens",
+                  style: "tableHeader",
+                  fillColor: "#D9D9D9",
+                  alignment: "center"
                 }
               ],
+              [
+                { text: "Museológico", style: "tableData", alignment: "left" },
+                {
+                  text: dadosFormatados.statusArquivoMuseologico,
+                  alignment: "left",
+                  style: "tableData"
+                },
+                {
+                  text: dadosFormatados.bensMuseologicos || "0",
+                  style: "tableData",
+                  alignment: "right"
+                }
+              ],
+              [
+                {
+                  text: "Bibliográfico",
+                  style: "tableData",
+                  alignment: "left"
+                },
+                {
+                  text: dadosFormatados.statusArquivoBibliografico,
+                  style: "tableData",
+                  alignment: "left"
+                },
+                {
+                  text: dadosFormatados.bensBibliograficos || "0",
+                  style: "tableData",
+                  alignment: "right"
+                }
+              ],
+              [
+                { text: "Arquivístico", style: "tableData", alignment: "left" },
+                {
+                  text: dadosFormatados.statusArquivoArquivistico,
+                  style: "tableData",
+                  alignment: "left"
+                },
+                {
+                  text: dadosFormatados.bensArquivisticos || "0",
+                  style: "tableData",
+                  alignment: "right"
+                }
+              ],
+              [
+                {
+                  text: "TOTAL DE ITENS DECLARADOS",
+                  colSpan: 2,
+                  style: "tableHeader",
+                  bold: true,
+                  alignment: "center"
+                },
+                {},
+                {
+                  text: dadosFormatados.totalBensDeclarados || "500",
+                  style: "tableData",
+                  bold: true
+                }
+              ]
             ]
           }
         },
@@ -240,7 +340,12 @@ async function gerarPDFRecibo(
           style: "footerText"
         },
         { text: "\n\n" },
-        { text: dadosFormatados.numeroRecibo, style: "footerReceipt" }
+        { text: dadosFormatados.numeroRecibo, style: "footerReceipt" },
+        { text: "\n\n\n\n\n\n\n\n" },
+        {
+          text: ` Recibo emitido em ${DataUtils.gerarDataFormatada()} às ${DataUtils.gerarHoraFormatada()}`,
+          fontSize: 11
+        }
       ],
 
       styles: {
@@ -306,7 +411,7 @@ async function gerarPDFRecibo(
       pdfDoc.end()
     })
   } catch (error) {
-    throw new Error("Erro ao gerar o recibo.")
+    throw new HTTPError("Erro ao gerar o recibo.", 500)
   }
 }
 
