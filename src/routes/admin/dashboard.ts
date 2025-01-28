@@ -6,25 +6,7 @@ const declaracaoController = new DeclaracaoController()
 
 const routes = express.Router()
 
-/**
- * @swagger
- * /api/admin/dashboard:
- *  get:
- *   summary: Obtém dados para o dashboard.
- *    description: Endpoint para obter dados para exibição no dashboard.
- *    tags:
- *     - Dashboard
- *   responses:
- *    '200':
- *      description: Dados para o dashboard obtidos com sucesso.
- *    '500':
- *      description: Erro ao obter dados para o dashboard.
- * */
-routes.get(
-  "/",
-  userPermissionMiddleware("getDashboard"),
-  declaracaoController.getDashboard
-)
+
 
 /**
  * @swagger
