@@ -29,7 +29,6 @@ export class DeclaracaoController {
     this.getDeclaracao = this.getDeclaracao.bind(this)
     this.getDeclaracaoAno = this.getDeclaracaoAno.bind(this)
     this.getItensPorAnoETipo = this.getItensPorAnoETipo.bind(this)
-    this.getDashboard = this.getDashboard.bind(this)
     this.excluirDeclaracao = this.excluirDeclaracao.bind(this)
     this.getTimeLine = this.getTimeLine.bind(this)
     this.filtroDashBoard = this.filtroDashBoard.bind(this)
@@ -440,67 +439,7 @@ export class DeclaracaoController {
    * @throws {500} - Se ocorrer um erro interno ao processar a requisição.
    *
    */
-  async getDashboard(req: Request, res: Response) {
-    try {
-      const { anos, estados, museu, cidades } = req.query
 
-      return res
-        .status(200)
-        .json(
-          await this.declaracaoService.getDashboardData(
-            estados
-              ? Array.isArray(estados)
-                ? estados.map(String)
-                : [String(estados)]
-              : [
-                  "AC",
-                  "AL",
-                  "AP",
-                  "AM",
-                  "BA",
-                  "CE",
-                  "DF",
-                  "ES",
-                  "GO",
-                  "MA",
-                  "MT",
-                  "MS",
-                  "MG",
-                  "PA",
-                  "PB",
-                  "PR",
-                  "PE",
-                  "PI",
-                  "RJ",
-                  "RN",
-                  "RS",
-                  "RO",
-                  "RR",
-                  "SC",
-                  "SP",
-                  "SE",
-                  "TO"
-                ],
-            anos
-              ? Array.isArray(anos)
-                ? anos.map(String)
-                : String(anos).split(",")
-              : [],
-            museu ? String(museu) : null,
-            cidades
-              ? Array.isArray(cidades)
-                ? cidades.map(String)
-                : [String(cidades)]
-              : []
-          )
-        )
-    } catch (error) {
-      logger.error("Erro ao buscar declarações por ano:", error)
-      return res
-        .status(500)
-        .json({ message: "Erro ao buscar declarações por ano." })
-    }
-  }
 
   async getDeclaracaoFiltrada(req: Request, res: Response) {
     try {
