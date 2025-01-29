@@ -25,7 +25,7 @@ routes.get(
   UsuarioController.getUsuarioPorId
 )
 routes.put(
-  "/:id",
+  "/atualizar/:id",
   userPermissionMiddleware("atualizarUsuario"),
   UsuarioController.atualizarUsuario
 )
