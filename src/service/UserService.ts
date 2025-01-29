@@ -15,15 +15,21 @@ export class UsuarioService {
   static async validarUsuario({
     email,
     profile,
+    cpf,
     especialidadeAnalista
   }: {
     email: string
     profile: string
+    cpf: string
     especialidadeAnalista?: string[]
   }) {
-    const usuarioExistente = await Usuario.findOne({ email })
+    let usuarioExistente = await Usuario.findOne({ email })
     if (usuarioExistente) {
       throw new HTTPError("Email já está em uso.", 400)
+    }
+    usuarioExistente = await Usuario.findOne({ cpf })
+    if (usuarioExistente) {
+      throw new HTTPError("Cpf já cadastrado no sistema", 400)
     }
 
     const perfilExistente = await Profile.findById(profile)
@@ -63,11 +69,13 @@ export class UsuarioService {
     email,
     senha,
     profile,
-    especialidadeAnalista
+    especialidadeAnalista,
+    cpf
   }: {
     nome: string
     email: string
     senha: string
+    cpf: string
     profile: string
     especialidadeAnalista?: string[]
   }) {
@@ -78,6 +86,7 @@ export class UsuarioService {
       email,
       senha: senhaHash,
       profile,
+      cpf,
       ativo: true,
       especialidadeAnalista
     })
