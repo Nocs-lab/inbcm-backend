@@ -1,10 +1,11 @@
 import { Request, Response } from "express"
-import Usuario from "../models/Usuario"
+import Usuario, { validarCPF } from "../models/Usuario"
 import logger from "../utils/logger"
 import { UsuarioService } from "../service/UserService"
 import { Declaracoes, Museu } from "../models"
 import { Profile } from "../models/Profile"
 import { Types } from "mongoose"
+import { UpdateUserDto } from "../models/dto/UserDto"
 
 class UsuarioController {
   async registerUsuario(req: Request, res: Response) {
@@ -119,11 +120,11 @@ class UsuarioController {
         nome,
         email,
         perfil,
-        // museus,
         especialidadeAnalista,
         museus,
-        desvincularMuseus
-      } = req.body
+        desvincularMuseus,
+        cpf
+      }: UpdateUserDto = req.body
 
       const usuario = await Usuario.findById(id)
 
@@ -131,11 +132,17 @@ class UsuarioController {
         return res.status(404).json({ mensagem: "Usuário não encontrado." })
       }
 
-      if (nome) usuario.nome = nome
-      if (email) usuario.email = email
+      if (nome) {
+        usuario.nome = nome
+      }
+
+      if (email) {
+        usuario.email = email
+      }
 
       if (perfil) {
         const perfilValido = await Profile.findOne({ name: perfil }).exec()
+
         if (!perfilValido) {
           return res
             .status(400)
@@ -144,58 +151,19 @@ class UsuarioController {
         usuario.profile = perfilValido._id as Types.ObjectId
       }
 
-      // if (museus) {
-      //   if (!Array.isArray(museus)) {
-      //     return res
-      //       .status(400)
-      //       .json({ mensagem: "O campo museus deve ser um array." })
-      //   }
+      // Atualizando CPF, se fornecido e diferente do existente
+      if (cpf && cpf !== usuario.cpf) {
+        const cpfFormatado = cpf.replace(/\D/g, "")
 
-      //   const perfilAtual = await Profile.findById(usuario.profile)
-      //   if (perfilAtual?.name !== "declarant") {
-      //     return res.status(400).json({
-      //       mensagem:
-      //         "Apenas usuários com o perfil 'declarant' podem ter museus vinculados."
-      //     })
-      //   }
+        if (!validarCPF(cpfFormatado)) {
+          return res.status(400).json({ mensagem: "CPF inválido." })
+        }
+        usuario.cpf = cpfFormatado
+      }
 
-      //   const resultados = []
-
-      //   // Verificação e remoção dos museus
-      //   for (const museuId of museus) {
-      //     if (!museuId.match(/^[a-fA-F0-9]{24}$/)) {
-      //       resultados.push({ museuId, mensagem: "ID do museu inválido." })
-      //       continue
-      //     }
-
-      //     const museu = await Museu.findById(museuId)
-      //     if (!museu) {
-      //       resultados.push({ museuId, mensagem: "Museu não encontrado." })
-      //       continue
-      //     }
-
-      //     if (museu.usuario && museu.usuario.toString() !== usuarioId) {
-      //       resultados.push({
-      //         museuId,
-      //         mensagem: "O museu já está associado a outro usuário."
-      //       })
-      //       continue
-      //     }
-
-      //     museu.usuario = null
-      //     await museu.save()
-
-      //     usuario.museus = usuario.museus.filter(
-      //       (id) => id.toString() !== museuId.toString()
-      //     )
-      //   }
-
-      //   await usuario.save()
-      // }
-
+      // Atualizando museus, se fornecido
       if (museus && Array.isArray(museus)) {
         const resultadosVinculacao = []
-
         for (const museuId of museus) {
           if (!museuId.match(/^[a-fA-F0-9]{24}$/)) {
             resultadosVinculacao.push({
@@ -206,6 +174,7 @@ class UsuarioController {
           }
 
           const museu = await Museu.findById(museuId)
+
           if (!museu) {
             resultadosVinculacao.push({
               museuId,
@@ -242,11 +211,12 @@ class UsuarioController {
         })
       }
 
+      // Atualizando desvinculação de museus, se fornecido
       if (desvincularMuseus && Array.isArray(desvincularMuseus)) {
         const resultadosDesvinculacao = []
-
         for (const museuId of desvincularMuseus) {
           const museu = await Museu.findById(museuId)
+
           if (!museu) {
             resultadosDesvinculacao.push({
               museuId,
@@ -327,7 +297,6 @@ class UsuarioController {
         usuario
       })
     } catch (erro) {
-      logger.error("Erro ao atualizar usuário:", erro)
       return res.status(500).json({ mensagem: "Erro ao atualizar o usuário." })
     }
   }
