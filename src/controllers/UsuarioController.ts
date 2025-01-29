@@ -8,12 +8,13 @@ import { Types } from "mongoose"
 
 class UsuarioController {
   async registerUsuario(req: Request, res: Response) {
-    const { nome, email, senha, cpf, profile, especialidadeAnalista } = req.body
+    const { nome, email, senha, cpf, profile, especialidadeAnalista, museus } =
+      req.body
 
     if (!nome || !email || !senha || !profile || !cpf) {
-      return res
-        .status(400)
-        .json({ mensagem: "Nome, email, senha e perfil são obrigatórios." })
+      return res.status(400).json({
+        mensagem: "Nome, email, senha e perfil são obrigatórios."
+      })
     }
 
     try {
@@ -24,23 +25,26 @@ class UsuarioController {
         cpf
       })
 
-      let especialidades = especialidadeAnalista // Dessa forma,possibilida o Admin conseguir analisar declarações.
+      let especialidades = especialidadeAnalista
 
       if (perfilExistente.name === "admin") {
         especialidades = ["museologico", "arquivistico", "bibliografico"]
       }
 
-      // Cria o usuário
-      await UsuarioService.criarUsuario({
+      const novoUsuario = await UsuarioService.criarUsuario({
         nome,
         email,
         senha,
         profile,
         cpf,
+        museus,
         especialidadeAnalista: especialidades
       })
 
-      return res.status(201).json({ mensagem: "Usuário criado com sucesso." })
+      return res.status(201).json({
+        mensagem: "Usuário criado com sucesso.",
+        usuario: novoUsuario
+      })
     } catch (error: unknown) {
       if (error instanceof Error) {
         logger.error("Erro ao criar usuário:", error)
@@ -48,9 +52,9 @@ class UsuarioController {
       }
 
       logger.error("Erro inesperado:", error)
-      return res
-        .status(500)
-        .json({ mensagem: "Erro desconhecido ao criar usuário." })
+      return res.status(500).json({
+        mensagem: "Erro desconhecido ao criar usuário."
+      })
     }
   }
 
