@@ -2,7 +2,7 @@ import argon2 from "@node-rs/argon2"
 import { Usuario } from "../models/Usuario"
 import { IProfile, Profile } from "../models/Profile"
 import { Types } from "mongoose"
-import { IMuseu } from "../models"
+import { IMuseu, Museu } from "../models"
 import HTTPError from "../utils/error"
 
 export class UsuarioService {
@@ -68,9 +68,10 @@ export class UsuarioService {
     nome,
     email,
     senha,
+    cpf,
     profile,
     especialidadeAnalista,
-    cpf
+    museus
   }: {
     nome: string
     email: string
@@ -78,8 +79,41 @@ export class UsuarioService {
     cpf: string
     profile: string
     especialidadeAnalista?: string[]
+    museus: string[]
   }) {
     const senhaHash = await argon2.hash(senha)
+
+    // Valida museus
+    const museusValidos: string[] = []
+    const erros: { museuId: string; mensagem: string }[] = []
+
+    for (const id of museus) {
+      if (!id.match(/^[a-fA-F0-9]{24}$/)) {
+        erros.push({ museuId: id, mensagem: "ID do museu inválido." })
+        continue
+      }
+
+      const museu = await Museu.findById(id)
+
+      if (!museu) {
+        erros.push({ museuId: id, mensagem: "Museu não encontrado." })
+        continue
+      }
+
+      if (museu.usuario) {
+        erros.push({
+          museuId: id,
+          mensagem: "Este museu já possui um usuário associado."
+        })
+        continue
+      }
+
+      museusValidos.push(id)
+    }
+
+    if (erros.length > 0) {
+      throw new Error(`Falha ao associar museus: ${JSON.stringify(erros)}`)
+    }
 
     const novoUsuario = new Usuario({
       nome,
@@ -88,10 +122,17 @@ export class UsuarioService {
       profile,
       cpf,
       ativo: true,
-      especialidadeAnalista
+      especialidadeAnalista,
+      museus: museusValidos
     })
 
     await novoUsuario.save()
+
+    // Atualiza os museus com o usuário recém-criado
+    await Museu.updateMany(
+      { _id: { $in: museusValidos } },
+      { $set: { usuario: novoUsuario._id } }
+    )
 
     return novoUsuario
   }
