@@ -43,7 +43,7 @@ export const UsuarioSchema = new Schema<IUsuario>({
   }
 })
 
-function validarCPF(cpf: string): boolean {
+export function validarCPF(cpf: string): boolean {
   cpf = cpf.replace(/\D/g, "")
 
   if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false
