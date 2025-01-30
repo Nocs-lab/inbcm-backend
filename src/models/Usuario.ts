@@ -31,7 +31,7 @@ export const UsuarioSchema = new Schema<IUsuario>({
   ],
   cpf: {
     type: String,
-    required: true,
+    required: false,
     unique: true,
     validate: {
       validator: function (cpf: string) {

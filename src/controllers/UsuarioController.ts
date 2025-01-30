@@ -6,6 +6,7 @@ import { Declaracoes, Museu } from "../models"
 import { Profile } from "../models/Profile"
 import { Types } from "mongoose"
 import { UpdateUserDto } from "../models/dto/UserDto"
+import { Status } from "../enums/Status"
 
 class UsuarioController {
   async registerUsuario(req: Request, res: Response) {
@@ -74,7 +75,6 @@ class UsuarioController {
 
       return res.status(200).json(result)
     } catch (error) {
-      console.error("Erro ao listar usuários:", error)
       return res.status(500).json({ mensagem: "Erro ao listar usuários." })
     }
   }
@@ -151,7 +151,6 @@ class UsuarioController {
         usuario.profile = perfilValido._id as Types.ObjectId
       }
 
-      // Atualizando CPF, se fornecido e diferente do existente
       if (cpf && cpf !== usuario.cpf) {
         const cpfFormatado = cpf.replace(/\D/g, "")
 
@@ -161,7 +160,6 @@ class UsuarioController {
         usuario.cpf = cpfFormatado
       }
 
-      // Atualizando museus, se fornecido
       if (museus && Array.isArray(museus)) {
         const resultadosVinculacao = []
         for (const museuId of museus) {
@@ -211,7 +209,7 @@ class UsuarioController {
         })
       }
 
-      // Atualizando desvinculação de museus, se fornecido
+      // Desvincula museus, se fornecido
       if (desvincularMuseus && Array.isArray(desvincularMuseus)) {
         const resultadosDesvinculacao = []
         for (const museuId of desvincularMuseus) {
@@ -253,7 +251,7 @@ class UsuarioController {
         })
       }
 
-      // Atualiza as especialidades do analista (somente para perfis `analyst`)
+      // Atualiza as especialidades do analista
       if (especialidadeAnalista) {
         const perfilAtual = await Profile.findById(usuario.profile)
         if (perfilAtual?.name !== "analyst") {
@@ -269,15 +267,52 @@ class UsuarioController {
           })
         }
 
-        const especialidadesRemovidas = usuario.especialidadeAnalista.filter(
+        // Validação de especialidades permitidas (opcional)
+        const especialidadesPermitidas = [
+          "museologico",
+          "bibliografico",
+          "arquivistico"
+        ]
+        const especialidadesInvalidas = especialidadeAnalista.filter(
+          (especialidade) => !especialidadesPermitidas.includes(especialidade)
+        )
+        if (especialidadesInvalidas.length > 0) {
+          return res.status(400).json({
+            mensagem: `As seguintes especialidades são inválidas: ${especialidadesInvalidas.join(", ")}`
+          })
+        }
+
+        if (especialidadeAnalista.length === 0) {
+          return res.status(400).json({
+            mensagem: "O analista deve ter pelo menos uma especialidade."
+          })
+        }
+
+        const especialidadesAtuais = usuario.especialidadeAnalista
+        const especialidadesAdicionadas = especialidadeAnalista.filter(
+          (especialidade) => !especialidadesAtuais.includes(especialidade)
+        )
+        const especialidadesRemovidas = especialidadesAtuais.filter(
           (especialidade) => !especialidadeAnalista.includes(especialidade)
         )
 
         for (const especialidade of especialidadesRemovidas) {
           const declaracoesEmAnalise = await Declaracoes.find({
-            status: "Em análise",
-            tipo: especialidade,
-            analista: id
+            status: Status.EmAnalise,
+            $or: [
+              {
+                "arquivistico.analistasResponsaveis": id,
+                "arquivistico.tipo": especialidade
+              },
+              {
+                "bibliografico.analistasResponsaveis": id,
+                "bibliografico.tipo": especialidade
+              },
+              {
+                "museologico.analistasResponsaveis": id,
+                "museologico.tipo": especialidade
+              }
+            ]
           })
 
           if (declaracoesEmAnalise.length > 0) {
@@ -288,6 +323,13 @@ class UsuarioController {
         }
 
         usuario.especialidadeAnalista = especialidadeAnalista
+        await usuario.save()
+
+        return res.status(200).json({
+          mensagem: "Especialidades atualizadas com sucesso.",
+          especialidadesAdicionadas,
+          especialidadesRemovidas
+        })
       }
 
       await usuario.save()
