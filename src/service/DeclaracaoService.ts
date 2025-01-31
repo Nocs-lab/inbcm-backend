@@ -1029,9 +1029,11 @@ class DeclaracaoService {
         // Se todos os bens estiverem "Em Conformidade", a declaração também deve estar "Em Conformidade"
         if (todosStatus.every((status) => status === Status.EmConformidade)) {
           declaracao.status = Status.EmConformidade
+          declaracao.dataFimAnalise = DataUtils.getCurrentData()
         } else {
           // Caso contrário, a declaração deve ser "Não Conformidade" se houver algum bem "Não Conformidade"
           declaracao.status = Status.NaoConformidade
+          declaracao.dataFimAnalise = DataUtils.getCurrentData()
         }
       } else {
         // Se ainda houver bens pendentes, manter a declaração "Em Análise"
@@ -1348,6 +1350,7 @@ class DeclaracaoService {
       declaracao.timeLine
     )
     try {
+      declaracao.dataExclusao = DataUtils.getCurrentData()
       await declaracao.save()
       logger.info("Time-line salva com sucesso.")
     } catch (error) {
