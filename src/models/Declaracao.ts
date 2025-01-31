@@ -89,6 +89,7 @@ export interface DeclaracaoModel extends Document {
   responsavelEnvioAnalise?: mongoose.Types.ObjectId
   responsavelEnvioAnaliseNome: string
   dataAnalise?: Date
+  dataExclusao?: Date
   dataFimAnalise?: Date
   timeLine: TimeLine[]
 }
@@ -134,6 +135,7 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
     responsavelEnvioAnaliseNome: { type: String },
     dataAnalise: { type: Date },
     dataFimAnalise: { type: Date },
+    dataExclusao: { type: Date },
     timeLine: [TimeLineSchema]
   },
   { timestamps: true, versionKey: false }
