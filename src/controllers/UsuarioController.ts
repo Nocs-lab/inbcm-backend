@@ -1,42 +1,52 @@
 import { Request, Response } from "express"
-import argon2 from "@node-rs/argon2"
-import Usuario from "../models/Usuario"
+import Usuario, { validarCPF } from "../models/Usuario"
 import logger from "../utils/logger"
 import { UsuarioService } from "../service/UserService"
+import { Declaracoes, Museu } from "../models"
+import { Profile } from "../models/Profile"
+import { Types } from "mongoose"
+import { UpdateUserDto } from "../models/dto/UserDto"
+import { Status } from "../enums/Status"
 
 class UsuarioController {
   async registerUsuario(req: Request, res: Response) {
-    const { nome, email, senha, profile, especialidadeAnalista } = req.body
+    const { nome, email, senha, cpf, profile, especialidadeAnalista, museus } =
+      req.body
 
-    if (!nome || !email || !senha || !profile) {
-      return res
-        .status(400)
-        .json({ mensagem: "Nome, email, senha e perfil são obrigatórios." })
+    if (!nome || !email || !senha || !profile || !cpf) {
+      return res.status(400).json({
+        mensagem: "Nome, email, senha e perfil são obrigatórios."
+      })
     }
 
     try {
       const perfilExistente = await UsuarioService.validarUsuario({
         email,
         profile,
-        especialidadeAnalista
+        especialidadeAnalista,
+        cpf
       })
 
-      let especialidades = especialidadeAnalista // Dessa forma,possibilida o Admin conseguir analisar declarações.
+      let especialidades = especialidadeAnalista
 
       if (perfilExistente.name === "admin") {
         especialidades = ["museologico", "arquivistico", "bibliografico"]
       }
 
-      // Cria o usuário
-      await UsuarioService.criarUsuario({
+      const novoUsuario = await UsuarioService.criarUsuario({
         nome,
         email,
         senha,
         profile,
+        cpf,
+        museus,
         especialidadeAnalista: especialidades
       })
 
-      return res.status(201).json({ mensagem: "Usuário criado com sucesso." })
+      return res.status(201).json({
+        mensagem: "Usuário criado com sucesso.",
+        usuario: novoUsuario
+      })
     } catch (error: unknown) {
       if (error instanceof Error) {
         logger.error("Erro ao criar usuário:", error)
@@ -44,9 +54,9 @@ class UsuarioController {
       }
 
       logger.error("Erro inesperado:", error)
-      return res
-        .status(500)
-        .json({ mensagem: "Erro desconhecido ao criar usuário." })
+      return res.status(500).json({
+        mensagem: "Erro desconhecido ao criar usuário."
+      })
     }
   }
 
@@ -65,7 +75,6 @@ class UsuarioController {
 
       return res.status(200).json(result)
     } catch (error) {
-      console.error("Erro ao listar usuários:", error)
       return res.status(500).json({ mensagem: "Erro ao listar usuários." })
     }
   }
@@ -105,32 +114,232 @@ class UsuarioController {
   }
 
   async atualizarUsuario(req: Request, res: Response) {
-    const { id } = req.params
-    const { nome, email, senha, profile } = req.body
     try {
+      const { id } = req.params
+      const {
+        nome,
+        email,
+        perfil,
+        especialidadeAnalista,
+        museus,
+        desvincularMuseus,
+        cpf
+      }: UpdateUserDto = req.body
+
       const usuario = await Usuario.findById(id)
+
       if (!usuario) {
         return res.status(404).json({ mensagem: "Usuário não encontrado." })
       }
-      if (nome) usuario.nome = nome
-      if (email && email !== usuario.email) {
-        const usuarioExistente = await Usuario.findOne({ email })
-        if (usuarioExistente) {
-          return res.status(400).json({ mensagem: "Email já está em uso." })
-        }
+
+      if (nome) {
+        usuario.nome = nome
+      }
+
+      if (email) {
         usuario.email = email
       }
-      if (senha) usuario.senha = await argon2.hash(senha)
-      if (profile) usuario.profile = profile
+
+      if (perfil) {
+        const perfilValido = await Profile.findOne({ name: perfil }).exec()
+
+        if (!perfilValido) {
+          return res
+            .status(400)
+            .json({ mensagem: "O perfil informado é inválido." })
+        }
+        usuario.profile = perfilValido._id as Types.ObjectId
+      }
+
+      if (cpf && cpf !== usuario.cpf) {
+        const cpfFormatado = cpf.replace(/\D/g, "")
+
+        if (!validarCPF(cpfFormatado)) {
+          return res.status(400).json({ mensagem: "CPF inválido." })
+        }
+        usuario.cpf = cpfFormatado
+      }
+
+      if (museus && Array.isArray(museus)) {
+        const resultadosVinculacao = []
+        for (const museuId of museus) {
+          if (!museuId.match(/^[a-fA-F0-9]{24}$/)) {
+            resultadosVinculacao.push({
+              museuId,
+              mensagem: "ID do museu inválido."
+            })
+            continue
+          }
+
+          const museu = await Museu.findById(museuId)
+
+          if (!museu) {
+            resultadosVinculacao.push({
+              museuId,
+              mensagem: "Museu não encontrado."
+            })
+            continue
+          }
+
+          if (museu.usuario) {
+            resultadosVinculacao.push({
+              museuId,
+              mensagem: "Este museu já possui um usuário associado."
+            })
+            continue
+          }
+
+          museu.usuario = new Types.ObjectId(id)
+          await museu.save()
+
+          if (!usuario.museus.includes(museuId)) {
+            usuario.museus.push(museuId)
+          }
+
+          resultadosVinculacao.push({
+            museuId,
+            mensagem: "Usuário vinculado ao museu com sucesso."
+          })
+        }
+
+        await usuario.save()
+        return res.status(200).json({
+          mensagem: "Processo de vinculação concluído.",
+          resultadosVinculacao
+        })
+      }
+
+      // Desvincula museus, se fornecido
+      if (desvincularMuseus && Array.isArray(desvincularMuseus)) {
+        const resultadosDesvinculacao = []
+        for (const museuId of desvincularMuseus) {
+          const museu = await Museu.findById(museuId)
+
+          if (!museu) {
+            resultadosDesvinculacao.push({
+              museuId,
+              mensagem: "Museu não encontrado."
+            })
+            continue
+          }
+
+          if (museu.usuario && !museu.usuario.equals(new Types.ObjectId(id))) {
+            resultadosDesvinculacao.push({
+              museuId,
+              mensagem: "Este museu não está vinculado a este usuário."
+            })
+            continue
+          }
+
+          museu.usuario = null
+          await museu.save()
+
+          usuario.museus = usuario.museus.filter(
+            (id) => id.toString() !== museuId.toString()
+          )
+
+          resultadosDesvinculacao.push({
+            museuId,
+            mensagem: "Usuário desvinculado do museu com sucesso."
+          })
+        }
+
+        await usuario.save()
+        return res.status(200).json({
+          mensagem: "Processo de desvinculação concluído.",
+          resultadosDesvinculacao
+        })
+      }
+
+      // Atualiza as especialidades do analista
+      if (especialidadeAnalista) {
+        const perfilAtual = await Profile.findById(usuario.profile)
+        if (perfilAtual?.name !== "analyst") {
+          return res.status(400).json({
+            mensagem:
+              "Apenas usuários com o perfil 'analyst' podem ter especialidades."
+          })
+        }
+
+        if (!Array.isArray(especialidadeAnalista)) {
+          return res.status(400).json({
+            mensagem: "O campo especialidadeAnalista deve ser um array."
+          })
+        }
+
+        // Validação de especialidades permitidas (opcional)
+        const especialidadesPermitidas = [
+          "museologico",
+          "bibliografico",
+          "arquivistico"
+        ]
+        const especialidadesInvalidas = especialidadeAnalista.filter(
+          (especialidade) => !especialidadesPermitidas.includes(especialidade)
+        )
+        if (especialidadesInvalidas.length > 0) {
+          return res.status(400).json({
+            mensagem: `As seguintes especialidades são inválidas: ${especialidadesInvalidas.join(", ")}`
+          })
+        }
+
+        if (especialidadeAnalista.length === 0) {
+          return res.status(400).json({
+            mensagem: "O analista deve ter pelo menos uma especialidade."
+          })
+        }
+
+        const especialidadesAtuais = usuario.especialidadeAnalista
+        const especialidadesAdicionadas = especialidadeAnalista.filter(
+          (especialidade) => !especialidadesAtuais.includes(especialidade)
+        )
+        const especialidadesRemovidas = especialidadesAtuais.filter(
+          (especialidade) => !especialidadeAnalista.includes(especialidade)
+        )
+
+        for (const especialidade of especialidadesRemovidas) {
+          const declaracoesEmAnalise = await Declaracoes.find({
+            status: Status.EmAnalise,
+            $or: [
+              {
+                "arquivistico.analistasResponsaveis": id,
+                "arquivistico.tipo": especialidade
+              },
+              {
+                "bibliografico.analistasResponsaveis": id,
+                "bibliografico.tipo": especialidade
+              },
+              {
+                "museologico.analistasResponsaveis": id,
+                "museologico.tipo": especialidade
+              }
+            ]
+          })
+
+          if (declaracoesEmAnalise.length > 0) {
+            return res.status(400).json({
+              mensagem: `Não é possível remover a especialidade '${especialidade}' porque o analista está vinculado a declarações com status 'Em análise'.`
+            })
+          }
+        }
+
+        usuario.especialidadeAnalista = especialidadeAnalista
+        await usuario.save()
+
+        return res.status(200).json({
+          mensagem: "Especialidades atualizadas com sucesso.",
+          especialidadesAdicionadas,
+          especialidadesRemovidas
+        })
+      }
 
       await usuario.save()
 
-      return res
-        .status(200)
-        .json({ mensagem: "Usuário atualizado com sucesso." })
-    } catch (error) {
-      logger.error("Erro ao atualizar usuário:", error)
-      return res.status(500).json({ mensagem: "Erro ao atualizar usuário." })
+      return res.status(200).json({
+        mensagem: "Usuário atualizado com sucesso.",
+        usuario
+      })
+    } catch (erro) {
+      return res.status(500).json({ mensagem: "Erro ao atualizar o usuário." })
     }
   }
 
