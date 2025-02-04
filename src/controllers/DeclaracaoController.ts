@@ -1,5 +1,6 @@
 import { Request, Response } from "express"
 import { Declaracoes, Usuario } from "../models"
+import { AnoDeclaracao } from "../models/AnoDeclaracao"
 import DeclaracaoService from "../service/DeclaracaoService"
 import { generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
@@ -630,6 +631,16 @@ export class DeclaracaoController {
         },
         { ultimaDeclaracao: false }
       )
+
+      const anoDeclaracaoReferencia = await AnoDeclaracao.findOneAndUpdate(
+        { ano: anoDeclaracao },
+        { $set: { declaracaoVinculada: true } },
+        { new: true }
+      );
+
+
+      console.log(anoDeclaracaoReferencia)
+
 
       return res.status(200).json(novaDeclaracao)
     } catch (error) {

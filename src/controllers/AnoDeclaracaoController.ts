@@ -191,12 +191,24 @@ class AnoDeclaracaoController {
     try {
       const { id } = req.params
       const {
+        ano,
         dataInicioSubmissao,
         dataFimSubmissao,
         dataInicioRetificacao,
         dataFimRetificacao,
         metaDeclaracoesEnviadas
       } = req.body
+
+
+      // Validação para não ser possível alterar o ano de um modelo com declaração vinculada
+      const anoDeclaracao = await AnoDeclaracao.findById(id);
+      if (!anoDeclaracao) {
+        return res.status(404).json({ message: "Ano de declaração não encontrado" });
+      }
+
+      if (anoDeclaracao.declaracaoVinculada && ano !== anoDeclaracao.ano) {
+        return res.status(403).json({ message: "Não é permitido alterar o ano quando há declarações vinculadas." });
+      }
 
       // Convertendo as strings para objetos Date, se necessário
       const dataInicioSubmissaoDate = new Date(dataInicioSubmissao)
@@ -206,7 +218,7 @@ class AnoDeclaracaoController {
 
       const updatedAnoDeclaracao = await AnoDeclaracao.findByIdAndUpdate(
         id,
-        {
+        { ano,
           dataInicioSubmissao: dataInicioSubmissaoDate,
           dataFimSubmissao: dataFimSubmissaoDate,
           dataInicioRetificacao: dataInicioRetificacaoDate,
@@ -254,6 +266,9 @@ class AnoDeclaracaoController {
         return res
           .status(404)
           .json({ message: "Ano de declaração não encontrado" })
+      }
+      if (anoDeclaracao.declaracaoVinculada) {
+        return res.status(403).json({ message: "Não é possível excluir este modelo, pois há uma declaração vinculada." });
       }
 
       return res
