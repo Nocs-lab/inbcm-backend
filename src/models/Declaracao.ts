@@ -15,6 +15,8 @@ export interface Arquivo {
   comentarios: string[]
   analistasResponsaveis?: mongoose.Types.ObjectId[]
   analistasResponsaveisNome?: string[]
+  porcentagemGeral?: number
+  porcentagemPorCampo?: Record<string, number>
 }
 
 export interface TimeLine {
@@ -58,7 +60,9 @@ const ArquivoSchema = new Schema<Arquivo>(
     versao: { type: Number, default: 0 },
     comentarios: [ComentarioSchema],
     analistasResponsaveis: [{ type: Schema.Types.ObjectId, ref: "usuarios" }],
-    analistasResponsaveisNome: [{ type: String }]
+    analistasResponsaveisNome: [{ type: String }],
+    porcentagemGeral: { type: Number, default: 0 },
+    porcentagemPorCampo: { type: Map, of: Number, default: {} }
   },
   { _id: false, versionKey: false }
 )
