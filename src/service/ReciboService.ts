@@ -78,6 +78,10 @@ function formatarDadosRecibo(
 
   const tipoDeclaracao = declaracao.retificacao ? "retificadora" : "original"
 
+  const verificarPendencias = (pendencias: any[] | undefined): string => {
+    return pendencias && pendencias.length > 0 ? "Sim" : "---"
+  }
+
   return {
     anoCalendario: declaracao.anoDeclaracao,
     codigoIdentificador: museu.codIbram,
@@ -101,7 +105,16 @@ function formatarDadosRecibo(
     statusDeclaracao: declaracao.status,
     statusArquivoArquivistico: declaracao.arquivistico?.status || "---",
     statusArquivoMuseologico: declaracao.museologico?.status || "---",
-    statusArquivoBibliografico: declaracao.bibliografico?.status || "---"
+    statusArquivoBibliografico: declaracao.bibliografico?.status || "---",
+    pendenciaisArquivoMuseologico: verificarPendencias(
+      declaracao.museologico?.pendencias
+    ),
+    pendenciaisArquivoArquivsitico: verificarPendencias(
+      declaracao.arquivistico?.pendencias
+    ),
+    pendenciaisArquivoBibliografico: verificarPendencias(
+      declaracao.bibliografico?.pendencias
+    )
   }
 }
 
@@ -244,14 +257,21 @@ async function gerarPDFRecibo(
           text: "\nBens declarados",
           style: "sectionHeader"
         },
+
         {
           table: {
             headerRows: 1,
-            widths: ["*", "*", "*"],
+            widths: ["*", "*", "*", "*"], // Colunas: Acervo, Quantidade de itens, Situação, Pendências
             body: [
               [
                 {
                   text: "Acervo",
+                  style: "tableHeader",
+                  fillColor: "#D9D9D9",
+                  alignment: "center"
+                },
+                {
+                  text: "Quantidade de itens",
                   style: "tableHeader",
                   fillColor: "#D9D9D9",
                   alignment: "center"
@@ -263,7 +283,7 @@ async function gerarPDFRecibo(
                   alignment: "center"
                 },
                 {
-                  text: "Quantidade de itens",
+                  text: "Pendências",
                   style: "tableHeader",
                   fillColor: "#D9D9D9",
                   alignment: "center"
@@ -272,14 +292,19 @@ async function gerarPDFRecibo(
               [
                 { text: "Museológico", style: "tableData", alignment: "left" },
                 {
+                  text: dadosFormatados.bensMuseologicos || "0",
+                  style: "tableData",
+                  alignment: "right"
+                },
+                {
                   text: dadosFormatados.statusArquivoMuseologico,
                   alignment: "left",
                   style: "tableData"
                 },
                 {
-                  text: dadosFormatados.bensMuseologicos || "0",
+                  text: dadosFormatados.pendenciaisArquivoMuseologico,
                   style: "tableData",
-                  alignment: "right"
+                  alignment: "center"
                 }
               ],
               [
@@ -289,42 +314,65 @@ async function gerarPDFRecibo(
                   alignment: "left"
                 },
                 {
+                  text: dadosFormatados.bensBibliograficos || "0",
+                  style: "tableData",
+                  alignment: "right"
+                },
+                {
                   text: dadosFormatados.statusArquivoBibliografico,
                   style: "tableData",
                   alignment: "left"
                 },
                 {
-                  text: dadosFormatados.bensBibliograficos || "0",
+                  text: dadosFormatados.pendenciaisArquivoBibliografico,
                   style: "tableData",
-                  alignment: "right"
+                  alignment: "center"
                 }
               ],
               [
                 { text: "Arquivístico", style: "tableData", alignment: "left" },
+                {
+                  text: dadosFormatados.bensArquivisticos || "0",
+                  style: "tableData",
+                  alignment: "right"
+                },
                 {
                   text: dadosFormatados.statusArquivoArquivistico,
                   style: "tableData",
                   alignment: "left"
                 },
                 {
-                  text: dadosFormatados.bensArquivisticos || "0",
+                  text: dadosFormatados.pendenciaisArquivoArquivsitico,
                   style: "tableData",
-                  alignment: "right"
+                  alignment: "center"
                 }
               ],
+
               [
                 {
-                  text: "TOTAL DE ITENS DECLARADOS",
-                  colSpan: 2,
+                  text: "TOTAL DE ITENS",
+                  colSpan: 1,
                   style: "tableHeader",
                   bold: true,
-                  alignment: "center"
+                  alignment: "left"
                 },
-                {},
                 {
-                  text: dadosFormatados.totalBensDeclarados || "500",
+                  text: dadosFormatados.totalBensDeclarados || "0",
                   style: "tableData",
-                  bold: true
+                  bold: true,
+                  alignment: "right"
+                },
+                {
+                  text: "",
+                  style: "tableData",
+                  border: [false, true, false, true],
+                  fillColor: "#BFBFBF"
+                },
+                {
+                  text: "",
+                  style: "tableData",
+                  border: [false, true, true, true],
+                  fillColor: "#BFBFBF"
                 }
               ]
             ]
