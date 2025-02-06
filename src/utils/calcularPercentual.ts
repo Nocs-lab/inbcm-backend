@@ -3,23 +3,21 @@ export function calcularPercentuais(
   requiredFields: string[]
 ): {
   porcentagemGeral: number
-  porcentagemPorCampo: Record<string, number>
+  porcentagemPorCampo: { campo: string; percentual: number }[]
   errors: string[]
 } {
-  const totalCampos = Object.keys(arquivoData[0] || {}).length // Total de campos por linha
-  const totalLinhas = arquivoData.length // Total de linhas
-  const totalCamposEsperados = totalCampos * totalLinhas // Total de campos no arquivo
+  const totalCampos = Object.keys(arquivoData[0] || {}).length
+  const totalLinhas = arquivoData.length
+  const totalCamposEsperados = totalCampos * totalLinhas
 
-  let camposPreenchidos = 0 // Contador de campos preenchidos
-  const fieldCounts: Record<string, number> = {} // Contador de preenchimento por campo
-  const errors: string[] = [] // Campos obrigatórios não preenchidos
+  let camposPreenchidos = 0
+  const fieldCounts: Record<string, number> = {}
+  const errors: string[] = []
 
-  // Inicializa o contador de campos
   Object.keys(arquivoData[0] || {}).forEach((campo) => {
     fieldCounts[campo] = 0
   })
 
-  // Itera sobre cada linha
   arquivoData.forEach((linha) => {
     Object.entries(linha).forEach(([campo, valor]) => {
       if (valor) {
@@ -28,7 +26,6 @@ export function calcularPercentuais(
       }
     })
 
-    // Verifica campos obrigatórios
     requiredFields.forEach((campo) => {
       if (!linha[campo]) {
         errors.push(campo)
@@ -36,11 +33,12 @@ export function calcularPercentuais(
     })
   })
 
-  // Calcula o percentual de preenchimento por campo
-  const porcentagemPorCampo: Record<string, number> = {}
-  Object.entries(fieldCounts).forEach(([campo, count]) => {
-    porcentagemPorCampo[campo] = (count / totalLinhas) * 100
-  })
+  // Calcula o percentual de preenchimento por campo e converte em array
+  const porcentagemPorCampo: { campo: string; percentual: number }[] =
+    Object.entries(fieldCounts).map(([campo, count]) => ({
+      campo,
+      percentual: (count / totalLinhas) * 100
+    }))
 
   // Calcula o percentual de preenchimento geral
   const porcentagemGeral =
@@ -51,6 +49,6 @@ export function calcularPercentuais(
   return {
     porcentagemGeral,
     porcentagemPorCampo,
-    errors: Array.from(new Set(errors)) // Remove duplicatas
+    errors: Array.from(new Set(errors))
   }
 }
