@@ -26,6 +26,12 @@ import { Eventos } from "../enums/Eventos"
 import logger from "../utils/logger"
 import { IAnalista } from "../types/Inalistas"
 import { FilterQuery } from "mongoose"
+import { calcularPercentuais } from "../utils/calcularPercentual"
+import {
+  arquivistico,
+  bibliografico,
+  museologico
+} from "inbcm-xlsx-validator/schema"
 
 class DeclaracaoService {
   async filtroDeclaracoesDashBoard(
@@ -288,8 +294,6 @@ class DeclaracaoService {
     }
   }
 
-
-
   async declaracaoComFiltros({
     anoReferencia,
     status,
@@ -515,24 +519,48 @@ class DeclaracaoService {
         )
 
         let validate = validate_arquivistico
-        if (tipo === "bibliografico") {
-          validate = validate_bibliografico
-        } else if (tipo === "museologico") {
-          validate = validate_museologico
+        let requiredFields: string[] = []
+
+        // Define o validador e os campos obrigatórios com base no tipo de arquivo
+        switch (tipo) {
+          case "arquivistico":
+            validate = validate_arquivistico
+            requiredFields = arquivistico.required
+            break
+          case "bibliografico":
+            validate = validate_bibliografico
+            requiredFields = bibliografico.required
+            break
+          case "museologico":
+            validate = validate_museologico
+            requiredFields = museologico.required
+            break
+          default:
+            throw new Error("Tipo de declaração inválido")
         }
 
-        const { data: arquivoData, errors: pendencias } = await validate(
-          arquivos[0].buffer
-        )
+        // Valida o arquivo
+        const { data: arquivoData } = await validate(arquivos[0].buffer)
 
+        // Calcula os percentuais de preenchimento
+        const {
+          porcentagemGeral,
+          porcentagemPorCampo,
+          errors: camposObrigatorios
+        } = calcularPercentuais(arquivoData, requiredFields)
+
+        // Prepara os dados alterados
         const dadosAlterados: Partial<Arquivo> = {
           nome: arquivos[0].filename,
           status: novaDeclaracao.status,
           hashArquivo: novoHashBemCultural,
-          pendencias,
+          pendencias: camposObrigatorios,
           quantidadeItens: arquivoData.length,
-          versao: novaVersao
+          versao: novaVersao,
+          porcentagemGeral,
+          porcentagemPorCampo
         }
+
         novaDeclaracao[tipo] = {
           ...arquivoAnterior,
           ...dadosAlterados
@@ -574,13 +602,16 @@ class DeclaracaoService {
           novaDeclaracao.retificacao = true
         }
       }
+
       novaDeclaracao.responsavelEnvioNome = responsavelEnvioNome
+
       await novaDeclaracao.save()
     } catch (error) {
       console.error("Erro ao atualizar a declaração:", error)
       throw new Error("Erro ao atualizar a declaração: " + error)
     }
   }
+
   async getItensMuseu(museuId: string) {
     const declaracoesExistentes = await Declaracoes.find({
       museu_id: new mongoose.Types.ObjectId(museuId),
