@@ -8,6 +8,110 @@ import { DataUtils } from "../utils/dataUtils"
 import { TDocumentDefinitions } from "pdfmake/interfaces"
 import HTTPError from "../utils/error"
 
+const camposAmigaveis = {
+  museologico: {
+    nderegistro: "Número de Registro",
+    outrosnumeros: "Outros Números",
+    situacao: "Situação",
+    denominacao: "Denominação",
+    titulo: "Título",
+    autor: "Autor",
+    classificacao: "Classificação",
+    resumodescritivo: "Resumo Descritivo",
+    dimensoes: "Dimensões",
+    materialtecnica: "Material/Técnica",
+    estadodeconservacao: "Estado de Conservação",
+    localdeproducao: "Local de Produção",
+    datadeproducao: "Data de Produção",
+    condicoesdereproducao: "Condições de Reprodução",
+    midiasrelacionadas: "Mídias Relacionadas"
+  },
+  bibliografico: {
+    nderegistro: "Número de Registro",
+    outrosnumeros: "Outros Números",
+    situacao: "Situação",
+    titulo: "Título",
+    tipo: "Tipo",
+    identificacaoderesponsabilidade: "Identificação de Responsabilidade",
+    localdeproducao: "Local de Produção",
+    editora: "Editora",
+    datadeproducao: "Data de Produção",
+    dimensaofisica: "Dimensão Física",
+    materialtecnica: "Material/Técnica",
+    encadernacao: "Encadernação",
+    resumodescritivo: "Resumo Descritivo",
+    estadodeconservacao: "Estado de Conservação",
+    assuntoprincipal: "Assunto Principal",
+    assuntocronologico: "Assunto Cronológico",
+    assuntogeografico: "Assunto Geográfico",
+    condicoesdereproducao: "Condições de Reprodução",
+    midiasrelacionadas: "Mídias Relacionadas"
+  },
+  arquivistico: {
+    coddereferencia: "Código de Referência",
+    titulo: "Título",
+    data: "Data",
+    niveldedescricao: "Nível de Descrição",
+    dimensaoesuporte: "Dimensão e Suporte",
+    nomedoprodutor: "Nome do Produtor",
+    historiaadministrativabiografia: "História Administrativa/Biografia",
+    historiaarquivistica: "História Arquivística",
+    procedencia: "Procedência",
+    ambitoeconteudo: "Âmbito e Conteúdo",
+    sistemadearranjo: "Sistema de Arranjo",
+    condicoesdereproducao: "Condições de Reprodução",
+    existenciaelocalizacaodosoriginais:
+      "Existência e Localização dos Originais",
+    notassobreconservacao: "Notas sobre Conservação",
+    pontosdeacessoeindexacaodeassuntos:
+      "Pontos de Acesso e Indexação de Assuntos",
+    midiasrelacionadas: "Mídias Relacionadas"
+  }
+}
+
+const gerarTabela = (
+  tipo: "museologico" | "bibliografico" | "arquivistico",
+  declaracao: any
+) => {
+  const campos = camposAmigaveis[tipo]
+  const porcentagemPorCampo = declaracao[tipo]?.porcentagemPorCampo || []
+
+  return {
+    table: {
+      widths: ["60%", "40%"],
+      body: [
+        [
+          {
+            text: ` Acervo ${tipo.charAt(0).toLowerCase() + tipo.slice(1)}`,
+            style: "tableHeader",
+            fillColor: "#D9D9D9",
+            colSpan: 2
+          },
+          {}
+        ],
+        [
+          { text: "Campo", style: "tableHeader", alignment: "center" },
+          { text: "Preenchimento", style: "tableHeader", alignment: "center" }
+        ],
+        ...porcentagemPorCampo.map(({ campo, percentual }) => {
+          return [
+            {
+              text: campos[campo] || campo,
+              style: "tableData",
+              alignment: "left"
+            },
+            { text: `${percentual}%`, style: "tableData", alignment: "center" }
+          ]
+        })
+      ]
+    },
+    layout: {
+      fillColor: function (rowIndex: number) {
+        return rowIndex % 2 === 0 ? "#F5F5F5" : null
+      }
+    }
+  }
+}
 /**
  * Obtém uma declaração pelo seu ID.
  *
@@ -117,6 +221,7 @@ function formatarDadosRecibo(
     )
   }
 }
+// Mapeamento para os campos de cada tipo de arquivo
 
 /**
  * Gera o PDF do recibo com base no ID da declaração.
@@ -125,7 +230,6 @@ function formatarDadosRecibo(
  * @returns Uma promessa que resolve com o buffer do PDF do recibo gerado.
  * @throws Um erro se houver algum problema ao gerar o recibo.
  */
-
 async function gerarPDFRecibo(
   declaracaoId: mongoose.Types.ObjectId
 ): Promise<Buffer> {
@@ -145,12 +249,43 @@ async function gerarPDFRecibo(
     const usuario = await buscaUsuario(museu.usuario)
 
     const dadosFormatados = formatarDadosRecibo(declaracao, museu, usuario)
+    const tabelaMuseologico = declaracao.museologico
+      ? gerarTabela("museologico", declaracao)
+      : undefined
+
+    const tabelaBibliografico = declaracao.bibliografico
+      ? gerarTabela("bibliografico", declaracao)
+      : undefined
+
+    const tabelaArquivistico = declaracao.arquivistico
+      ? gerarTabela("arquivistico", declaracao)
+      : undefined
+
+    const conteudo: any[] = []
+
+    // Adiciona tabela Museológica, se existir
+    if (tabelaMuseologico) conteudo.push(tabelaMuseologico)
+
+    // Adiciona tabela Bibliográfica, se existir, com quebra de página ANTES dela
+    if (tabelaBibliografico) {
+      if (conteudo.length > 0)
+        conteudo.push({ text: "\n\n", pageBreak: "before" })
+      conteudo.push(tabelaBibliografico)
+    }
+
+    // Adiciona tabela Arquivística, se existir, com quebra de página ANTES dela
+    if (tabelaArquivistico) {
+      if (conteudo.length > 0)
+        conteudo.push({ text: "\n\n", pageBreak: "before" })
+      conteudo.push(tabelaArquivistico)
+    }
 
     const docDefinition: TDocumentDefinitions = {
       pageSize: "A4",
       pageMargins: [40, 60, 40, 60],
 
       content: [
+        // Primeira página (conteúdo existente)
         {
           table: {
             widths: ["*"],
@@ -393,7 +528,15 @@ async function gerarPDFRecibo(
         {
           text: ` Recibo emitido em ${DataUtils.gerarDataFormatada()} às ${DataUtils.gerarHoraFormatada()}`,
           fontSize: 11
-        }
+        },
+
+        {
+          text: "\n\n Resumo de preenchimento da declaração",
+          style: "sectionHeader"
+        },
+        { text: "\n\n" },
+
+        ...conteudo
       ],
 
       styles: {
@@ -426,6 +569,11 @@ async function gerarPDFRecibo(
           bold: true,
           alignment: "center"
         },
+        subSectionHeader: {
+          fontSize: 12,
+          bold: true,
+          alignment: "left"
+        },
         footerText: {
           fontSize: 10,
           alignment: "left",
@@ -444,6 +592,7 @@ async function gerarPDFRecibo(
         }
       }
     }
+
     return new Promise<Buffer>((resolve, reject) => {
       const pdfDoc = printer.createPdfKitDocument(docDefinition)
       const chunks: Buffer[] = []
