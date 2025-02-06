@@ -37,13 +37,15 @@ export function calcularPercentuais(
   const porcentagemPorCampo: { campo: string; percentual: number }[] =
     Object.entries(fieldCounts).map(([campo, count]) => ({
       campo,
-      percentual: (count / totalLinhas) * 100
+      percentual: parseFloat(((count / totalLinhas) * 100).toFixed(2)) // Duas casas decimais
     }))
 
   // Calcula o percentual de preenchimento geral
   const porcentagemGeral =
     totalCamposEsperados > 0
-      ? (camposPreenchidos / totalCamposEsperados) * 100
+      ? parseFloat(
+          ((camposPreenchidos / totalCamposEsperados) * 100).toFixed(2)
+        ) // Duas casas decimais
       : 0
 
   return {
