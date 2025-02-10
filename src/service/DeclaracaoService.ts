@@ -32,6 +32,7 @@ import {
   bibliografico,
   museologico
 } from "inbcm-xlsx-validator/schema"
+import HTTPError from "../utils/error"
 
 class DeclaracaoService {
   async filtroDeclaracoesDashBoard(
@@ -1097,7 +1098,7 @@ class DeclaracaoService {
     const declaracao = await Declaracoes.findById(objectId)
 
     if (!declaracao) {
-      throw new Error("Declaração não encontrada.")
+      throw new HTTPError("Declaração não encontrada.", 404)
     }
 
     // Verifica se o status da declaração é 'Excluída'
@@ -1118,8 +1119,9 @@ class DeclaracaoService {
     )
 
     if (existeVersaoNaoExcluida) {
-      throw new Error(
-        "Não é possível restaurar esta declaração porque há versões mais recentes de declaração para esse museu e ano correspondente."
+      throw new HTTPError(
+        "Não é possível restaurar esta declaração porque há versões mais recentes de declaração para esse museu e ano correspondente.",
+        422
       )
     }
 
