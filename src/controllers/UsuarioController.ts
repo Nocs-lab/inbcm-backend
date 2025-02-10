@@ -3,10 +3,11 @@ import Usuario, { validarCPF } from "../models/Usuario"
 import logger from "../utils/logger"
 import { UsuarioService } from "../service/UserService"
 import { Declaracoes, Museu } from "../models"
-import { Profile } from "../models/Profile"
+import { IProfile, Profile } from "../models/Profile"
 import { Types } from "mongoose"
 import { UpdateUserDto } from "../models/dto/UserDto"
 import { Status } from "../enums/Status"
+import HTTPError from "../utils/error"
 
 class UsuarioController {
   async registerUsuario(req: Request, res: Response) {
@@ -342,22 +343,67 @@ class UsuarioController {
       return res.status(500).json({ mensagem: "Erro ao atualizar o usuário." })
     }
   }
-
   async deletarUsuario(req: Request, res: Response) {
     const { id } = req.params
 
     try {
       const usuario = await Usuario.findById(id)
+        .populate("profile")
+        .populate("museus")
+
       if (!usuario) {
         return res.status(404).json({ mensagem: "Usuário não encontrado." })
+      }
+
+      const perfil = await Usuario.findById(id).populate("profile")
+      const userProfile = (perfil?.profile as IProfile).name
+
+      if (userProfile === "declarant" && usuario.museus.length > 0) {
+        throw new HTTPError(
+          "Não é possível excluir um declarante com museus associados. Desassocie os museus para realizar a exclusão.",
+          422
+        )
+      }
+
+      const possuiDeclaracoesComoAnalista = await Declaracoes.exists({
+        $or: [
+          { "arquivistico.analistasResponsaveis": id },
+          { "bibliografico.analistasResponsaveis": id },
+          { "museologico.analistasResponsaveis": id }
+        ]
+      })
+
+      if (userProfile === "analyst" && possuiDeclaracoesComoAnalista) {
+        throw new HTTPError(
+          "Não é possível excluir um analista que tenha participado de análises",
+          422
+        )
+      }
+
+      const possuiDeclaracoesComoAdmin = await Declaracoes.exists({
+        $or: [{ responsavelEnvioAnalise: id }]
+      })
+
+      if (userProfile === "admin" && possuiDeclaracoesComoAdmin) {
+        throw new HTTPError(
+          "Não é possível excluir um administrador que restaurou ou encaminhou declarações para análise",
+          401
+        )
       }
 
       usuario.ativo = false
       await usuario.save()
 
-      return res.status(200).json({ mensagem: "Usuário deletado com sucesso." })
+      return res
+        .status(200)
+        .json({ mensagem: "Usuário desativado com sucesso." })
     } catch (error) {
       logger.error("Erro ao deletar usuário:", error)
+
+      if (error instanceof HTTPError) {
+        return res.status(error.status).json({ mensagem: error.message })
+      }
+
       return res.status(500).json({ mensagem: "Erro ao deletar usuário." })
     }
   }
