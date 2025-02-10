@@ -13,6 +13,7 @@ import { Status } from "../enums/Status"
 import { Eventos } from "../enums/Eventos"
 import logger from "../utils/logger"
 import { IProfile } from "../models/Profile"
+import HTTPError from "../utils/error"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -441,7 +442,6 @@ export class DeclaracaoController {
    *
    */
 
-
   async getDeclaracaoFiltrada(req: Request, res: Response) {
     try {
       const declaracoes = await this.declaracaoService.declaracaoComFiltros(
@@ -636,11 +636,7 @@ export class DeclaracaoController {
         { ano: anoDeclaracao },
         { $set: { declaracaoVinculada: true } },
         { new: true }
-      );
-
-
-      console.log(anoDeclaracaoReferencia)
-
+      )
 
       return res.status(200).json(novaDeclaracao)
     } catch (error) {
@@ -770,14 +766,13 @@ export class DeclaracaoController {
 
       return res.status(200).json(resultado)
     } catch (error) {
-      if (error instanceof Error) {
-        return res.status(400).json({
-          message:
-            "Não é possível restaurar esta declaração porque há versões mais recentes de declaração."
-        })
-      } else {
-        return res.status(400).json({ message: "Ocorreu um erro inesperado." })
+      logger.error("Erro ao deletar usuário:", error)
+
+      if (error instanceof HTTPError) {
+        return res.status(error.status).json({ mensagem: error.message })
       }
+
+      return res.status(500).json({ mensagem: "Erro ao restaurar declaração." })
     }
   }
 
