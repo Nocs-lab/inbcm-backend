@@ -742,7 +742,8 @@ class DeclaracaoService {
 
       const filtro: FilterQuery<IUsuario> = {
         profile: analistaProfile._id,
-        especialidadeAnalista: { $exists: true, $not: { $size: 0 } }
+        especialidadeAnalista: { $exists: true, $not: { $size: 0 } },
+        ativo: true
       }
 
       if (especificidades) {
