@@ -396,15 +396,15 @@ class UsuarioController {
 
       return res
         .status(200)
-        .json({ mensagem: "Usuário desativado com sucesso." })
+        .json({ message: "Usuário desativado com sucesso." })
     } catch (error) {
       logger.error("Erro ao deletar usuário:", error)
 
       if (error instanceof HTTPError) {
-        return res.status(error.status).json({ mensagem: error.message })
+        return res.status(error.status).json({ message: error.message })
       }
 
-      return res.status(500).json({ mensagem: "Erro ao deletar usuário." })
+      return res.status(500).json({ message: "Erro ao deletar usuário." })
     }
   }
 

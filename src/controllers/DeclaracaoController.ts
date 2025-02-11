@@ -769,10 +769,10 @@ export class DeclaracaoController {
       logger.error("Erro ao deletar usuário:", error)
 
       if (error instanceof HTTPError) {
-        return res.status(error.status).json({ mensagem: error.message })
+        return res.status(error.status).json({ message: error.message })
       }
 
-      return res.status(500).json({ mensagem: "Erro ao restaurar declaração." })
+      return res.status(500).json({ message: "Erro ao restaurar declaração." })
     }
   }
 
