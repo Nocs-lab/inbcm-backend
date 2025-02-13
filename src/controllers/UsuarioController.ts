@@ -10,14 +10,50 @@ import { Status } from "../enums/Status"
 import HTTPError from "../utils/error"
 
 class UsuarioController {
+  async registerUsuarioExterno(req: Request, res: Response) {
+    const { nome, email, cpf, museus } = req.body
+    console.log(nome, email, cpf, museus)
+
+    try {
+      await UsuarioService.validarUsuarioExterno({
+        nome,
+        email,
+        profile: "declarant",
+        cpf
+      })
+
+      const novoUsuario = await UsuarioService.criarUsuarioExterno({
+        nome,
+        email,
+        cpf,
+        museus
+      })
+
+      return res.status(201).json({
+        menssage:
+          "Pedido de acesso ao sistema INBCM feito com sucesso. Aguarde análise.",
+        usuario: novoUsuario
+      })
+    } catch (error: unknown) {
+      console.error("Erro detalhado:", error)
+      if (error instanceof HTTPError) {
+        return res.status(400).json({ mensage: error.message })
+      }
+      return res.status(500).json({
+        mensage: "Erro desconhecido ao criar usuário externo."
+      })
+    }
+  }
+
   async registerUsuario(req: Request, res: Response) {
     const { nome, email, senha, cpf, profile, especialidadeAnalista, museus } =
       req.body
 
     if (!nome || !email || !senha || !profile || !cpf) {
-      return res.status(400).json({
-        mensagem: "Nome, email, senha e perfil são obrigatórios."
-      })
+      throw new HTTPError(
+        "Nome,email,senha,profile e cpf são dados obrigatórios",
+        422
+      )
     }
 
     try {

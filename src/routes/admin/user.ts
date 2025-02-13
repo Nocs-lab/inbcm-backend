@@ -3,7 +3,7 @@ import UsuarioController from "../../controllers/UsuarioController"
 import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 
 const routes = express.Router()
-
+routes.post("/registro", UsuarioController.registerUsuarioExterno)
 routes.post(
   "/",
   userPermissionMiddleware("registerUsuario"),

@@ -1,6 +1,6 @@
 import argon from "@node-rs/argon2"
 import jwt from "jsonwebtoken"
-import { RefreshToken, Usuario } from "../models/Usuario"
+import { RefreshToken, SituacaoUsuario, Usuario } from "../models/Usuario"
 import config from "../config"
 import { IProfile, Profile } from "../models/Profile"
 import HTTPError from "../utils/error"
@@ -22,7 +22,10 @@ export default class AuthService {
     } else if (!(await argon.verify(user.senha, password))) {
       throw new HTTPError("Senha incorreta", 401)
     }
-    if (!user.ativo) {
+    if (
+      user.situacao === SituacaoUsuario.ParaAprovar ||
+      user.situacao === SituacaoUsuario.Inativo
+    ) {
       throw new HTTPError("Usuário não está ativo.", 403)
     }
     const profileName = (user.profile as IProfile)?.name || "sem perfil"
