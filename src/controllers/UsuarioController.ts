@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import Usuario, { validarCPF } from "../models/Usuario"
+import Usuario, { SituacaoUsuario, validarCPF } from "../models/Usuario"
 import logger from "../utils/logger"
 import { UsuarioService } from "../service/UserService"
 import { Declaracoes, Museu } from "../models"
@@ -35,7 +35,6 @@ class UsuarioController {
         usuario: novoUsuario
       })
     } catch (error: unknown) {
-      console.error("Erro detalhado:", error)
       if (error instanceof HTTPError) {
         return res.status(400).json({ mensage: error.message })
       }
@@ -160,13 +159,23 @@ class UsuarioController {
         especialidadeAnalista,
         museus,
         desvincularMuseus,
-        cpf
+        cpf,
+        situacao
       }: UpdateUserDto = req.body
 
       const usuario = await Usuario.findById(id)
 
       if (!usuario) {
         return res.status(404).json({ mensagem: "Usuário não encontrado." })
+      }
+      if (situacao !== undefined) {
+        if (!Object.values(SituacaoUsuario).includes(situacao)) {
+          throw new HTTPError(
+            "Situação inválida. Valores permitidos: 0, 1 ou 2.",
+            400
+          )
+        }
+        usuario.situacao = situacao
       }
 
       if (nome) {
@@ -427,7 +436,7 @@ class UsuarioController {
         )
       }
 
-      usuario.ativo = false
+      usuario.situacao = SituacaoUsuario.Inativo
       await usuario.save()
 
       return res
