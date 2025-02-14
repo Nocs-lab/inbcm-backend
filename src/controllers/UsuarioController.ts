@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import Usuario, { validarCPF } from "../models/Usuario"
+import Usuario, { SituacaoUsuario, validarCPF } from "../models/Usuario"
 import logger from "../utils/logger"
 import { UsuarioService } from "../service/UserService"
 import { Declaracoes, Museu } from "../models"
@@ -10,14 +10,49 @@ import { Status } from "../enums/Status"
 import HTTPError from "../utils/error"
 
 class UsuarioController {
+  async registerUsuarioExterno(req: Request, res: Response) {
+    const { nome, email, cpf, museus } = req.body
+    console.log(nome, email, cpf, museus)
+
+    try {
+      await UsuarioService.validarUsuarioExterno({
+        nome,
+        email,
+        profile: "declarant",
+        cpf
+      })
+
+      const novoUsuario = await UsuarioService.criarUsuarioExterno({
+        nome,
+        email,
+        cpf,
+        museus
+      })
+
+      return res.status(201).json({
+        message:
+          "Pedido de acesso ao sistema INBCM feito com sucesso. Aguarde análise.",
+        usuario: novoUsuario
+      })
+    } catch (error: unknown) {
+      if (error instanceof HTTPError) {
+        return res.status(400).json({ message: error.message })
+      }
+      return res.status(500).json({
+        message: "Erro desconhecido ao criar usuário externo."
+      })
+    }
+  }
+
   async registerUsuario(req: Request, res: Response) {
     const { nome, email, senha, cpf, profile, especialidadeAnalista, museus } =
       req.body
 
     if (!nome || !email || !senha || !profile || !cpf) {
-      return res.status(400).json({
-        mensagem: "Nome, email, senha e perfil são obrigatórios."
-      })
+      throw new HTTPError(
+        "Nome,email,senha,profile e cpf são dados obrigatórios",
+        422
+      )
     }
 
     try {
@@ -45,18 +80,18 @@ class UsuarioController {
       })
 
       return res.status(201).json({
-        mensagem: "Usuário criado com sucesso.",
+        message: "Usuário criado com sucesso.",
         usuario: novoUsuario
       })
     } catch (error: unknown) {
       if (error instanceof Error) {
         logger.error("Erro ao criar usuário:", error)
-        return res.status(400).json({ mensagem: error.message })
+        return res.status(400).json({ message: error.message })
       }
 
       logger.error("Erro inesperado:", error)
       return res.status(500).json({
-        mensagem: "Erro desconhecido ao criar usuário."
+        message: "Erro desconhecido ao criar usuário."
       })
     }
   }
@@ -76,7 +111,7 @@ class UsuarioController {
 
       return res.status(200).json(result)
     } catch (error) {
-      return res.status(500).json({ mensagem: "Erro ao listar usuários." })
+      return res.status(500).json({ message: "Erro ao listar usuários." })
     }
   }
 
@@ -88,12 +123,12 @@ class UsuarioController {
         .populate("museus")
         .populate("profile")
       if (!usuario) {
-        return res.status(404).json({ mensagem: "Usuário não encontrado." })
+        return res.status(404).json({ message: "Usuário não encontrado." })
       }
       return res.status(200).json(usuario)
     } catch (error) {
       logger.error("Erro ao buscar usuário:", error)
-      return res.status(500).json({ mensagem: "Erro ao buscar usuário." })
+      return res.status(500).json({ message: "Erro ao buscar usuário." })
     }
   }
 
@@ -105,12 +140,12 @@ class UsuarioController {
         .populate("museus")
         .populate("profile", "name _id")
       if (!usuario) {
-        return res.status(404).json({ mensagem: "Usuário não encontrado." })
+        return res.status(404).json({ message: "Usuário não encontrado." })
       }
       return res.status(200).json(usuario)
     } catch (error) {
       logger.error("Erro ao buscar usuário:", error)
-      return res.status(500).json({ mensagem: "Erro ao buscar usuário." })
+      return res.status(500).json({ message: "Erro ao buscar usuário." })
     }
   }
 
@@ -124,13 +159,20 @@ class UsuarioController {
         especialidadeAnalista,
         museus,
         desvincularMuseus,
-        cpf
+        cpf,
+        situacao
       }: UpdateUserDto = req.body
 
       const usuario = await Usuario.findById(id)
 
       if (!usuario) {
-        return res.status(404).json({ mensagem: "Usuário não encontrado." })
+        return res.status(404).json({ message: "Usuário não encontrado." })
+      }
+      if (situacao !== undefined) {
+        if (!Object.values(SituacaoUsuario).includes(situacao)) {
+          throw new HTTPError("Usuário não está ativo.", 400)
+        }
+        usuario.situacao = situacao
       }
 
       if (nome) {
@@ -147,7 +189,7 @@ class UsuarioController {
         if (!perfilValido) {
           return res
             .status(400)
-            .json({ mensagem: "O perfil informado é inválido." })
+            .json({ message: "O perfil informado é inválido." })
         }
         usuario.profile = perfilValido._id as Types.ObjectId
       }
@@ -156,7 +198,7 @@ class UsuarioController {
         const cpfFormatado = cpf.replace(/\D/g, "")
 
         if (!validarCPF(cpfFormatado)) {
-          return res.status(400).json({ mensagem: "CPF inválido." })
+          return res.status(400).json({ message: "CPF inválido." })
         }
         usuario.cpf = cpfFormatado
       }
@@ -167,7 +209,7 @@ class UsuarioController {
           if (!museuId.match(/^[a-fA-F0-9]{24}$/)) {
             resultadosVinculacao.push({
               museuId,
-              mensagem: "ID do museu inválido."
+              message: "ID do museu inválido."
             })
             continue
           }
@@ -177,7 +219,7 @@ class UsuarioController {
           if (!museu) {
             resultadosVinculacao.push({
               museuId,
-              mensagem: "Museu não encontrado."
+              message: "Museu não encontrado."
             })
             continue
           }
@@ -185,7 +227,7 @@ class UsuarioController {
           if (museu.usuario) {
             resultadosVinculacao.push({
               museuId,
-              mensagem: "Este museu já possui um usuário associado."
+              message: "Este museu já possui um usuário associado."
             })
             continue
           }
@@ -199,13 +241,13 @@ class UsuarioController {
 
           resultadosVinculacao.push({
             museuId,
-            mensagem: "Usuário vinculado ao museu com sucesso."
+            message: "Usuário vinculado ao museu com sucesso."
           })
         }
 
         await usuario.save()
         return res.status(200).json({
-          mensagem: "Processo de vinculação concluído.",
+          message: "Processo de vinculação concluído.",
           resultadosVinculacao
         })
       }
@@ -219,7 +261,7 @@ class UsuarioController {
           if (!museu) {
             resultadosDesvinculacao.push({
               museuId,
-              mensagem: "Museu não encontrado."
+              message: "Museu não encontrado."
             })
             continue
           }
@@ -227,7 +269,7 @@ class UsuarioController {
           if (museu.usuario && !museu.usuario.equals(new Types.ObjectId(id))) {
             resultadosDesvinculacao.push({
               museuId,
-              mensagem: "Este museu não está vinculado a este usuário."
+              message: "Este museu não está vinculado a este usuário."
             })
             continue
           }
@@ -241,13 +283,13 @@ class UsuarioController {
 
           resultadosDesvinculacao.push({
             museuId,
-            mensagem: "Usuário desvinculado do museu com sucesso."
+            message: "Usuário desvinculado do museu com sucesso."
           })
         }
 
         await usuario.save()
         return res.status(200).json({
-          mensagem: "Processo de desvinculação concluído.",
+          message: "Processo de desvinculação concluído.",
           resultadosDesvinculacao
         })
       }
@@ -257,14 +299,14 @@ class UsuarioController {
         const perfilAtual = await Profile.findById(usuario.profile)
         if (perfilAtual?.name !== "analyst") {
           return res.status(400).json({
-            mensagem:
+            message:
               "Apenas usuários com o perfil 'analyst' podem ter especialidades."
           })
         }
 
         if (!Array.isArray(especialidadeAnalista)) {
           return res.status(400).json({
-            mensagem: "O campo especialidadeAnalista deve ser um array."
+            message: "O campo especialidadeAnalista deve ser um array."
           })
         }
 
@@ -279,13 +321,13 @@ class UsuarioController {
         )
         if (especialidadesInvalidas.length > 0) {
           return res.status(400).json({
-            mensagem: `As seguintes especialidades são inválidas: ${especialidadesInvalidas.join(", ")}`
+            message: `As seguintes especialidades são inválidas: ${especialidadesInvalidas.join(", ")}`
           })
         }
 
         if (especialidadeAnalista.length === 0) {
           return res.status(400).json({
-            mensagem: "O analista deve ter pelo menos uma especialidade."
+            message: "O analista deve ter pelo menos uma especialidade."
           })
         }
 
@@ -318,7 +360,7 @@ class UsuarioController {
 
           if (declaracoesEmAnalise.length > 0) {
             return res.status(400).json({
-              mensagem: `Não é possível remover a especialidade '${especialidade}' porque o analista está vinculado a declarações com status 'Em análise'.`
+              message: `Não é possível remover a especialidade '${especialidade}' porque o analista está vinculado a declarações com status 'Em análise'.`
             })
           }
         }
@@ -327,7 +369,7 @@ class UsuarioController {
         await usuario.save()
 
         return res.status(200).json({
-          mensagem: "Especialidades atualizadas com sucesso.",
+          message: "Especialidades atualizadas com sucesso.",
           especialidadesAdicionadas,
           especialidadesRemovidas
         })
@@ -336,11 +378,11 @@ class UsuarioController {
       await usuario.save()
 
       return res.status(200).json({
-        mensagem: "Usuário atualizado com sucesso.",
+        message: "Usuário atualizado com sucesso.",
         usuario
       })
     } catch (erro) {
-      return res.status(500).json({ mensagem: "Erro ao atualizar o usuário." })
+      return res.status(500).json({ message: "Erro ao atualizar o usuário." })
     }
   }
   async deletarUsuario(req: Request, res: Response) {
@@ -352,7 +394,7 @@ class UsuarioController {
         .populate("museus")
 
       if (!usuario) {
-        return res.status(404).json({ mensagem: "Usuário não encontrado." })
+        return res.status(404).json({ message: "Usuário não encontrado." })
       }
 
       const perfil = await Usuario.findById(id).populate("profile")
@@ -387,11 +429,11 @@ class UsuarioController {
       if (userProfile === "admin" && possuiDeclaracoesComoAdmin) {
         throw new HTTPError(
           "Não é possível excluir um administrador que restaurou ou encaminhou declarações para análise",
-          401
+          422
         )
       }
 
-      usuario.ativo = false
+      usuario.situacao = SituacaoUsuario.Inativo
       await usuario.save()
 
       return res
@@ -419,14 +461,14 @@ class UsuarioController {
       if (usuarios.length === 0) {
         return res
           .status(404)
-          .json({ mensagem: "Nenhum usuário encontrado para este perfil." })
+          .json({ message: "Nenhum usuário encontrado para este perfil." })
       }
       return res.status(200).json(usuarios)
     } catch (error) {
       logger.error("Erro ao listar usuários por perfil:", error)
       return res
         .status(500)
-        .json({ mensagem: "Erro ao listar usuários por perfil." })
+        .json({ message: "Erro ao listar usuários por perfil." })
     }
   }
 }
