@@ -429,7 +429,7 @@ class UsuarioController {
       if (userProfile === "admin" && possuiDeclaracoesComoAdmin) {
         throw new HTTPError(
           "Não é possível excluir um administrador que restaurou ou encaminhou declarações para análise",
-          401
+          422
         )
       }
 
