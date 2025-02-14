@@ -1,3 +1,5 @@
+import { SituacaoUsuario } from "../Usuario"
+
 export class UpdateUserDto {
   nome?: string
   email?: string
@@ -6,4 +8,5 @@ export class UpdateUserDto {
   museus?: string[]
   desvincularMuseus?: string[]
   cpf?: string
+  situacao?: SituacaoUsuario
 }
