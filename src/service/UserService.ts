@@ -26,25 +26,25 @@ export class UsuarioService {
   }) {
     // Valida museus
     const museusValidos: string[] = []
-    const erros: { museuId: string; mensagem: string }[] = []
+    const erros: { museuId: string; message: string }[] = []
 
     for (const id of museus) {
       if (!id.match(/^[a-fA-F0-9]{24}$/)) {
-        erros.push({ museuId: id, mensagem: "ID do museu inválido." })
+        erros.push({ museuId: id, message: "ID do museu inválido." })
         continue
       }
 
       const museu = await Museu.findById(id)
 
       if (!museu) {
-        erros.push({ museuId: id, mensagem: "Museu não encontrado." })
+        erros.push({ museuId: id, message: "Museu não encontrado." })
         continue
       }
 
       if (museu.usuario) {
         erros.push({
           museuId: id,
-          mensagem: "Este museu já possui um usuário associado."
+          message: "Este museu já possui um usuário associado."
         })
         continue
       }
@@ -203,25 +203,25 @@ export class UsuarioService {
 
     // Valida museus
     const museusValidos: string[] = []
-    const erros: { museuId: string; mensagem: string }[] = []
+    const erros: { museuId: string; message: string }[] = []
 
     for (const id of museus) {
       if (!id.match(/^[a-fA-F0-9]{24}$/)) {
-        erros.push({ museuId: id, mensagem: "ID do museu inválido." })
+        erros.push({ museuId: id, message: "ID do museu inválido." })
         continue
       }
 
       const museu = await Museu.findById(id)
 
       if (!museu) {
-        erros.push({ museuId: id, mensagem: "Museu não encontrado." })
+        erros.push({ museuId: id, message: "Museu não encontrado." })
         continue
       }
 
       if (museu.usuario) {
         erros.push({
           museuId: id,
-          mensagem: "Este museu já possui um usuário associado."
+          message: "Este museu já possui um usuário associado."
         })
         continue
       }
