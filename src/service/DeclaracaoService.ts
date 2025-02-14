@@ -12,7 +12,7 @@ import {
   IMuseu,
   TimeLine
 } from "../models"
-import { IUsuario } from "../models/Usuario"
+import { IUsuario, SituacaoUsuario } from "../models/Usuario"
 import mongoose from "mongoose"
 import {
   validate_museologico,
@@ -743,7 +743,7 @@ class DeclaracaoService {
       const filtro: FilterQuery<IUsuario> = {
         profile: analistaProfile._id,
         especialidadeAnalista: { $exists: true, $not: { $size: 0 } },
-        ativo: true
+        situacao: SituacaoUsuario.Ativo
       }
 
       if (especificidades) {
@@ -1246,26 +1246,13 @@ class DeclaracaoService {
 
     return declaracaoAtualizada
   }
-
-  /**
-   * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
-   *
-   * @param museuId - String  contendo um  id de museu.
-   * @param ano - String contendo um ano de declaracao.
-   * @param userId - String  contendo id de usuario
-   * @param tipoItem - String contenado  tipo de bem a ser buscado ("Arquivistico", "Bibliografico" ou "Museologico").
-   *
-   *
-   * @returns Uma promessa que resolve uma listagem de itens de um determinado tipo de bem.
-   */
-  async buscarItensPorTipo(
+  async buscarItensPorTipoAdmin(
     museuId: string,
     ano: string,
-    userId: string,
     tipoItem: string
   ) {
     // Verificar se o museu pertence ao usuário específico
-    const museu = await Museu.findOne({ _id: museuId, usuario: userId })
+    const museu = await Museu.findOne({ _id: museuId })
 
     if (!museu) {
       throw new Error("Museu inválido ou você não tem permissão para acessá-lo")
@@ -1278,7 +1265,7 @@ class DeclaracaoService {
     switch (tipoItem) {
       case "arquivistico":
         Model = Arquivistico
-        retornoPorItem = "_id coddereferencia titulo nomedoprodutor" // Defina os campos específicos para arquivistico
+        retornoPorItem = "_id coddereferencia titulo nomedoprodutor"
         break
       case "bibliografico":
         Model = Bibliografico
@@ -1308,8 +1295,98 @@ class DeclaracaoService {
       {
         $match: {
           "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
-          "declaracoes.anoDeclaracao": ano,
-          "declaracoes.responsavelEnvio": new mongoose.Types.ObjectId(userId)
+          "declaracoes.anoDeclaracao": ano
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          maxVersao: { $max: "$versao" }
+        }
+      }
+    ])
+
+    const maxVersao = maxVersaoResult[0]?.maxVersao
+
+    if (maxVersao === undefined) {
+      return [] // Se não houver versão encontrada, retornar array vazio
+    }
+
+    // Segunda agregação: buscar os itens do tipo especificado da maior versão encontrada
+    const result = await Model.find({
+      versao: maxVersao,
+      declaracao_ref: {
+        $in: await Declaracoes.find({
+          museu_id: new mongoose.Types.ObjectId(museuId),
+          anoDeclaracao: ano
+        }).select("_id")
+      }
+    }).select(retornoPorItem)
+
+    return result
+  }
+  /**
+   * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
+   *
+   * @param museuId - String  contendo um  id de museu.
+   * @param ano - String contendo um ano de declaracao.
+   * @param userId - String  contendo id de usuario
+   * @param tipoItem - String contenado  tipo de bem a ser buscado ("Arquivistico", "Bibliografico" ou "Museologico").
+   *
+   *
+   * @returns Uma promessa que resolve uma listagem de itens de um determinado tipo de bem.
+   */
+  async buscarItensPorTipo(
+    museuId: string,
+    ano: string,
+    userId: string,
+    tipoItem: string
+  ) {
+    // Verificar se o museu pertence ao usuário específico
+    const museu = await Museu.findOne({ _id: museuId })
+
+    if (!museu) {
+      throw new Error("Museu inválido ou você não tem permissão para acessá-lo")
+    }
+
+    // Definir o modelo e os campos de projeção com base no tipo de item
+    let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico
+    let retornoPorItem: string
+
+    switch (tipoItem) {
+      case "arquivistico":
+        Model = Arquivistico
+        retornoPorItem = "_id coddereferencia titulo nomedoprodutor"
+        break
+      case "bibliografico":
+        Model = Bibliografico
+        retornoPorItem = "_id nderegistro situacao titulo localdeproducao" // Defina os campos específicos para bibliografico
+        break
+      case "museologico":
+        Model = Museologico
+        retornoPorItem = "_id nderegistro autor situacao denominacao" // Defina os campos específicos para museologico
+        break
+      default:
+        throw new Error("Tipo de item inválido")
+    }
+
+    // Primeira agregação: encontrar a maior versão
+    const maxVersaoResult = await Model.aggregate([
+      {
+        $lookup: {
+          from: "declaracoes",
+          localField: "declaracao_ref",
+          foreignField: "_id",
+          as: "declaracoes"
+        }
+      },
+      {
+        $unwind: "$declaracoes"
+      },
+      {
+        $match: {
+          "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
+          "declaracoes.anoDeclaracao": ano
         }
       },
       {
