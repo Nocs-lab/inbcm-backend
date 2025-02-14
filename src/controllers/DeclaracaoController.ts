@@ -1072,6 +1072,38 @@ export class DeclaracaoController {
     }
   }
 
+  async listarItensPorTipodeBemAdmin(req: Request, res: Response) {
+    const { museuId, ano, tipo } = req.params
+
+    try {
+      const result = await this.declaracaoService.buscarItensPorTipoAdmin(
+        museuId,
+        ano,
+        tipo
+      )
+
+      if (!result) {
+        return res
+          .status(404)
+          .json({ message: `Itens ${tipo} não encontrados` })
+      }
+
+      res.status(200).json(result)
+    } catch (error) {
+      logger.error(`Erro ao listar itens ${tipo}:`, error)
+
+      if (error instanceof Error) {
+        res.status(500).json({
+          message: `Erro ao listar itens ${tipo}`,
+          error: error.message
+        })
+      } else {
+        res
+          .status(500)
+          .json({ message: `Erro desconhecido ao listar itens ${tipo}` })
+      }
+    }
+  }
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
    * @param {string} req.params.museuId - O ID do museu.
@@ -1085,15 +1117,6 @@ export class DeclaracaoController {
     const user_id = req.user.id
 
     try {
-      const museu = await Museu.findOne({ _id: museuId, usuario: user_id })
-
-      if (!museu) {
-        return res.status(400).json({
-          success: false,
-          message: "Museu inválido ou você não tem permissão para acessá-lo"
-        })
-      }
-
       const result = await this.declaracaoService.buscarItensPorTipo(
         museuId,
         ano,
