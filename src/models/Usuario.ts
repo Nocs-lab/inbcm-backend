@@ -2,6 +2,11 @@ import mongoose, { Schema, Types, Document } from "mongoose"
 import { IProfile } from "./Profile"
 import { IMuseu } from "./Museu"
 
+export enum SituacaoUsuario {
+  ParaAprovar = 0,
+  Ativo = 1,
+  Inativo = 2
+}
 export interface IUsuario extends Document {
   nome: string
   email: string
@@ -9,7 +14,7 @@ export interface IUsuario extends Document {
   admin: boolean
   senha: string
   profile: IProfile | Types.ObjectId
-  ativo: boolean
+  situacao: SituacaoUsuario
   especialidadeAnalista: string[]
   cpf: string
 }
@@ -18,9 +23,17 @@ export const UsuarioSchema = new Schema<IUsuario>({
   nome: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   admin: { type: Boolean, default: false },
-  senha: { type: String, required: true },
+  senha: { type: String, required: false },
   profile: { type: Schema.Types.ObjectId, required: true, ref: "profiles" },
-  ativo: { type: Boolean, default: true },
+  situacao: {
+    type: Number,
+    enum: [
+      SituacaoUsuario.ParaAprovar,
+      SituacaoUsuario.Ativo,
+      SituacaoUsuario.Inativo
+    ],
+    default: SituacaoUsuario.Ativo
+  },
   museus: [{ type: mongoose.Schema.Types.ObjectId, ref: "museus" }],
   especialidadeAnalista: [
     {
