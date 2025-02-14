@@ -1343,7 +1343,7 @@ class DeclaracaoService {
     tipoItem: string
   ) {
     // Verificar se o museu pertence ao usuário específico
-    const museu = await Museu.findOne({ _id: museuId })
+    const museu = await Museu.findOne({ _id: museuId, usuario: userId })
 
     if (!museu) {
       throw new Error("Museu inválido ou você não tem permissão para acessá-lo")
@@ -1356,7 +1356,7 @@ class DeclaracaoService {
     switch (tipoItem) {
       case "arquivistico":
         Model = Arquivistico
-        retornoPorItem = "_id coddereferencia titulo nomedoprodutor"
+        retornoPorItem = "_id coddereferencia titulo nomedoprodutor" // Defina os campos específicos para arquivistico
         break
       case "bibliografico":
         Model = Bibliografico
@@ -1386,7 +1386,8 @@ class DeclaracaoService {
       {
         $match: {
           "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
-          "declaracoes.anoDeclaracao": ano
+          "declaracoes.anoDeclaracao": ano,
+          "declaracoes.responsavelEnvio": new mongoose.Types.ObjectId(userId)
         }
       },
       {
