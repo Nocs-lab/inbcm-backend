@@ -1117,6 +1117,15 @@ export class DeclaracaoController {
     const user_id = req.user.id
 
     try {
+      const museu = await Museu.findOne({ _id: museuId, usuario: user_id })
+
+      if (!museu) {
+        return res.status(400).json({
+          success: false,
+          message: "Museu inválido ou você não tem permissão para acessá-lo"
+        })
+      }
+
       const result = await this.declaracaoService.buscarItensPorTipo(
         museuId,
         ano,
