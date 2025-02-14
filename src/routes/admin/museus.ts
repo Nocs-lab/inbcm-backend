@@ -23,11 +23,7 @@ const routes = express.Router()
  *       '500':
  *         description: Erro ao listar museus.
  */
-routes.get(
-  "/",
-  userPermissionMiddleware("listarMuseus"),
-  MuseuController.listarMuseus
-)
+routes.get("/", MuseuController.listarMuseus)
 routes.get(
   "/listarCidades",
   userPermissionMiddleware("listarMunicipios"),
