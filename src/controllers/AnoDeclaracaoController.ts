@@ -199,6 +199,10 @@ class AnoDeclaracaoController {
         metaDeclaracoesEnviadas
       } = req.body
 
+      var anoInteiro = ano
+      if (typeof ano === "string" && !isNaN(Number(ano))) {
+        anoInteiro = parseInt(ano, 10)
+      }
 
       // Validação para não ser possível alterar o ano de um modelo com declaração vinculada
       const anoDeclaracao = await AnoDeclaracao.findById(id);
@@ -206,7 +210,7 @@ class AnoDeclaracaoController {
         return res.status(404).json({ message: "Ano de declaração não encontrado" });
       }
 
-      if (anoDeclaracao.declaracaoVinculada && ano !== anoDeclaracao.ano) {
+      if (anoDeclaracao.declaracaoVinculada && anoInteiro !== anoDeclaracao.ano) {
         return res.status(403).json({ message: "Não é permitido alterar o ano quando há declarações vinculadas." });
       }
 
@@ -218,7 +222,7 @@ class AnoDeclaracaoController {
 
       const updatedAnoDeclaracao = await AnoDeclaracao.findByIdAndUpdate(
         id,
-        { ano,
+        { ano: anoInteiro,
           dataInicioSubmissao: dataInicioSubmissaoDate,
           dataFimSubmissao: dataFimSubmissaoDate,
           dataInicioRetificacao: dataInicioRetificacaoDate,
