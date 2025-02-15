@@ -1,5 +1,5 @@
 import { hash } from "@node-rs/argon2"
-import { Usuario } from "../models/Usuario"
+import { SituacaoUsuario, Usuario } from "../models/Usuario"
 import { Profile } from "../models/Profile" // Importa o model Profile
 import connect from "../db/conn"
 import logger from "../utils/logger"
@@ -24,8 +24,8 @@ const createAdminUser = async () => {
       admin: true,
       nome: nome || "admin",
       museus: [],
-      profile: adminProfile._id, // Vincula o perfil 'admin'
-      ativo: true
+      profile: adminProfile._id,
+      situaco: SituacaoUsuario.Ativo
     })
 
     await adminUser.save()

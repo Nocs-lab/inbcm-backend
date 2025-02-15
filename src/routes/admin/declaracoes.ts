@@ -5,6 +5,15 @@ import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 const routes = express.Router()
 const declaracaoController = new DeclaracaoController()
 
+routes.get(
+  "/",
+  userPermissionMiddleware("getDeclaracoes"),
+  declaracaoController.getDeclaracoes
+)
+routes.get(
+  "/listar-itens/:museuId/:ano/:tipo",
+  declaracaoController.listarItensPorTipodeBemAdmin.bind(declaracaoController)
+)
 /**
  * @swagger
  * /public/declaracoes/anosValidos/{qtdAnos}:

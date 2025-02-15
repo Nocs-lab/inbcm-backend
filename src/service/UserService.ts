@@ -239,7 +239,7 @@ export class UsuarioService {
       senha: senhaHash,
       profile,
       cpf,
-      ativo: true,
+      situacao: SituacaoUsuario.Ativo,
       especialidadeAnalista,
       museus: museusValidos
     })
@@ -270,9 +270,9 @@ export class UsuarioService {
    */
   static async buscarUsuarios(perfil: string[] = []) {
     const query: {
-      ativo: boolean
+      situacao: SituacaoUsuario
       profile?: Types.ObjectId[] | { $in: Types.ObjectId[] }
-    } = { ativo: true }
+    } = { situacao: SituacaoUsuario.Ativo }
 
     if (perfil && perfil.length > 0) {
       const profiles = await Profile.find({ name: { $in: perfil } })

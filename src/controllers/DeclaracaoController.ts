@@ -1072,6 +1072,38 @@ export class DeclaracaoController {
     }
   }
 
+  async listarItensPorTipodeBemAdmin(req: Request, res: Response) {
+    const { museuId, ano, tipo } = req.params
+
+    try {
+      const result = await this.declaracaoService.buscarItensPorTipoAdmin(
+        museuId,
+        ano,
+        tipo
+      )
+
+      if (!result) {
+        return res
+          .status(404)
+          .json({ message: `Itens ${tipo} não encontrados` })
+      }
+
+      res.status(200).json(result)
+    } catch (error) {
+      logger.error(`Erro ao listar itens ${tipo}:`, error)
+
+      if (error instanceof Error) {
+        res.status(500).json({
+          message: `Erro ao listar itens ${tipo}`,
+          error: error.message
+        })
+      } else {
+        res
+          .status(500)
+          .json({ message: `Erro desconhecido ao listar itens ${tipo}` })
+      }
+    }
+  }
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
    * @param {string} req.params.museuId - O ID do museu.
