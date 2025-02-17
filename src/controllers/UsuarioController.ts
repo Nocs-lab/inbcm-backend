@@ -84,7 +84,7 @@ class UsuarioController {
         usuario: novoUsuario
       })
     } catch (error: unknown) {
-      if (error instanceof Error) {
+      if (error instanceof HTTPError) {
         logger.error("Erro ao criar usuário:", error)
         return res.status(400).json({ message: error.message })
       }
@@ -110,8 +110,15 @@ class UsuarioController {
       const result = await UsuarioService.buscarUsuarios(perfilArray)
 
       return res.status(200).json(result)
-    } catch (error) {
-      return res.status(500).json({ message: "Erro ao listar usuários." })
+    } catch (error: unknown) {
+      if (error instanceof HTTPError) {
+        logger.error("Erro ao listar usuários:", error)
+        return res.status(400).json({ message: error.message })
+      }
+      logger.error("Erro inesperado listar usuário:", error)
+      return res.status(500).json({
+        message: "Erro desconhecido ao listar usuário."
+      })
     }
   }
 
@@ -167,6 +174,19 @@ class UsuarioController {
 
       if (!usuario) {
         return res.status(404).json({ message: "Usuário não encontrado." })
+      }
+      if (situacao !== undefined && situacao === SituacaoUsuario.Inativo) {
+        const declaracoesUsuario = await Declaracoes.find({
+          responsavelEnvio: id,
+          ultimaDeclaracao: true,
+          status: { $ne: "Excluída" }
+        })
+        if (declaracoesUsuario.length > 0) {
+          throw new HTTPError(
+            "Não é possível inativar o usuário porque ele está vinculado a declarações.",
+            400
+          )
+        }
       }
       if (situacao !== undefined) {
         if (!Object.values(SituacaoUsuario).includes(situacao)) {
@@ -255,6 +275,7 @@ class UsuarioController {
       // Desvincula museus, se fornecido
       if (desvincularMuseus && Array.isArray(desvincularMuseus)) {
         const resultadosDesvinculacao = []
+
         for (const museuId of desvincularMuseus) {
           const museu = await Museu.findById(museuId)
 
@@ -274,9 +295,22 @@ class UsuarioController {
             continue
           }
 
+          const declaracoesVinculadas = await Declaracoes.find({
+            museu: museuId,
+            status: { $in: [Status.Recebida, Status.EmAnalise] }
+          })
+
+          if (declaracoesVinculadas.length > 0) {
+            throw new HTTPError(
+              "Não é possível desvincular o usuário deste museu porque há declarações para com status 'Recebida' ou 'Em análise'. Aguarde o fim da análise para proceder com a operação.",
+              400
+            )
+          }
+
           museu.usuario = null
           await museu.save()
 
+          // Remove o museu da lista de museus do usuário
           usuario.museus = usuario.museus.filter(
             (id) => id.toString() !== museuId.toString()
           )
@@ -381,8 +415,14 @@ class UsuarioController {
         message: "Usuário atualizado com sucesso.",
         usuario
       })
-    } catch (erro) {
-      return res.status(500).json({ message: "Erro ao atualizar o usuário." })
+    } catch (error) {
+      logger.error("Erro ao atualizar usuário:", error)
+
+      if (error instanceof HTTPError) {
+        return res.status(error.status).json({ message: error.message })
+      }
+
+      return res.status(500).json({ message: "Erro ao atualizar usuário." })
     }
   }
   async deletarUsuario(req: Request, res: Response) {
@@ -399,10 +439,15 @@ class UsuarioController {
 
       const perfil = await Usuario.findById(id).populate("profile")
       const userProfile = (perfil?.profile as IProfile).name
+      const declaracoesUsuario = await Declaracoes.find({
+        ultimaDeclaracao: true,
+        responsavelEnvio: id,
+        status: { $ne: Status.Excluida }
+      })
 
-      if (userProfile === "declarant" && usuario.museus.length > 0) {
+      if (userProfile === "declarant" && declaracoesUsuario.length > 0) {
         throw new HTTPError(
-          "Não é possível excluir um declarante com museus associados. Desassocie os museus para realizar a exclusão.",
+          "Não é possível excluir o usuário porque ele está vinculado a declarações.",
           422
         )
       }
