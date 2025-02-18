@@ -270,9 +270,9 @@ export class UsuarioService {
    */
   static async buscarUsuarios(perfil: string[] = []) {
     const query: {
-      situacao: SituacaoUsuario
+
       profile?: Types.ObjectId[] | { $in: Types.ObjectId[] }
-    } = { situacao: SituacaoUsuario.Ativo }
+    } = { }
 
     if (perfil && perfil.length > 0) {
       const profiles = await Profile.find({ name: { $in: perfil } })
