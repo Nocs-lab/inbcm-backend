@@ -541,7 +541,32 @@ class DeclaracaoService {
         }
 
         // Valida o arquivo
-        const { data: arquivoData } = await validate(arquivos[0].buffer)
+        const {
+          data: arquivoData,
+          detailedErrors,
+          naoEncontrados
+        } = await validate(arquivos[0].buffer)
+
+        // Converter Map detailedErrors para array
+        const detailedErrorsArray = Array.from(
+          detailedErrors,
+          ([linha, camposComErro]) => ({
+            linha,
+            camposComErro
+          })
+        )
+
+        // Converter Set naoEncontrados para array e formatá-lo
+        const naoEncontradosArray = Array.from(naoEncontrados).map((linha) => ({
+          linha,
+          camposComErro: ["Não localizado"] // Indicando que a linha não foi encontrada
+        }))
+
+        // Unir detailedErrors com naoEncontrados
+        const detailedErrorsFinal = [
+          ...detailedErrorsArray,
+          ...naoEncontradosArray
+        ]
 
         // Calcula os percentuais de preenchimento
         const {
@@ -559,7 +584,8 @@ class DeclaracaoService {
           quantidadeItens: arquivoData.length,
           versao: novaVersao,
           porcentagemGeral,
-          porcentagemPorCampo
+          porcentagemPorCampo,
+          detailedErrors: detailedErrorsFinal
         }
 
         novaDeclaracao[tipo] = {

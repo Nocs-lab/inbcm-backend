@@ -17,7 +17,8 @@ const addPermissionsToAnalyst = async () => {
     "getTimeLine",
     "atualizarStatusBensDeclaracao",
     "atualizarUsuario",
-    "getUsuario"
+    "getUsuario",
+    "gerarReciboDetalhamento"
   ]
 
   try {

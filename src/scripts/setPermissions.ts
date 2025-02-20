@@ -88,6 +88,12 @@ const setPermissions = async () => {
       name: "atualizarUsuario",
       label: "Atualizar dados conforme os perfis",
       description: "Permite alterar dados conforme o perfil logado"
+    },
+    {
+      name: "gerarReciboDetalhamento",
+      label: "Gerar recibo de detalhamento de pendências",
+      description:
+        "Permite gerar um recibo pdf com detalhamento de pendências do recibo"
     }
   ]
 

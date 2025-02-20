@@ -17,6 +17,8 @@ export interface Arquivo {
   analistasResponsaveisNome?: string[]
   porcentagemGeral?: number
   porcentagemPorCampo?: { campo: string; percentual: number }[]
+  detailedErrors?: { linha: number; camposComErro: string[] }[]
+  naoEcontrados: []
 }
 
 export interface TimeLine {
@@ -66,6 +68,12 @@ const ArquivoSchema = new Schema<Arquivo>(
       {
         campo: { type: String, required: true },
         percentual: { type: Number, required: true }
+      }
+    ],
+    detailedErrors: [
+      {
+        linha: { type: Number, required: true },
+        camposComErro: [{ type: String, required: true }]
       }
     ]
   },
