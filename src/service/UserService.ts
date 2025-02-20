@@ -23,6 +23,7 @@ export class UsuarioService {
     email: string
     cpf: string
     museus: string[]
+    senha?: string
   }) {
     // Valida museus
     const museusValidos: string[] = []
@@ -68,7 +69,6 @@ export class UsuarioService {
       situacao: SituacaoUsuario.ParaAprovar,
       museus: museusValidos
     })
-    console.log(novoUsuario)
 
     await novoUsuario.save()
 
@@ -270,9 +270,8 @@ export class UsuarioService {
    */
   static async buscarUsuarios(perfil: string[] = []) {
     const query: {
-
       profile?: Types.ObjectId[] | { $in: Types.ObjectId[] }
-    } = { }
+    } = {}
 
     if (perfil && perfil.length > 0) {
       const profiles = await Profile.find({ name: { $in: perfil } })
