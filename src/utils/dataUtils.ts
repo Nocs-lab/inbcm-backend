@@ -13,4 +13,10 @@ export class DataUtils {
     const timeZone = "America/Sao_Paulo"
     return formatInTimeZone(data, timeZone, "HH:mm:ss")
   }
+
+  static gerarDataHoraFormatada(data: Date = this.getCurrentData()): string {
+    const timeZone = "America/Sao_Paulo"
+    // Formatar a data e a hora juntas no formato ISO
+    return formatInTimeZone(data, timeZone, "yyyy-MM-dd'T'HH:mm:ss")
+  }
 }

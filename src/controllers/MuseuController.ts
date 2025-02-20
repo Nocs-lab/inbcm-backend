@@ -151,7 +151,7 @@ class MuseuController {
 
       // Busca paginada com apenas os campos necessários
       const museus = await Museu.find(filtro)
-        .select("nome _id")
+        .select("nome _id endereco")
         .skip(skip)
         .limit(limitNumber)
 
