@@ -19,7 +19,7 @@ const gerarTabelaPendencias = (
 ) => {
   const campos = MapeadorCamposPercentual[tipo]
 
-  const erros = declaracao[tipo]?.detailedErrors || []
+  const erros = declaracao[tipo]?.detailedErrors ?? []
 
   if (erros.length === 0) {
     return {
@@ -48,7 +48,13 @@ const gerarTabelaPendencias = (
     }
   }
 
-  const errosOrdenados = erros.sort((a, b) => a.linha - b.linha)
+  const errosOrdenados = erros
+    .map((erro) => ({
+      ...erro,
+      linha: erro.linha + 1,
+      camposComErro: erro.camposComErro ?? []
+    }))
+    .sort((a, b) => a.linha - b.linha)
 
   return {
     table: {
@@ -70,7 +76,7 @@ const gerarTabelaPendencias = (
           { text: "Descrição", style: "tableHeader", alignment: "center" }
         ],
         ...errosOrdenados.flatMap((erro) => {
-          return erro.camposComErro.map((campo) => {
+          return (erro.camposComErro ?? []).map((campo) => {
             if (campo === "Não localizado") {
               return [
                 {
@@ -94,7 +100,7 @@ const gerarTabelaPendencias = (
             } else {
               return [
                 {
-                  text: `${erro.linha}`,
+                  text: `${erro.linha}`, // Usa o valor já incrementado
                   style: "tableData",
                   alignment: "center"
                 },
@@ -516,6 +522,7 @@ export async function gerarPDFRelatorioPendenciais(
       pdfDoc.end()
     })
   } catch (error) {
+    console.log(error)
     throw new HTTPError("Erro ao gerar o recibo.", 500)
   }
 }
