@@ -171,7 +171,7 @@ export function formatarDadosRecibo(
     pendenciaisArquivoMuseologico: verificarPendencias(
       declaracao.museologico?.pendencias
     ),
-    pendenciaisArquivoArquivsitico: verificarPendencias(
+    pendenciaisArquivoArquivisitico: verificarPendencias(
       declaracao.arquivistico?.pendencias
     ),
     pendenciaisArquivoBibliografico: verificarPendencias(
