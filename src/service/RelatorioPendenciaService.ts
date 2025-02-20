@@ -20,7 +20,33 @@ const gerarTabelaPendencias = (
   const campos = MapeadorCamposPercentual[tipo]
 
   const erros = declaracao[tipo]?.detailedErrors || []
-  console.log("Erros:", erros)
+
+  if (erros.length === 0) {
+    return {
+      table: {
+        widths: ["100%"],
+        body: [
+          [
+            {
+              text: `Não há pendências para o acervo ${tipo.charAt(0).toLowerCase() + tipo.slice(1)}`,
+              style: "tableHeader",
+              fillColor: "#D9D9D9",
+              alignment: "center"
+            }
+          ]
+        ]
+      },
+      layout: {
+        fillColor: function (rowIndex: number) {
+          return rowIndex % 2 === 0 ? "#F5F5F5" : null
+        },
+        paddingLeft: () => 10,
+        paddingRight: () => 10,
+        paddingTop: () => 5,
+        paddingBottom: () => 5
+      }
+    }
+  }
 
   const errosOrdenados = erros.sort((a, b) => a.linha - b.linha)
 
@@ -30,7 +56,7 @@ const gerarTabelaPendencias = (
       body: [
         [
           {
-            text: `Pendências do acervo ${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`,
+            text: `Pendências do acervo ${tipo.charAt(0).toLowerCase() + tipo.slice(1)}`,
             style: "tableHeader",
             fillColor: "#D9D9D9",
             colSpan: 3
@@ -44,9 +70,7 @@ const gerarTabelaPendencias = (
           { text: "Descrição", style: "tableHeader", alignment: "center" }
         ],
         ...errosOrdenados.flatMap((erro) => {
-          console.log("Erro:", erro)
           return erro.camposComErro.map((campo) => {
-            console.log("Campo:", campo)
             if (campo === "Não localizado") {
               return [
                 {
@@ -166,7 +190,6 @@ export async function gerarPDFRelatorioPendenciais(
       pageMargins: [40, 60, 40, 60],
 
       content: [
-        // Primeira página (conteúdo existente)
         {
           table: {
             widths: ["*"],
@@ -279,6 +302,7 @@ export async function gerarPDFRelatorioPendenciais(
             headerRows: 1,
             widths: ["*", "*", "*", "*"], // Colunas: Acervo, Quantidade de itens, Situação, Pendências
             body: [
+              // Cabeçalho
               [
                 {
                   text: "Acervo",
@@ -305,6 +329,7 @@ export async function gerarPDFRelatorioPendenciais(
                   alignment: "center"
                 }
               ],
+              // Linha Museológico
               [
                 { text: "Museológico", style: "tableData", alignment: "left" },
                 {
@@ -314,15 +339,16 @@ export async function gerarPDFRelatorioPendenciais(
                 },
                 {
                   text: dadosFormatados.statusArquivoMuseologico,
-                  alignment: "left",
-                  style: "tableData"
+                  style: "tableData",
+                  alignment: "left"
                 },
                 {
-                  text: dadosFormatados.pendenciaisArquivoMuseologico,
+                  text: dadosFormatados.pendenciaisArquivoMuseologico || "0",
                   style: "tableData",
                   alignment: "center"
                 }
               ],
+              // Linha Bibliográfico
               [
                 {
                   text: "Bibliográfico",
@@ -340,11 +366,12 @@ export async function gerarPDFRelatorioPendenciais(
                   alignment: "left"
                 },
                 {
-                  text: dadosFormatados.pendenciaisArquivoBibliografico,
+                  text: dadosFormatados.pendenciaisArquivoBibliografico || "0",
                   style: "tableData",
                   alignment: "center"
                 }
               ],
+
               [
                 { text: "Arquivístico", style: "tableData", alignment: "left" },
                 {
@@ -358,7 +385,7 @@ export async function gerarPDFRelatorioPendenciais(
                   alignment: "left"
                 },
                 {
-                  text: dadosFormatados.pendenciaisArquivoArquivsitico,
+                  text: dadosFormatados.pendenciaisArquivoArquivisitico || "0",
                   style: "tableData",
                   alignment: "center"
                 }

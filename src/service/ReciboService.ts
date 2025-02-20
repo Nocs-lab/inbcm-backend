@@ -258,6 +258,7 @@ async function gerarPDFRecibo(
                   alignment: "center"
                 }
               ],
+
               [
                 { text: "Museológico", style: "tableData", alignment: "left" },
                 {
@@ -267,15 +268,16 @@ async function gerarPDFRecibo(
                 },
                 {
                   text: dadosFormatados.statusArquivoMuseologico,
-                  alignment: "left",
-                  style: "tableData"
+                  style: "tableData",
+                  alignment: "left"
                 },
                 {
-                  text: dadosFormatados.pendenciaisArquivoMuseologico,
+                  text: dadosFormatados.pendenciaisArquivoMuseologico || "0",
                   style: "tableData",
                   alignment: "center"
                 }
               ],
+
               [
                 {
                   text: "Bibliográfico",
@@ -293,11 +295,12 @@ async function gerarPDFRecibo(
                   alignment: "left"
                 },
                 {
-                  text: dadosFormatados.pendenciaisArquivoBibliografico,
+                  text: dadosFormatados.pendenciaisArquivoBibliografico || "0",
                   style: "tableData",
                   alignment: "center"
                 }
               ],
+
               [
                 { text: "Arquivístico", style: "tableData", alignment: "left" },
                 {
@@ -311,7 +314,7 @@ async function gerarPDFRecibo(
                   alignment: "left"
                 },
                 {
-                  text: dadosFormatados.pendenciaisArquivoArquivsitico,
+                  text: dadosFormatados.pendenciaisArquivoArquivisitico || "0",
                   style: "tableData",
                   alignment: "center"
                 }
