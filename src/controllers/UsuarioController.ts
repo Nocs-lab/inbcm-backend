@@ -8,6 +8,7 @@ import { Types } from "mongoose"
 import { UpdateUserDto } from "../models/dto/UserDto"
 import { Status } from "../enums/Status"
 import HTTPError from "../utils/error"
+import argon2 from "@node-rs/argon2"
 
 class UsuarioController {
   async registerUsuarioExterno(req: Request, res: Response) {
@@ -191,6 +192,10 @@ class UsuarioController {
       if (situacao !== undefined) {
         if (!Object.values(SituacaoUsuario).includes(situacao)) {
           throw new HTTPError("Usuário não está ativo.", 400)
+        }
+        if (situacao == SituacaoUsuario.Ativo) {
+          const senhadefault = await argon2.hash("1234")
+          usuario.senha = senhadefault
         }
         usuario.situacao = situacao
       }
