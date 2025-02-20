@@ -345,7 +345,7 @@ export async function gerarPDFRelatorioPendenciais(
                 {
                   text: dadosFormatados.pendenciaisArquivoMuseologico || "0",
                   style: "tableData",
-                  alignment: "center"
+                  alignment: "left"
                 }
               ],
               // Linha Bibliográfico
@@ -368,7 +368,7 @@ export async function gerarPDFRelatorioPendenciais(
                 {
                   text: dadosFormatados.pendenciaisArquivoBibliografico || "0",
                   style: "tableData",
-                  alignment: "center"
+                  alignment: "left"
                 }
               ],
 
@@ -387,7 +387,7 @@ export async function gerarPDFRelatorioPendenciais(
                 {
                   text: dadosFormatados.pendenciaisArquivoArquivisitico || "0",
                   style: "tableData",
-                  alignment: "center"
+                  alignment: "left"
                 }
               ],
 

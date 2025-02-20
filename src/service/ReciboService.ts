@@ -274,7 +274,7 @@ async function gerarPDFRecibo(
                 {
                   text: dadosFormatados.pendenciaisArquivoMuseologico || "0",
                   style: "tableData",
-                  alignment: "center"
+                  alignment: "left"
                 }
               ],
 
@@ -297,7 +297,7 @@ async function gerarPDFRecibo(
                 {
                   text: dadosFormatados.pendenciaisArquivoBibliografico || "0",
                   style: "tableData",
-                  alignment: "center"
+                  alignment: "left"
                 }
               ],
 
@@ -316,7 +316,7 @@ async function gerarPDFRecibo(
                 {
                   text: dadosFormatados.pendenciaisArquivoArquivisitico || "0",
                   style: "tableData",
-                  alignment: "center"
+                  alignment: "left"
                 }
               ],
 
