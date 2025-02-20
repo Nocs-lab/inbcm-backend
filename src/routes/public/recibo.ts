@@ -5,6 +5,7 @@ import ReciboController from "../../controllers/ReciboController"
 const reciboController = new ReciboController()
 
 const routes = express.Router()
+routes.get("/detalhamento/:id", reciboController.gerarReciboDetalhamento)
 /**
  * @swagger
  * /api/recibo/validar/{hashDeclaracao}:
