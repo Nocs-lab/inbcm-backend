@@ -209,7 +209,7 @@ class UsuarioController {
       }
 
       if (perfil) {
-        const perfilValido = await Profile.findOne({ name: perfil }).exec()
+        const perfilValido = await Profile.findOne({ name: { $eq: perfil } }).exec()
 
         if (!perfilValido) {
           return res
