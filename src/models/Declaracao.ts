@@ -15,6 +15,10 @@ export interface Arquivo {
   comentarios: string[]
   analistasResponsaveis?: mongoose.Types.ObjectId[]
   analistasResponsaveisNome?: string[]
+  porcentagemGeral?: number
+  porcentagemPorCampo?: { campo: string; percentual: number }[]
+  detailedErrors?: { linha: number; camposComErro: string[] }[]
+  naoEcontrados: []
 }
 
 export interface TimeLine {
@@ -58,7 +62,20 @@ const ArquivoSchema = new Schema<Arquivo>(
     versao: { type: Number, default: 0 },
     comentarios: [ComentarioSchema],
     analistasResponsaveis: [{ type: Schema.Types.ObjectId, ref: "usuarios" }],
-    analistasResponsaveisNome: [{ type: String }]
+    analistasResponsaveisNome: [{ type: String }],
+    porcentagemGeral: { type: Number, default: 0 },
+    porcentagemPorCampo: [
+      {
+        campo: { type: String, required: true },
+        percentual: { type: Number, required: true }
+      }
+    ],
+    detailedErrors: [
+      {
+        linha: { type: Number, required: true },
+        camposComErro: [{ type: String, required: true }]
+      }
+    ]
   },
   { _id: false, versionKey: false }
 )
@@ -89,6 +106,7 @@ export interface DeclaracaoModel extends Document {
   responsavelEnvioAnalise?: mongoose.Types.ObjectId
   responsavelEnvioAnaliseNome: string
   dataAnalise?: Date
+  dataExclusao?: Date
   dataFimAnalise?: Date
   timeLine: TimeLine[]
 }
@@ -134,6 +152,7 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
     responsavelEnvioAnaliseNome: { type: String },
     dataAnalise: { type: Date },
     dataFimAnalise: { type: Date },
+    dataExclusao: { type: Date },
     timeLine: [TimeLineSchema]
   },
   { timestamps: true, versionKey: false }

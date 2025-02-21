@@ -12,7 +12,7 @@ import {
   IMuseu,
   TimeLine
 } from "../models"
-import { IUsuario } from "../models/Usuario"
+import { IUsuario, SituacaoUsuario } from "../models/Usuario"
 import mongoose from "mongoose"
 import {
   validate_museologico,
@@ -26,6 +26,13 @@ import { Eventos } from "../enums/Eventos"
 import logger from "../utils/logger"
 import { IAnalista } from "../types/Inalistas"
 import { FilterQuery } from "mongoose"
+import { calcularPercentuais } from "../utils/calcularPercentual"
+import {
+  arquivistico,
+  bibliografico,
+  museologico
+} from "inbcm-xlsx-validator/schema"
+import HTTPError from "../utils/error"
 
 class DeclaracaoService {
   async filtroDeclaracoesDashBoard(
@@ -288,398 +295,6 @@ class DeclaracaoService {
     }
   }
 
-  async getDashboardData(
-    estados: string[],
-    anos: string[],
-    museuId: string | null,
-    cidades: string[] // Novo parâmetro para cidades
-  ) {
-    const result = (
-      await Declaracoes.aggregate([
-        {
-          $match: {
-            status: { $ne: "Excluída" }, // Filtra pelo status
-            anoDeclaracao: { $in: anos }, // Filtra pelos anos passados no array
-            ultimaDeclaracao: true,
-            ...(museuId && {
-              museu_id: new mongoose.Types.ObjectId(museuId) // Adiciona o filtro de museuId quando presente
-            })
-          }
-        },
-        {
-          $lookup: {
-            from: "museus",
-            localField: "museu_id",
-            foreignField: "_id",
-            as: "museu"
-          }
-        },
-        {
-          $unwind: "$museu"
-        },
-        ...(estados.length
-          ? [
-              {
-                $match: {
-                  "museu.endereco.uf": { $in: estados } // Filtro por estado
-                }
-              }
-            ]
-          : []),
-        ...(cidades.length
-          ? [
-              {
-                $match: {
-                  "museu.endereco.municipio": { $in: cidades } // Filtro por cidade
-                }
-              }
-            ]
-          : []),
-        {
-          $facet: {
-            declaracoesPorAnoDashboard: [
-              {
-                $group: {
-                  _id: "$anoDeclaracao",
-                  count: { $sum: 1 }
-                }
-              },
-              {
-                $sort: { _id: 1 } // Ordenar por ano, se necessário
-              }
-            ],
-            declaracoesPorStatusPorAno: [
-              {
-                $match: { status: { $ne: "Excluída" } }
-              },
-              {
-                $group: {
-                  _id: {
-                    status: "$status",
-                    ano: "$anoDeclaracao"
-                  },
-                  count: { $sum: 1 }
-                }
-              },
-              {
-                $project: {
-                  _id: 0,
-                  status: "$_id.status",
-                  ano: "$_id.ano",
-                  count: "$count"
-                }
-              }
-            ],
-            declaracoesPorUFs: [
-              {
-                $group: {
-                  _id: "$museu.endereco.uf",
-                  count: { $sum: 1 }
-                }
-              },
-              {
-                $project: {
-                  _id: 0,
-                  uf: "$_id",
-                  count: "$count"
-                }
-              }
-            ],
-            declaracoesPorRegiao: [
-              {
-                $match: {
-                  anoDeclaracao: { $in: anos }
-                }
-              },
-              {
-                $lookup: {
-                  from: "museus",
-                  localField: "museu_id",
-                  foreignField: "_id",
-                  as: "museu"
-                }
-              },
-              {
-                $unwind: "$museu"
-              },
-              {
-                $group: {
-                  _id: {
-                    regiao: {
-                      $switch: {
-                        branches: [
-                          {
-                            case: {
-                              $in: [
-                                "$museu.endereco.uf",
-                                ["AC", "AP", "AM", "PA", "RO", "RR", "TO"]
-                              ]
-                            },
-                            then: "Norte"
-                          },
-                          {
-                            case: {
-                              $in: [
-                                "$museu.endereco.uf",
-                                [
-                                  "AL",
-                                  "BA",
-                                  "CE",
-                                  "MA",
-                                  "PB",
-                                  "PE",
-                                  "PI",
-                                  "RN",
-                                  "SE"
-                                ]
-                              ]
-                            },
-                            then: "Nordeste"
-                          },
-                          {
-                            case: {
-                              $in: [
-                                "$museu.endereco.uf",
-                                ["DF", "GO", "MT", "MS"]
-                              ]
-                            },
-                            then: "Centro-Oeste"
-                          },
-                          {
-                            case: {
-                              $in: [
-                                "$museu.endereco.uf",
-                                ["ES", "MG", "RJ", "SP"]
-                              ]
-                            },
-                            then: "Sudeste"
-                          },
-                          {
-                            case: {
-                              $in: ["$museu.endereco.uf", ["PR", "RS", "SC"]]
-                            },
-                            then: "Sul"
-                          }
-                        ],
-                        default: "Desconhecida"
-                      }
-                    },
-                    status: "$status"
-                  },
-                  count: { $sum: 1 }
-                }
-              },
-              {
-                $project: {
-                  _id: 0,
-                  regiao: "$_id.regiao",
-                  status: "$_id.status",
-                  count: "$count"
-                }
-              }
-            ],
-            declaracoesAgrupadasPorAnalista: [
-              {
-                $match: {
-                  anoDeclaracao: { $in: anos },
-                  analistasResponsaveis: { $exists: true, $not: { $size: 0 } }
-                }
-              },
-              {
-                $unwind: "$analistasResponsaveis"
-              },
-              {
-                $group: {
-                  _id: {
-                    analista: "$analistasResponsaveis",
-                    anoDeclaracao: "$anoDeclaracao"
-                  },
-                  quantidadeDeclaracoes: { $sum: 1 }
-                }
-              },
-              {
-                $lookup: {
-                  from: "usuarios",
-                  localField: "_id.analista",
-                  foreignField: "_id",
-                  as: "analista"
-                }
-              },
-              {
-                $unwind: {
-                  path: "$analista",
-                  preserveNullAndEmptyArrays: true
-                }
-              },
-              {
-                $project: {
-                  _id: 0,
-                  analista: {
-                    _id: "$analista._id",
-                    nome: "$analista.nome",
-                    email: "$analista.email"
-                  },
-                  anoDeclaracao: "$_id.anoDeclaracao",
-                  quantidadeDeclaracoes: 1
-                }
-              }
-            ],
-            declaracoesCount: [
-              {
-                $match: {
-                  anoDeclaracao: { $in: anos }
-                }
-              },
-              {
-                $count: "count"
-              }
-            ],
-            declaracoesEmConformidade: [
-              {
-                $match: {
-                  anoDeclaracao: { $in: anos },
-                  status: Status.EmConformidade
-                }
-              },
-              {
-                $count: "count"
-              }
-            ],
-            bensCountPorTipo: [
-              {
-                $match: {
-                  anoDeclaracao: { $in: anos },
-                  ...{
-                    ...(museuId && {
-                      museu_id: new mongoose.Types.ObjectId(museuId)
-                    })
-                  }
-                }
-              },
-              {
-                $group: {
-                  _id: null,
-                  museologico: { $sum: "$museologico.quantidadeItens" },
-                  bibliografico: { $sum: "$bibliografico.quantidadeItens" },
-                  arquivistico: { $sum: "$arquivistico.quantidadeItens" }
-                }
-              },
-              {
-                $project: {
-                  _id: 0
-                }
-              }
-            ],
-            bensCountTotal: [
-              {
-                $match: {
-                  anoDeclaracao: { $in: anos }
-                }
-              },
-              {
-                $group: {
-                  _id: null,
-                  total: {
-                    $sum: {
-                      $sum: [
-                        "$museologico.quantidadeItens",
-                        "$bibliografico.quantidadeItens",
-                        "$arquivistico.quantidadeItens"
-                      ]
-                    }
-                  }
-                }
-              },
-              {
-                $project: {
-                  _id: 0
-                }
-              }
-            ]
-          }
-        }
-      ])
-    )[0] as { [key: string]: { [key: string]: string | number }[] }
-
-    const declaracoesPorStatusPorAno = result.declaracoesPorStatusPorAno
-      .map((item) => item.ano)
-      .filter((value, index, self) => self.indexOf(value) === index)
-
-    const statusEnum = Declaracoes.schema.path("status")
-    const status = Object.values(statusEnum)[0].filter(
-      (s: string) => s !== "Excluída"
-    )
-
-    const regioes: string[] = [
-      "Norte",
-      "Nordeste",
-      "Centro-Oeste",
-      "Sudeste",
-      "Sul"
-    ]
-
-    return {
-      status,
-      declaracoesPorAnoDashboard: result.declaracoesPorAnoDashboard.reduce(
-        (acc, item) => {
-          acc[item._id] = item.count
-          return acc
-        },
-        {}
-      ),
-      declaracoesPorStatusPorAno: declaracoesPorStatusPorAno.map((ano) => {
-        const statusCount = status.reduce((acc: number[], item: number) => {
-          const statusItem = result.declaracoesPorStatusPorAno.find(
-            (resultItem) => resultItem.ano === ano && resultItem.status === item
-          )
-          acc.push(statusItem ? (statusItem.count as number) : 0)
-          return acc
-        }, [])
-
-        const total = statusCount.reduce(
-          (acc: number, item: number) => acc + item,
-          0
-        )
-
-        return [ano, total, ...statusCount]
-      }),
-      declaracoesPorUFs: result.declaracoesPorUFs.reduce((acc, item) => {
-        acc[item.uf] = item.count
-        return acc
-      }, {}),
-      declaracoesPorRegiao: regioes.map((regiao) => {
-        const regiaoStatus = result.declaracoesPorRegiao
-          .filter((item) => item.regiao === regiao)
-          .reduce((acc, item) => {
-            acc[item.status] = item.count
-            return acc
-          }, {})
-
-        const total = (Object.values(regiaoStatus) as number[]).reduce(
-          (acc: number, item: number) => acc + item,
-          0
-        )
-
-        const statusCount = status.reduce((acc: number[], item: number) => {
-          acc.push((regiaoStatus[item] as number) || 0)
-          return acc
-        }, [])
-
-        return [regiao, total, ...statusCount]
-      }),
-      declaracoesAgrupadasPorAnalista: result.declaracoesAgrupadasPorAnalista,
-      declaracoesCount: result.declaracoesCount[0]?.count || 0,
-      declaracoesEmConformidade:
-        result.declaracoesEmConformidade[0]?.count || 0,
-      bensCountPorTipo: result.bensCountPorTipo[0] || {
-        museologico: 0,
-        bibliografico: 0,
-        arquivistico: 0
-      },
-      bensCountTotal: result.bensCountTotal[0]?.total || 0
-    }
-  }
-
   async declaracaoComFiltros({
     anoReferencia,
     status,
@@ -905,24 +520,74 @@ class DeclaracaoService {
         )
 
         let validate = validate_arquivistico
-        if (tipo === "bibliografico") {
-          validate = validate_bibliografico
-        } else if (tipo === "museologico") {
-          validate = validate_museologico
+        let requiredFields: string[] = []
+
+        // Define o validador e os campos obrigatórios com base no tipo de arquivo
+        switch (tipo) {
+          case "arquivistico":
+            validate = validate_arquivistico
+            requiredFields = arquivistico.required
+            break
+          case "bibliografico":
+            validate = validate_bibliografico
+            requiredFields = bibliografico.required
+            break
+          case "museologico":
+            validate = validate_museologico
+            requiredFields = museologico.required
+            break
+          default:
+            throw new Error("Tipo de declaração inválido")
         }
 
-        const { data: arquivoData, errors: pendencias } = await validate(
-          arquivos[0].buffer
+        // Valida o arquivo
+        const {
+          data: arquivoData,
+          detailedErrors,
+          naoEncontrados
+        } = await validate(arquivos[0].buffer)
+
+        // Converter Map detailedErrors para array
+        const detailedErrorsArray = Array.from(
+          detailedErrors,
+          ([linha, camposComErro]) => ({
+            linha,
+            camposComErro
+          })
         )
 
+        // Converter Set naoEncontrados para array e formatá-lo
+        const naoEncontradosArray = Array.from(naoEncontrados).map((linha) => ({
+          linha,
+          camposComErro: ["Não localizado"] // Indicando que a linha não foi encontrada
+        }))
+
+        // Unir detailedErrors com naoEncontrados
+        const detailedErrorsFinal = [
+          ...detailedErrorsArray,
+          ...naoEncontradosArray
+        ]
+
+        // Calcula os percentuais de preenchimento
+        const {
+          porcentagemGeral,
+          porcentagemPorCampo,
+          errors: camposObrigatorios
+        } = calcularPercentuais(arquivoData, requiredFields)
+
+        // Prepara os dados alterados
         const dadosAlterados: Partial<Arquivo> = {
           nome: arquivos[0].filename,
           status: novaDeclaracao.status,
           hashArquivo: novoHashBemCultural,
-          pendencias,
+          pendencias: camposObrigatorios,
           quantidadeItens: arquivoData.length,
-          versao: novaVersao
+          versao: novaVersao,
+          porcentagemGeral,
+          porcentagemPorCampo,
+          detailedErrors: detailedErrorsFinal
         }
+
         novaDeclaracao[tipo] = {
           ...arquivoAnterior,
           ...dadosAlterados
@@ -964,13 +629,16 @@ class DeclaracaoService {
           novaDeclaracao.retificacao = true
         }
       }
+
       novaDeclaracao.responsavelEnvioNome = responsavelEnvioNome
+
       await novaDeclaracao.save()
     } catch (error) {
       console.error("Erro ao atualizar a declaração:", error)
       throw new Error("Erro ao atualizar a declaração: " + error)
     }
   }
+
   async getItensMuseu(museuId: string) {
     const declaracoesExistentes = await Declaracoes.find({
       museu_id: new mongoose.Types.ObjectId(museuId),
@@ -1100,7 +768,8 @@ class DeclaracaoService {
 
       const filtro: FilterQuery<IUsuario> = {
         profile: analistaProfile._id,
-        especialidadeAnalista: { $exists: true, $not: { $size: 0 } }
+        especialidadeAnalista: { $exists: true, $not: { $size: 0 } },
+        situacao: SituacaoUsuario.Ativo
       }
 
       if (especificidades) {
@@ -1419,9 +1088,11 @@ class DeclaracaoService {
         // Se todos os bens estiverem "Em Conformidade", a declaração também deve estar "Em Conformidade"
         if (todosStatus.every((status) => status === Status.EmConformidade)) {
           declaracao.status = Status.EmConformidade
+          declaracao.dataFimAnalise = DataUtils.getCurrentData()
         } else {
           // Caso contrário, a declaração deve ser "Não Conformidade" se houver algum bem "Não Conformidade"
           declaracao.status = Status.NaoConformidade
+          declaracao.dataFimAnalise = DataUtils.getCurrentData()
         }
       } else {
         // Se ainda houver bens pendentes, manter a declaração "Em Análise"
@@ -1454,7 +1125,7 @@ class DeclaracaoService {
     const declaracao = await Declaracoes.findById(objectId)
 
     if (!declaracao) {
-      throw new Error("Declaração não encontrada.")
+      throw new HTTPError("Declaração não encontrada.", 404)
     }
 
     // Verifica se o status da declaração é 'Excluída'
@@ -1475,8 +1146,9 @@ class DeclaracaoService {
     )
 
     if (existeVersaoNaoExcluida) {
-      throw new Error(
-        "Não é possível restaurar esta declaração porque há versões mais recentes de declaração para esse museu e ano correspondente."
+      throw new HTTPError(
+        "Não é possível restaurar esta declaração porque há versões mais recentes de declaração para esse museu e ano correspondente.",
+        422
       )
     }
 
@@ -1600,7 +1272,85 @@ class DeclaracaoService {
 
     return declaracaoAtualizada
   }
+  async buscarItensPorTipoAdmin(
+    museuId: string,
+    ano: string,
+    tipoItem: string
+  ) {
+    // Verificar se o museu pertence ao usuário específico
+    const museu = await Museu.findOne({ _id: museuId })
 
+    if (!museu) {
+      throw new Error("Museu inválido ou você não tem permissão para acessá-lo")
+    }
+
+    // Definir o modelo e os campos de projeção com base no tipo de item
+    let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico
+    let retornoPorItem: string
+
+    switch (tipoItem) {
+      case "arquivistico":
+        Model = Arquivistico
+        retornoPorItem = "_id coddereferencia titulo nomedoprodutor"
+        break
+      case "bibliografico":
+        Model = Bibliografico
+        retornoPorItem = "_id nderegistro situacao titulo localdeproducao" // Defina os campos específicos para bibliografico
+        break
+      case "museologico":
+        Model = Museologico
+        retornoPorItem = "_id nderegistro autor situacao denominacao" // Defina os campos específicos para museologico
+        break
+      default:
+        throw new Error("Tipo de item inválido")
+    }
+
+    // Primeira agregação: encontrar a maior versão
+    const maxVersaoResult = await Model.aggregate([
+      {
+        $lookup: {
+          from: "declaracoes",
+          localField: "declaracao_ref",
+          foreignField: "_id",
+          as: "declaracoes"
+        }
+      },
+      {
+        $unwind: "$declaracoes"
+      },
+      {
+        $match: {
+          "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
+          "declaracoes.anoDeclaracao": ano
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          maxVersao: { $max: "$versao" }
+        }
+      }
+    ])
+
+    const maxVersao = maxVersaoResult[0]?.maxVersao
+
+    if (maxVersao === undefined) {
+      return [] // Se não houver versão encontrada, retornar array vazio
+    }
+
+    // Segunda agregação: buscar os itens do tipo especificado da maior versão encontrada
+    const result = await Model.find({
+      versao: maxVersao,
+      declaracao_ref: {
+        $in: await Declaracoes.find({
+          museu_id: new mongoose.Types.ObjectId(museuId),
+          anoDeclaracao: ano
+        }).select("_id")
+      }
+    }).select(retornoPorItem)
+
+    return result
+  }
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *
@@ -1738,6 +1488,7 @@ class DeclaracaoService {
       declaracao.timeLine
     )
     try {
+      declaracao.dataExclusao = DataUtils.getCurrentData()
       await declaracao.save()
       logger.info("Time-line salva com sucesso.")
     } catch (error) {

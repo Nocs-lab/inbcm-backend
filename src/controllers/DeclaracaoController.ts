@@ -1,5 +1,6 @@
 import { Request, Response } from "express"
 import { Declaracoes, Usuario } from "../models"
+import { AnoDeclaracao } from "../models/AnoDeclaracao"
 import DeclaracaoService from "../service/DeclaracaoService"
 import { generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
@@ -12,6 +13,7 @@ import { Status } from "../enums/Status"
 import { Eventos } from "../enums/Eventos"
 import logger from "../utils/logger"
 import { IProfile } from "../models/Profile"
+import HTTPError from "../utils/error"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -29,7 +31,6 @@ export class DeclaracaoController {
     this.getDeclaracao = this.getDeclaracao.bind(this)
     this.getDeclaracaoAno = this.getDeclaracaoAno.bind(this)
     this.getItensPorAnoETipo = this.getItensPorAnoETipo.bind(this)
-    this.getDashboard = this.getDashboard.bind(this)
     this.excluirDeclaracao = this.excluirDeclaracao.bind(this)
     this.getTimeLine = this.getTimeLine.bind(this)
     this.filtroDashBoard = this.filtroDashBoard.bind(this)
@@ -440,67 +441,6 @@ export class DeclaracaoController {
    * @throws {500} - Se ocorrer um erro interno ao processar a requisição.
    *
    */
-  async getDashboard(req: Request, res: Response) {
-    try {
-      const { anos, estados, museu, cidades } = req.query
-
-      return res
-        .status(200)
-        .json(
-          await this.declaracaoService.getDashboardData(
-            estados
-              ? Array.isArray(estados)
-                ? estados.map(String)
-                : [String(estados)]
-              : [
-                  "AC",
-                  "AL",
-                  "AP",
-                  "AM",
-                  "BA",
-                  "CE",
-                  "DF",
-                  "ES",
-                  "GO",
-                  "MA",
-                  "MT",
-                  "MS",
-                  "MG",
-                  "PA",
-                  "PB",
-                  "PR",
-                  "PE",
-                  "PI",
-                  "RJ",
-                  "RN",
-                  "RS",
-                  "RO",
-                  "RR",
-                  "SC",
-                  "SP",
-                  "SE",
-                  "TO"
-                ],
-            anos
-              ? Array.isArray(anos)
-                ? anos.map(String)
-                : String(anos).split(",")
-              : [],
-            museu ? String(museu) : null,
-            cidades
-              ? Array.isArray(cidades)
-                ? cidades.map(String)
-                : [String(cidades)]
-              : []
-          )
-        )
-    } catch (error) {
-      logger.error("Erro ao buscar declarações por ano:", error)
-      return res
-        .status(500)
-        .json({ message: "Erro ao buscar declarações por ano." })
-    }
-  }
 
   async getDeclaracaoFiltrada(req: Request, res: Response) {
     try {
@@ -692,6 +632,12 @@ export class DeclaracaoController {
         { ultimaDeclaracao: false }
       )
 
+      const anoDeclaracaoReferencia = await AnoDeclaracao.findOneAndUpdate(
+        { ano: anoDeclaracao },
+        { $set: { declaracaoVinculada: true } },
+        { new: true }
+      )
+
       return res.status(200).json(novaDeclaracao)
     } catch (error) {
       logger.error("Erro ao enviar uma declaração:", error)
@@ -820,14 +766,13 @@ export class DeclaracaoController {
 
       return res.status(200).json(resultado)
     } catch (error) {
-      if (error instanceof Error) {
-        return res.status(400).json({
-          message:
-            "Não é possível restaurar esta declaração porque há versões mais recentes de declaração."
-        })
-      } else {
-        return res.status(400).json({ message: "Ocorreu um erro inesperado." })
+      logger.error("Erro ao deletar usuário:", error)
+
+      if (error instanceof HTTPError) {
+        return res.status(error.status).json({ message: error.message })
       }
+
+      return res.status(500).json({ message: "Erro ao restaurar declaração." })
     }
   }
 
@@ -1127,6 +1072,38 @@ export class DeclaracaoController {
     }
   }
 
+  async listarItensPorTipodeBemAdmin(req: Request, res: Response) {
+    const { museuId, ano, tipo } = req.params
+
+    try {
+      const result = await this.declaracaoService.buscarItensPorTipoAdmin(
+        museuId,
+        ano,
+        tipo
+      )
+
+      if (!result) {
+        return res
+          .status(404)
+          .json({ message: `Itens ${tipo} não encontrados` })
+      }
+
+      res.status(200).json(result)
+    } catch (error) {
+      logger.error(`Erro ao listar itens ${tipo}:`, error)
+
+      if (error instanceof Error) {
+        res.status(500).json({
+          message: `Erro ao listar itens ${tipo}`,
+          error: error.message
+        })
+      } else {
+        res
+          .status(500)
+          .json({ message: `Erro desconhecido ao listar itens ${tipo}` })
+      }
+    }
+  }
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
    * @param {string} req.params.museuId - O ID do museu.

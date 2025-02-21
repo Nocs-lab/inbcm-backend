@@ -5,6 +5,35 @@ import ReciboController from "../../controllers/ReciboController"
 const reciboController = new ReciboController()
 
 const routes = express.Router()
+
+/**
+ * @swagger
+ * /api/recibo/detalhamento/{id}:
+ *   get:
+ *     summary: cria um documento pdf com detalhamento do recibo referente a campos vazios e situação não localizado
+ *     description: Endpoint público para validar um recibo.
+ *     tags:
+ *       - Recibo
+ *     parameters:
+ *       - in: path
+ *         name: hashDeclaracao
+ *         description: Hash da declaração para validar o recibo.
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Recibo válido.
+ *       '400':
+ *         description: Hash inválido.
+ *       '500':
+ *         description: Erro ao validar o recibo.
+ */
+routes.get(
+  "/detalhamento/:id",
+  userPermissionMiddleware("gerarReciboDetalhamento"),
+  reciboController.gerarReciboDetalhamento
+)
 /**
  * @swagger
  * /api/recibo/validar/{hashDeclaracao}:

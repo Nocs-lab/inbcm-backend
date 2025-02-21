@@ -1,6 +1,7 @@
 import { Request, Response } from "express"
 import { AnoDeclaracao } from "../models/AnoDeclaracao"
 import logger from "../utils/logger"
+import { DataUtils } from "../utils/dataUtils"
 
 class AnoDeclaracaoController {
   /**
@@ -33,11 +34,11 @@ class AnoDeclaracaoController {
         metaDeclaracoesEnviadas
       } = req.body
 
-      // Convertendo as strings para objetos Date, se necessário
-      const dataInicioSubmissaoDate = new Date(dataInicioSubmissao)
-      const dataFimSubmissaoDate = new Date(dataFimSubmissao)
-      const dataInicioRetificacaoDate = new Date(dataInicioRetificacao)
-      const dataFimRetificacaoDate = new Date(dataFimRetificacao)
+      // Usando o helper DataUtils para formatar as datas
+      const dataInicioSubmissaoFormatada = DataUtils.gerarDataHoraFormatada(new Date(dataInicioSubmissao))
+      const dataFimSubmissaoFormatada = DataUtils.gerarDataHoraFormatada(new Date(dataFimSubmissao))
+      const dataInicioRetificacaoFormatada = DataUtils.gerarDataHoraFormatada(new Date(dataInicioRetificacao))
+      const dataFimRetificacaoFormatada = DataUtils.gerarDataHoraFormatada(new Date(dataFimRetificacao))
 
       const anoExistente = await AnoDeclaracao.findOne({ ano })
       if (anoExistente) {
@@ -48,10 +49,10 @@ class AnoDeclaracaoController {
 
       const anoDeclaracao = new AnoDeclaracao({
         ano,
-        dataInicioSubmissao: dataInicioSubmissaoDate,
-        dataFimSubmissao: dataFimSubmissaoDate,
-        dataInicioRetificacao: dataInicioRetificacaoDate,
-        dataFimRetificacao: dataFimRetificacaoDate,
+        dataInicioSubmissao: dataInicioSubmissaoFormatada,
+        dataFimSubmissao: dataFimSubmissaoFormatada,
+        dataInicioRetificacao: dataInicioRetificacaoFormatada,
+        dataFimRetificacao: dataFimRetificacaoFormatada,
         metaDeclaracoesEnviadas
       })
 
@@ -191,12 +192,24 @@ class AnoDeclaracaoController {
     try {
       const { id } = req.params
       const {
+        ano,
         dataInicioSubmissao,
         dataFimSubmissao,
         dataInicioRetificacao,
         dataFimRetificacao,
         metaDeclaracoesEnviadas
       } = req.body
+
+
+      // Validação para não ser possível alterar o ano de um modelo com declaração vinculada
+      const anoDeclaracao = await AnoDeclaracao.findById(id);
+      if (!anoDeclaracao) {
+        return res.status(404).json({ message: "Ano de declaração não encontrado" });
+      }
+
+      if (anoDeclaracao.declaracaoVinculada && ano !== anoDeclaracao.ano) {
+        return res.status(403).json({ message: "Não é permitido alterar o ano quando há declarações vinculadas." });
+      }
 
       // Convertendo as strings para objetos Date, se necessário
       const dataInicioSubmissaoDate = new Date(dataInicioSubmissao)
@@ -206,7 +219,7 @@ class AnoDeclaracaoController {
 
       const updatedAnoDeclaracao = await AnoDeclaracao.findByIdAndUpdate(
         id,
-        {
+        { ano,
           dataInicioSubmissao: dataInicioSubmissaoDate,
           dataFimSubmissao: dataFimSubmissaoDate,
           dataInicioRetificacao: dataInicioRetificacaoDate,
@@ -254,6 +267,9 @@ class AnoDeclaracaoController {
         return res
           .status(404)
           .json({ message: "Ano de declaração não encontrado" })
+      }
+      if (anoDeclaracao.declaracaoVinculada) {
+        return res.status(403).json({ message: "Não é possível excluir este modelo, pois há uma declaração vinculada." });
       }
 
       return res

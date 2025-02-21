@@ -1,58 +1,135 @@
 import mongoose from "mongoose"
-import path from "path"
-import { DataUtils } from "../utils/dataUtils"
-import { TDocumentDefinitions } from "pdfmake/interfaces"
 import HTTPError from "../utils/error"
+import path from "path"
+import PdfPrinter from "pdfmake"
+import { TDocumentDefinitions } from "pdfmake/interfaces"
+import { DataUtils } from "../utils/dataUtils"
 import {
   buscaDeclaracao,
   buscaMuseu,
   buscaUsuario,
-  MapeadorCamposPercentual,
-  formatarDadosRecibo
+  formatarDadosRecibo,
+  MapeadorCamposPercentual
 } from "./utilsDocuments"
 import { DeclaracaoModel } from "../models"
-import PdfPrinter from "pdfmake"
 
-const gerarTabela = (
+const gerarTabelaPendencias = (
   tipo: "museologico" | "bibliografico" | "arquivistico",
   declaracao: DeclaracaoModel
 ) => {
   const campos = MapeadorCamposPercentual[tipo]
-  const porcentagemPorCampo = declaracao[tipo]?.porcentagemPorCampo || []
+
+  const erros = declaracao[tipo]?.detailedErrors ?? []
+
+  if (erros.length === 0) {
+    return {
+      table: {
+        widths: ["100%"],
+        body: [
+          [
+            {
+              text: `Não há pendências para o acervo ${tipo.charAt(0).toLowerCase() + tipo.slice(1)}`,
+              style: "tableHeader",
+              fillColor: "#D9D9D9",
+              alignment: "center"
+            }
+          ]
+        ]
+      },
+      layout: {
+        fillColor: function (rowIndex: number) {
+          return rowIndex % 2 === 0 ? "#F5F5F5" : null
+        },
+        paddingLeft: () => 10,
+        paddingRight: () => 10,
+        paddingTop: () => 5,
+        paddingBottom: () => 5
+      }
+    }
+  }
+
+  const errosOrdenados = erros
+    .map((erro) => ({
+      ...erro,
+      linha: erro.linha + 1,
+      camposComErro: erro.camposComErro ?? []
+    }))
+    .sort((a, b) => a.linha - b.linha)
 
   return {
     table: {
-      widths: ["60%", "40%"],
+      widths: ["10%", "50%", "40%"],
       body: [
         [
           {
-            text: ` Acervo ${tipo.charAt(0).toLowerCase() + tipo.slice(1)}`,
+            text: `Pendências do acervo ${tipo.charAt(0).toLowerCase() + tipo.slice(1)}`,
             style: "tableHeader",
             fillColor: "#D9D9D9",
-            colSpan: 2
+            colSpan: 3
           },
+          {},
           {}
         ],
         [
+          { text: "Linha", style: "tableHeader", alignment: "center" },
           { text: "Campo", style: "tableHeader", alignment: "center" },
-          { text: "Preenchimento", style: "tableHeader", alignment: "center" }
+          { text: "Descrição", style: "tableHeader", alignment: "center" }
         ],
-        ...porcentagemPorCampo.map(({ campo, percentual }) => {
-          return [
-            {
-              text: campos[campo] || campo,
-              style: "tableData",
-              alignment: "left"
-            },
-            { text: `${percentual}%`, style: "tableData", alignment: "center" }
-          ]
+        ...errosOrdenados.flatMap((erro) => {
+          return (erro.camposComErro ?? []).map((campo) => {
+            if (campo === "Não localizado") {
+              return [
+                {
+                  text: `${erro.linha}`,
+                  style: "tableData",
+                  alignment: "center"
+                },
+                {
+                  text: "Situação",
+                  style: "tableData",
+                  alignment: "left",
+                  noWrap: true
+                },
+                {
+                  text: "Ítem não localizado",
+                  style: "tableData",
+                  alignment: "center",
+                  noWrap: true
+                }
+              ]
+            } else {
+              return [
+                {
+                  text: `${erro.linha}`, // Usa o valor já incrementado
+                  style: "tableData",
+                  alignment: "center"
+                },
+                {
+                  text: campos[campo] || campo,
+                  style: "tableData",
+                  alignment: "left",
+                  noWrap: true
+                },
+                {
+                  text: "Campo vazio",
+                  style: "tableData",
+                  alignment: "center",
+                  noWrap: true
+                }
+              ]
+            }
+          })
         })
       ]
     },
     layout: {
       fillColor: function (rowIndex: number) {
         return rowIndex % 2 === 0 ? "#F5F5F5" : null
-      }
+      },
+      paddingLeft: () => 10,
+      paddingRight: () => 10,
+      paddingTop: () => 5,
+      paddingBottom: () => 5
     }
   }
 }
@@ -64,7 +141,7 @@ const gerarTabela = (
  * @returns Uma promessa que resolve com o buffer do PDF do recibo gerado.
  * @throws Um erro se houver algum problema ao gerar o recibo.
  */
-async function gerarPDFRecibo(
+export async function gerarPDFRelatorioPendenciais(
   declaracaoId: mongoose.Types.ObjectId
 ): Promise<Buffer> {
   const fonts = {
@@ -81,18 +158,16 @@ async function gerarPDFRecibo(
     const declaracao = await buscaDeclaracao(declaracaoId)
     const museu = await buscaMuseu(declaracao.museu_id)
     const usuario = await buscaUsuario(museu.usuario)
-
-    const dadosFormatados = formatarDadosRecibo(declaracao, museu, usuario)
     const tabelaMuseologico = declaracao.museologico
-      ? gerarTabela("museologico", declaracao)
+      ? gerarTabelaPendencias("museologico", declaracao)
       : undefined
 
     const tabelaBibliografico = declaracao.bibliografico
-      ? gerarTabela("bibliografico", declaracao)
+      ? gerarTabelaPendencias("bibliografico", declaracao)
       : undefined
 
     const tabelaArquivistico = declaracao.arquivistico
-      ? gerarTabela("arquivistico", declaracao)
+      ? gerarTabelaPendencias("arquivistico", declaracao)
       : undefined
 
     const conteudo: any[] = []
@@ -114,12 +189,13 @@ async function gerarPDFRecibo(
       conteudo.push(tabelaArquivistico)
     }
 
+    const dadosFormatados = formatarDadosRecibo(declaracao, museu, usuario)
+
     const docDefinition: TDocumentDefinitions = {
       pageSize: "A4",
       pageMargins: [40, 60, 40, 60],
 
       content: [
-        // Primeira página (conteúdo existente)
         {
           table: {
             widths: ["*"],
@@ -232,6 +308,7 @@ async function gerarPDFRecibo(
             headerRows: 1,
             widths: ["*", "*", "*", "*"], // Colunas: Acervo, Quantidade de itens, Situação, Pendências
             body: [
+              // Cabeçalho
               [
                 {
                   text: "Acervo",
@@ -258,7 +335,7 @@ async function gerarPDFRecibo(
                   alignment: "center"
                 }
               ],
-
+              // Linha Museológico
               [
                 { text: "Museológico", style: "tableData", alignment: "left" },
                 {
@@ -277,7 +354,7 @@ async function gerarPDFRecibo(
                   alignment: "left"
                 }
               ],
-
+              // Linha Bibliográfico
               [
                 {
                   text: "Bibliográfico",
@@ -368,7 +445,7 @@ async function gerarPDFRecibo(
         },
 
         {
-          text: "\n\n Resumo de preenchimento da declaração",
+          text: "\n\n DETALHAMENTO DE PENDÊNCIAS DA DECLARAÇÃO",
           style: "sectionHeader"
         },
         { text: "\n\n" },
@@ -445,8 +522,7 @@ async function gerarPDFRecibo(
       pdfDoc.end()
     })
   } catch (error) {
+    console.log(error)
     throw new HTTPError("Erro ao gerar o recibo.", 500)
   }
 }
-
-export { gerarPDFRecibo }

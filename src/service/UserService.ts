@@ -1,11 +1,129 @@
 import argon2 from "@node-rs/argon2"
-import { Usuario } from "../models/Usuario"
+import { SituacaoUsuario, Usuario } from "../models/Usuario"
 import { IProfile, Profile } from "../models/Profile"
 import { Types } from "mongoose"
-import { IMuseu } from "../models"
+import { IMuseu, Museu } from "../models"
 import HTTPError from "../utils/error"
+import { z } from "zod"
 
+const usuarioExternoSchema = z.object({
+  nome: z.string().min(1, "O nome é obrigatório."),
+  email: z.string().email("E-mail inválido."),
+  profile: z.string().min(1, "O perfil é obrigatório."),
+  cpf: z.string().min(11, "CPF inválido.")
+})
 export class UsuarioService {
+  static async criarUsuarioExterno({
+    nome,
+    email,
+    cpf,
+    museus
+  }: {
+    nome: string
+    email: string
+    cpf: string
+    museus: string[]
+    senha?: string
+  }) {
+    // Valida museus
+    const museusValidos: string[] = []
+    const erros: { museuId: string; message: string }[] = []
+
+    for (const id of museus) {
+      if (!id.match(/^[a-fA-F0-9]{24}$/)) {
+        erros.push({ museuId: id, message: "ID do museu inválido." })
+        continue
+      }
+
+      const museu = await Museu.findById(id)
+
+      if (!museu) {
+        erros.push({ museuId: id, message: "Museu não encontrado." })
+        continue
+      }
+
+      if (museu.usuario) {
+        erros.push({
+          museuId: id,
+          message: "Este museu já possui um usuário associado."
+        })
+        continue
+      }
+
+      museusValidos.push(id)
+    }
+
+    if (erros.length > 0) {
+      throw new Error(`Falha ao associar museus: ${JSON.stringify(erros)}`)
+    }
+    const perfilDeclarant = await Profile.findOne({ name: "declarant" })
+    if (!perfilDeclarant) {
+      throw new Error("Perfil 'declarant' não encontrado.")
+    }
+
+    const novoUsuario = new Usuario({
+      nome,
+      email,
+      cpf,
+      profile: perfilDeclarant._id,
+      situacao: SituacaoUsuario.ParaAprovar,
+      museus: museusValidos
+    })
+
+    await novoUsuario.save()
+
+    await Museu.updateMany(
+      { _id: { $in: museusValidos } },
+      { $set: { usuario: novoUsuario._id } }
+    )
+
+    return novoUsuario
+  }
+  static async validarUsuarioExterno({
+    nome,
+    email,
+    profile,
+    cpf
+  }: {
+    nome: string
+    email: string
+    profile: string
+    cpf: string
+  }) {
+    const resultadoValidacao = usuarioExternoSchema.safeParse({
+      nome,
+      email,
+      profile,
+      cpf
+    })
+    if (!resultadoValidacao.success) {
+      throw new HTTPError(resultadoValidacao.error.errors[0].message, 422)
+    }
+
+    let usuarioExistente = await Usuario.findOne({ email })
+    if (usuarioExistente) {
+      throw new HTTPError("E-mail já cadastrado no sistema.", 400)
+    }
+
+    usuarioExistente = await Usuario.findOne({ cpf })
+    if (usuarioExistente) {
+      throw new HTTPError("CPF já cadastrado no sistema.", 400)
+    }
+
+    // Verifica se o perfil existe pelo nome
+    const perfilExistente = await Profile.findOne({ name: profile })
+    if (!perfilExistente) {
+      throw new HTTPError("Perfil não encontrado.", 404)
+    }
+
+    // Verifica se o perfil é do tipo "declarant"
+    if (perfilExistente.name !== "declarant") {
+      throw new HTTPError(
+        "Cadastro externo apenas para perfis declarantes.",
+        422
+      )
+    }
+  }
   /**
    * Valida as informações do usuário antes de criar.
    * @param email Email do usuário.
@@ -15,15 +133,21 @@ export class UsuarioService {
   static async validarUsuario({
     email,
     profile,
+    cpf,
     especialidadeAnalista
   }: {
     email: string
     profile: string
+    cpf: string
     especialidadeAnalista?: string[]
   }) {
-    const usuarioExistente = await Usuario.findOne({ email })
+    let usuarioExistente = await Usuario.findOne({ email })
     if (usuarioExistente) {
       throw new HTTPError("Email já está em uso.", 400)
+    }
+    usuarioExistente = await Usuario.findOne({ cpf })
+    if (usuarioExistente) {
+      throw new HTTPError("Cpf já cadastrado no sistema", 400)
     }
 
     const perfilExistente = await Profile.findById(profile)
@@ -62,27 +186,71 @@ export class UsuarioService {
     nome,
     email,
     senha,
+    cpf,
     profile,
-    especialidadeAnalista
+    especialidadeAnalista,
+    museus
   }: {
     nome: string
     email: string
     senha: string
+    cpf: string
     profile: string
     especialidadeAnalista?: string[]
+    museus: string[]
   }) {
     const senhaHash = await argon2.hash(senha)
+
+    // Valida museus
+    const museusValidos: string[] = []
+    const erros: { museuId: string; message: string }[] = []
+
+    for (const id of museus) {
+      if (!id.match(/^[a-fA-F0-9]{24}$/)) {
+        erros.push({ museuId: id, message: "ID do museu inválido." })
+        continue
+      }
+
+      const museu = await Museu.findById(id)
+
+      if (!museu) {
+        erros.push({ museuId: id, message: "Museu não encontrado." })
+        continue
+      }
+
+      if (museu.usuario) {
+        erros.push({
+          museuId: id,
+          message: "Este museu já possui um usuário associado."
+        })
+        continue
+      }
+
+      museusValidos.push(id)
+    }
+
+    if (erros.length > 0) {
+      throw new Error(`Falha ao associar museus: ${JSON.stringify(erros)}`)
+    }
 
     const novoUsuario = new Usuario({
       nome,
       email,
       senha: senhaHash,
       profile,
-      ativo: true,
-      especialidadeAnalista
+      cpf,
+      situacao: SituacaoUsuario.Ativo,
+      especialidadeAnalista,
+      museus: museusValidos
     })
 
     await novoUsuario.save()
+
+    // Atualiza os museus com o usuário recém-criado
+    await Museu.updateMany(
+      { _id: { $in: museusValidos } },
+      { $set: { usuario: novoUsuario._id } }
+    )
 
     return novoUsuario
   }
@@ -102,9 +270,8 @@ export class UsuarioService {
    */
   static async buscarUsuarios(perfil: string[] = []) {
     const query: {
-      ativo: boolean
       profile?: Types.ObjectId[] | { $in: Types.ObjectId[] }
-    } = { ativo: true }
+    } = {}
 
     if (perfil && perfil.length > 0) {
       const profiles = await Profile.find({ name: { $in: perfil } })

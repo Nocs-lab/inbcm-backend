@@ -3,6 +3,7 @@ import mongoose from "mongoose"
 import { gerarPDFRecibo } from "../service/ReciboService"
 import logger from "../utils/logger"
 import { Declaracoes } from "../models"
+import { gerarPDFRelatorioPendenciais } from "../service/RelatorioPendenciaService"
 
 class ReciboController {
   /**
@@ -21,6 +22,26 @@ class ReciboController {
 
       const declaracaoId = new mongoose.Types.ObjectId(idDeclaracao)
       const pdfBuffer = await gerarPDFRecibo(declaracaoId)
+
+      res.setHeader("Content-Disposition", "attachment; filename=recibo.pdf")
+      res.setHeader("Content-Type", "application/pdf")
+      res.send(pdfBuffer)
+    } catch (error) {
+      logger.error("Erro ao gerar o recibo:", error)
+      res.status(500).json({ error: "Erro ao gerar o recibo." })
+    }
+  }
+  async gerarReciboDetalhamento(req: Request, res: Response) {
+    console.log("testando detalhamento")
+    try {
+      const { id } = req.params
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        res.status(400).json({ error: "ID inválido." })
+        return
+      }
+
+      const declaracaoId = new mongoose.Types.ObjectId(id)
+      const pdfBuffer = await gerarPDFRelatorioPendenciais(declaracaoId)
 
       res.setHeader("Content-Disposition", "attachment; filename=recibo.pdf")
       res.setHeader("Content-Type", "application/pdf")
