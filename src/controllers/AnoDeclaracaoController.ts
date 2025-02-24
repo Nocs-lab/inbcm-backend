@@ -212,18 +212,18 @@ class AnoDeclaracaoController {
       }
 
       // Convertendo as strings para objetos Date, se necessário
-      const dataInicioSubmissaoDate = new Date(dataInicioSubmissao)
-      const dataFimSubmissaoDate = new Date(dataFimSubmissao)
-      const dataInicioRetificacaoDate = new Date(dataInicioRetificacao)
-      const dataFimRetificacaoDate = new Date(dataFimRetificacao)
+      const dataInicioSubmissaoFormatada = DataUtils.gerarDataHoraFormatada(new Date(dataInicioSubmissao))
+      const dataFimSubmissaoFormatada = DataUtils.gerarDataHoraFormatada(new Date(dataFimSubmissao))
+      const dataInicioRetificacaoFormatada = DataUtils.gerarDataHoraFormatada(new Date(dataInicioRetificacao))
+      const dataFimRetificacaoFormatada = DataUtils.gerarDataHoraFormatada(new Date(dataFimRetificacao))
 
       const updatedAnoDeclaracao = await AnoDeclaracao.findByIdAndUpdate(
         id,
         { ano,
-          dataInicioSubmissao: dataInicioSubmissaoDate,
-          dataFimSubmissao: dataFimSubmissaoDate,
-          dataInicioRetificacao: dataInicioRetificacaoDate,
-          dataFimRetificacao: dataFimRetificacaoDate,
+          dataInicioSubmissao: dataInicioSubmissaoFormatada,
+          dataFimSubmissao: dataFimSubmissaoFormatada,
+          dataInicioRetificacao: dataInicioRetificacaoFormatada,
+          dataFimRetificacao: dataFimRetificacaoFormatada,
           metaDeclaracoesEnviadas
         },
         { new: true }
