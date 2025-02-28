@@ -99,17 +99,27 @@ export class UsuarioService {
     if (!resultadoValidacao.success) {
       throw new HTTPError(resultadoValidacao.error.errors[0].message, 422)
     }
-
     let usuarioExistente = await Usuario.findOne({ email })
     if (usuarioExistente) {
+      if (usuarioExistente.situacao === SituacaoUsuario.ParaAprovar) {
+        throw new HTTPError(
+          "Solicitação de acesso à plataforma está em análise.",
+          422
+        )
+      }
       throw new HTTPError("E-mail já cadastrado no sistema.", 400)
     }
 
     usuarioExistente = await Usuario.findOne({ cpf })
     if (usuarioExistente) {
+      if (usuarioExistente.situacao === SituacaoUsuario.ParaAprovar) {
+        throw new HTTPError(
+          "Solicitação de acesso à plataforma está em análise.",
+          422
+        )
+      }
       throw new HTTPError("CPF já cadastrado no sistema.", 400)
     }
-
     // Verifica se o perfil existe pelo nome
     const perfilExistente = await Profile.findOne({ name: profile })
     if (!perfilExistente) {
