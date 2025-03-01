@@ -214,6 +214,141 @@ class DeclaracaoService {
     }
   }
 
+  async declaracaoComFiltros({
+    anoReferencia,
+    status,
+    nomeMuseu,
+    dataInicio,
+    dataFim,
+    regiao,
+    uf,
+    ultimaDeclaracao = true
+  }: {
+    anoReferencia: string
+    status: string
+    nomeMuseu: string
+    dataInicio: number
+    dataFim: number
+    regiao: string
+    uf: string
+    ultimaDeclaracao: boolean
+  }) {
+    try {
+      let query = Declaracoes.find()
+
+      if (ultimaDeclaracao || ultimaDeclaracao == null) {
+        query = query.where({
+          $or: [{ ultimaDeclaracao: true }, { status: "Excluída" }]
+        })
+      }
+
+      //Lógica para extrair os tipos de status do model e verificar se foi enviado um status válido para filtrar
+      const statusEnum = Declaracoes.schema.path("status")
+      const statusArray = Object.values(statusEnum)[0]
+      const statusExistente = statusArray.includes(status)
+      const statusCount: Record<string, number> = {}
+      if (statusExistente) {
+        query = query.where("status").equals(status)
+      } else {
+        // Cria os campos de count atribuindo 0 para cada status em statusCount
+        statusArray.forEach((statusItem: string) => {
+          statusCount[statusItem] = 0
+        })
+      }
+
+      // Filtro para UF
+      if (uf) {
+        const museus = await Museu.find({ "endereco.uf": uf })
+        const museuIds = museus.map((museu) => museu._id)
+        query = query.where("museu_id").in(museuIds)
+      }
+
+      // Definindo o mapeamento de regiões para UFs
+      const regioesMap: { [key: string]: string[] } = {
+        norte: ["AC", "AP", "AM", "PA", "RO", "RR", "TO"],
+        nordeste: ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"],
+        "centro-oeste": ["GO", "MT", "MS", "DF"],
+        sudeste: ["ES", "MG", "RJ", "SP"],
+        sul: ["PR", "RS", "SC"]
+      }
+      // Filtro por cada região
+      if (regiao) {
+        const lowerCaseRegiao = regiao.toLowerCase()
+        if (lowerCaseRegiao in regioesMap) {
+          const ufs = regioesMap[lowerCaseRegiao]
+          const museus = await Museu.find({ "endereco.uf": { $in: ufs } })
+          const museuIds = museus.map((museu) => museu._id)
+          query = query.where("museu_id").in(museuIds)
+        }
+      }
+
+      //Filtro para ano da declaração
+      if (anoReferencia) {
+        query = query.where("anoDeclaracao").equals(anoReferencia)
+      }
+
+      //Filtro por data
+      if (dataInicio && dataFim) {
+        const endDate = new Date(dataFim)
+        endDate.setHours(23, 59, 59, 999) // Definir o final do dia para a data de fim
+
+        query = query.where("dataCriacao").gte(dataInicio).lte(dataFim)
+      }
+
+      //Filtro para o nome do museu
+      if (nomeMuseu) {
+        const museus = await Museu.find({ nome: nomeMuseu })
+        const museuIds = museus.map((museu) => museu._id)
+        query = query.where("museu_id").in(museuIds)
+      }
+      const result = await query
+        .populate([{ path: "museu_id", model: Museu, select: [""] }])
+        .sort("-dataCriacao")
+        .exec()
+
+      let [bemCount, museologicoCount, bibliograficoCount, arquivisticoCount] =
+        [0, 0, 0, 0]
+
+      const data = result.map((d) => {
+        const data = d.toJSON()
+        // @ts-expect-error - O campo museu_id é um objeto, não uma string
+        data.museu_id.endereco.regiao =
+          // @ts-expect-error - O campo museu_id é um objeto, não uma string
+          regioesMap[data.museu_id.endereco.uf as keyof typeof regioesMap]
+        if (!statusExistente && data.status in statusCount) {
+          statusCount[data.status] += 1
+        }
+        // Adicionando contagem dos bens
+        if (data.museologico) {
+          museologicoCount += data.museologico.quantidadeItens || 0
+        }
+        if (data.bibliografico) {
+          bibliograficoCount += data.bibliografico.quantidadeItens || 0
+        }
+        if (data.arquivistico) {
+          arquivisticoCount += data.arquivistico.quantidadeItens || 0
+        }
+        bemCount +=
+          (data.museologico?.quantidadeItens || 0) +
+          (data.bibliografico?.quantidadeItens || 0) +
+          (data.arquivistico?.quantidadeItens || 0)
+        return data
+      })
+
+      return {
+        declaracaoCount: data.length,
+        statusCount,
+        bemCount,
+        museologicoCount,
+        bibliograficoCount,
+        arquivisticoCount,
+        data
+      }
+    } catch (error) {
+      throw new Error("Erro ao buscar declarações com filtros.")
+    }
+  }
+
   async verificarDeclaracaoExistente(museu: string, anoDeclaracao: string) {
     const declaracaoExistente = await Declaracoes.findOne({
       anoDeclaracao,
