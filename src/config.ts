@@ -19,7 +19,10 @@ const parsed = {
   MINIO_USE_SSL: process.env.MINIO_USE_SSL ?? "false",
   MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY ?? "",
   MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY ?? "",
-  SHORT_SHA: process.env.SHORT_SHA ?? "dev"
+  SHORT_SHA: process.env.SHORT_SHA ?? "dev",
+  METABASE_SITE_URL: process.env.METABASE_SITE_URL ?? "",
+  METABASE_SECRET_KEY: process.env.METABASE_SECRET_KEY ?? "",
+  METABASE_DASHBOARD_ID: process.env.METABASE_DASHBOARD_ID ?? ""
 }
 logger.info("Carregando configurações...")
 
@@ -41,7 +44,13 @@ const schema = z.object({
   MINIO_USE_SSL: z.enum(["true", "false"]),
   MINIO_ACCESS_KEY: z.string().min(1),
   MINIO_SECRET_KEY: z.string().min(1),
-  SHORT_SHA: z.string().min(1)
+  SHORT_SHA: z.string().min(1),
+  METABASE_SITE_URL: z.string().min(1).url(),
+  METABASE_SECRET_KEY: z.string().min(1),
+  METABASE_DASHBOARD_ID: z
+    .string()
+    .min(1)
+    .transform((val) => parseInt(val))
 })
 
 const config = schema.parse(parsedEnv)
