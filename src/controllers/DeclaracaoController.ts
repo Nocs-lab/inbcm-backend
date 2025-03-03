@@ -5,7 +5,7 @@ import DeclaracaoService from "../service/DeclaracaoService"
 import { generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
 import path from "path"
-import mongoose from "mongoose"
+import mongoose, { PipelineStage } from "mongoose"
 import { getLatestPathArchive } from "../utils/minioUtil"
 import minioClient from "../db/minioClient"
 import { DataUtils } from "../utils/dataUtils"
@@ -24,7 +24,6 @@ export class DeclaracaoController {
 
     this.uploadDeclaracao = this.uploadDeclaracao.bind(this)
     this.getDeclaracaoFiltrada = this.getDeclaracaoFiltrada.bind(this)
-    this.getStatusEnum = this.getStatusEnum.bind(this)
     this.atualizarStatusBensDeclaracao =
       this.atualizarStatusBensDeclaracao.bind(this)
     this.getDeclaracoes = this.getDeclaracoes.bind(this)
@@ -33,7 +32,6 @@ export class DeclaracaoController {
     this.getItensPorAnoETipo = this.getItensPorAnoETipo.bind(this)
     this.excluirDeclaracao = this.excluirDeclaracao.bind(this)
     this.getTimeLine = this.getTimeLine.bind(this)
-    this.filtroDashBoard = this.filtroDashBoard.bind(this)
     this.restaurarDeclaracao = this.restaurarDeclaracao.bind(this)
     this.alterarAnalistaArquivo = this.alterarAnalistaArquivo.bind(this)
   }
@@ -93,102 +91,6 @@ export class DeclaracaoController {
     }
   }
 
-  async filtroDashBoard(req: Request, res: Response) {
-    try {
-      // Lista de estados válidos
-      const estadosValidos = [
-        "AC",
-        "AL",
-        "AP",
-        "AM",
-        "BA",
-        "CE",
-        "DF",
-        "ES",
-        "GO",
-        "MA",
-        "MT",
-        "MS",
-        "MG",
-        "PA",
-        "PB",
-        "PR",
-        "PE",
-        "PI",
-        "RJ",
-        "RN",
-        "RS",
-        "RO",
-        "RR",
-        "SC",
-        "SP",
-        "SE",
-        "TO"
-      ]
-
-      // Extraindo os filtros da query string
-      const { anos, estados, cidades, museu } = req.query
-
-      // Garantindo que os filtros sejam arrays
-      const anosArray = anos
-        ? Array.isArray(anos)
-          ? anos.map(String)
-          : String(anos).split(",") // Caso sejam passados como "anos=2023&anos=2024"
-        : []
-
-      const estadosArray = estados
-        ? Array.isArray(estados)
-          ? estados.map(String)
-          : [String(estados)]
-        : []
-
-      // Validando os estados
-      const estadosInvalidos = estadosArray.filter(
-        (estado) => !estadosValidos.includes(estado.toUpperCase())
-      )
-      if (estadosInvalidos.length > 0) {
-        return res.status(400).json({
-          message: "Estados inválidos encontrados.",
-          invalidStates: estadosInvalidos
-        })
-      }
-
-      const cidadesArray = cidades
-        ? Array.isArray(cidades)
-          ? cidades.map(String)
-          : [String(cidades)]
-        : []
-
-      const museuId = museu ? String(museu) : null
-      if (museuId && !museuId.match(/^[a-fA-F0-9]{24}$/)) {
-        return res.status(400).json({
-          message:
-            "O campo 'museu' deve conter um ID válido no formato ObjectId."
-        })
-      }
-
-      // Chamando o método do serviço para realizar o filtro
-      const declaracoes =
-        await this.declaracaoService.filtroDeclaracoesDashBoard(
-          anosArray,
-          estadosArray,
-          cidadesArray,
-          museuId
-        )
-
-      // Retornando as declarações filtradas
-      return res.status(200).json(declaracoes)
-    } catch (error) {
-      // Logando o erro em caso de falha
-      logger.error("Erro ao filtrar declarações para o dashboard:", error)
-
-      // Retornando status 500 com uma mensagem de erro
-      return res
-        .status(500)
-        .json({ message: "Erro ao filtrar declarações para o dashboard." })
-    }
-  }
-
   /**
    * Atualiza os status dos bens vinculados a uma declaração e altera o status geral da declaração.
    *
@@ -242,7 +144,7 @@ export class DeclaracaoController {
       })
 
       if (!declaracao) {
-        return res.status(404).json({
+        return res.status(204).json({
           message: "Declaração não encontrada para o ano especificado."
         })
       }
@@ -268,10 +170,15 @@ export class DeclaracaoController {
 
       const userProfile = (user.profile as IProfile).name
 
-      const declaracao = await Declaracoes.findById(id).populate({
-        path: "museu_id",
-        model: Museu
-      })
+      const declaracao = await Declaracoes.findById(id)
+        .populate({
+          path: "museu_id",
+          model: Museu
+        })
+        .populate({
+          path: "anoDeclaracao",
+          model: AnoDeclaracao
+        })
 
       if (!declaracao) {
         logger.error("Declaração não encontrada.")
@@ -321,7 +228,7 @@ export class DeclaracaoController {
 
           return acc
         },
-        {} as Record<string, any>
+        {} as Record<string, unknown>
       )
 
       logger.info(
@@ -354,7 +261,7 @@ export class DeclaracaoController {
 
       const userProfile = (user.profile as IProfile).name
 
-      let agregacao: any[] = [
+      let agregacao: PipelineStage[] = [
         {
           $match: {
             responsavelEnvio: new mongoose.Types.ObjectId(userId),
@@ -415,21 +322,19 @@ export class DeclaracaoController {
 
       const resultado = await Declaracoes.aggregate(agregacao)
 
-      const declaracoesPopuladas = await Museu.populate(resultado, {
-        path: "museu_id"
-      })
+      const declaracoesPopuladas = await Museu.populate(resultado, [
+        {
+          path: "museu_id",
+          model: Museu
+        },
+        { path: "anoDeclaracao", model: AnoDeclaracao }
+      ])
 
       return res.status(200).json(declaracoesPopuladas)
     } catch (error) {
       console.error("Erro ao buscar declarações:", error)
       return res.status(500).json({ message: "Erro ao buscar declarações." })
     }
-  }
-
-  async getStatusEnum(req: Request, res: Response) {
-    const statusEnum = Declaracoes.schema.path("status")
-    const status = Object.values(statusEnum)[0]
-    return res.status(200).json(status)
   }
 
   /*
@@ -441,7 +346,6 @@ export class DeclaracaoController {
    * @throws {500} - Se ocorrer um erro interno ao processar a requisição.
    *
    */
-
   async getDeclaracaoFiltrada(req: Request, res: Response) {
     try {
       const declaracoes = await this.declaracaoService.declaracaoComFiltros(
@@ -632,12 +536,6 @@ export class DeclaracaoController {
         { ultimaDeclaracao: false }
       )
 
-      const anoDeclaracaoReferencia = await AnoDeclaracao.findOneAndUpdate(
-        { ano: anoDeclaracao },
-        { $set: { declaracaoVinculada: true } },
-        { new: true }
-      )
-
       return res.status(200).json(novaDeclaracao)
     } catch (error) {
       logger.error("Erro ao enviar uma declaração:", error)
@@ -655,7 +553,7 @@ export class DeclaracaoController {
       const declaracao = await Declaracoes.findOne({
         museu_id: museu,
         anoDeclaracao
-      })
+      }).populate("anoDeclaracao", ["_id", "ano"], AnoDeclaracao)
 
       if (!declaracao) {
         return res.status(404).json({
@@ -663,7 +561,7 @@ export class DeclaracaoController {
         })
       }
 
-      const prefix = `${museu}/${anoDeclaracao}/${tipoArquivo}/`
+      const prefix = `${museu}/${(declaracao.anoDeclaracao as unknown as { ano: number }).ano}/${tipoArquivo}/`
       const bucketName = "inbcm"
 
       const latestFilePath = await getLatestPathArchive(bucketName, prefix)
@@ -1028,8 +926,7 @@ export class DeclaracaoController {
       )
 
       if (!agregacao || agregacao.length === 0) {
-        return res.status(404).json({
-          success: false,
+        return res.status(204).json({
           message:
             "Nenhuma declaração encontrada para os parâmetros fornecidos."
         })

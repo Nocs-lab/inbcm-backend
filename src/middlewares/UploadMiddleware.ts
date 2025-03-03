@@ -1,6 +1,7 @@
 import multer, { MulterError } from "multer"
 import { Request, RequestHandler } from "express"
 import { uploadFileToMinio } from "../utils/minioUtil"
+import { AnoDeclaracao } from "../models/AnoDeclaracao"
 
 const upload = multer({
   limits: { fileSize: 1024 * 1024 * 1024 }
@@ -43,12 +44,31 @@ const uploadMiddleware: RequestHandler = async (req, res, next) => {
 
     const { museu, anoDeclaracao } = req.params
 
+    const periodo = await AnoDeclaracao.findById(anoDeclaracao)
+
+    if (!periodo) {
+      return res.status(404).json({
+        message: "Ano de declaração não encontrado."
+      })
+    }
+
+    const agora = new Date()
+
+    if (
+      agora < periodo.dataInicioSubmissao ||
+      agora > periodo.dataFimSubmissao
+    ) {
+      return res.status(403).json({
+        message: "O período de submissão para este ano está fechado."
+      })
+    }
+
     try {
       if (arquivistico && arquivistico.length > 0) {
         await uploadFileToMinio(
           arquivistico[0],
           museu,
-          anoDeclaracao,
+          periodo.ano,
           "arquivistico"
         )
       }
@@ -57,7 +77,7 @@ const uploadMiddleware: RequestHandler = async (req, res, next) => {
         await uploadFileToMinio(
           bibliografico[0],
           museu,
-          anoDeclaracao,
+          periodo.ano,
           "bibliografico"
         )
       }
@@ -66,7 +86,7 @@ const uploadMiddleware: RequestHandler = async (req, res, next) => {
         await uploadFileToMinio(
           museologico[0],
           museu,
-          anoDeclaracao,
+          periodo.ano,
           "museologico"
         )
       }
@@ -81,6 +101,4 @@ const uploadMiddleware: RequestHandler = async (req, res, next) => {
   })
 }
 
-
 export default uploadMiddleware
-

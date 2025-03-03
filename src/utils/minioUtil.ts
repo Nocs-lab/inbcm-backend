@@ -19,7 +19,7 @@ import HTTPError from "./error"
 export const generateFilePath = (
   fileName: string,
   museuId: string,
-  declarationYear: string,
+  declarationYear: number,
   archiveType: string
 ): string => {
   const now = Date.now()
@@ -79,7 +79,7 @@ export async function getLatestPathArchive(
 export const uploadFileToMinio = async (
   file: Express.Multer.File,
   museumId: string,
-  declarationYear: string,
+  declarationYear: number,
   fileType: string
 ) => {
   const objectPath = generateFilePath(

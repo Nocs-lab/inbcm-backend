@@ -1,7 +1,5 @@
 import express from "express"
-import {
-  userPermissionMiddleware
-} from "../../middlewares/AuthMiddlewares"
+import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 import AnoDeclaracaoController from "../../controllers/AnoDeclaracaoController"
 
 const routes = express.Router()
@@ -89,7 +87,11 @@ const routes = express.Router()
  *       '500':
  *         description: Erro ao criar o ano de declaração.
  */
-routes.post("/", userPermissionMiddleware('criarAnoDeclaracao'), AnoDeclaracaoController.criarAnoDeclaracao)
+routes.post(
+  "/",
+  userPermissionMiddleware("criarAnoDeclaracao"),
+  AnoDeclaracaoController.criarAnoDeclaracao
+)
 
 /**
  * @swagger
@@ -139,7 +141,10 @@ routes.post("/", userPermissionMiddleware('criarAnoDeclaracao'), AnoDeclaracaoCo
  *       '500':
  *         description: Erro ao listar os períodos vigentes.
  */
-routes.get("/getPeriodoDeclaracaoVigente/", AnoDeclaracaoController.getPeriodoDeclaracaoVigente)
+routes.get(
+  "/getPeriodoDeclaracaoVigente/",
+  AnoDeclaracaoController.getPeriodoDeclaracaoVigente
+)
 
 /**
  * @swagger
@@ -181,7 +186,11 @@ routes.get("/getPeriodoDeclaracaoVigente/", AnoDeclaracaoController.getPeriodoDe
  *       '500':
  *         description: Erro ao obter os anos de declaração.
  */
-routes.get("/", userPermissionMiddleware('getAnoDeclaracao'), AnoDeclaracaoController.getAnoDeclaracao)
+routes.get(
+  "/",
+  userPermissionMiddleware("getAnoDeclaracao"),
+  AnoDeclaracaoController.getAnoDeclaracao
+)
 
 /**
  * @swagger
@@ -211,86 +220,6 @@ routes.get(
   userPermissionMiddleware("getAnoDeclaracaoById"),
   AnoDeclaracaoController.getAnoDeclaracaoById
 )
-
-/**
- * @swagger
- * /api/ano-declaracao/getByAno/{ano}:
- *   get:
- *     summary: Busca um ano de declaração pelo ano.
- *     description: Endpoint para buscar um ano de declaração específico com base no valor do campo `ano`.
- *     tags:
- *       - Anos de Declaração
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: ano
- *         required: true
- *         schema:
- *           type: integer
- *         description: Ano da declaração a ser buscado.
- *         example: 2024
- *     responses:
- *       '200':
- *         description: Ano de declaração encontrado com sucesso.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                   description: ID do ano de declaração.
- *                 ano:
- *                   type: integer
- *                   description: Ano da declaração.
- *                 dataInicioSubmissao:
- *                   type: string
- *                   format: date
- *                   description: Data de início para submissão.
- *                 dataFimSubmissao:
- *                   type: string
- *                   format: date
- *                   description: Data de fim para submissão.
- *                 dataInicioRetificacao:
- *                   type: string
- *                   format: date
- *                   description: Data de início para retificação.
- *                 dataFimRetificacao:
- *                   type: string
- *                   format: date
- *                   description: Data de fim para retificação.
- *                 metaDeclaracoesEnviadas:
- *                   type: integer
- *                   description: Meta de declarações.
- *       '404':
- *         description: Ano de declaração não encontrado.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Ano de declaração não encontrado.
- *       '500':
- *         description: Erro ao buscar o ano de declaração.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Erro ao buscar o ano de declaração.
- */
-routes.get(
-  "/getByAno/:ano",
-  userPermissionMiddleware("getAnoDeclaracaoByAno"),
-  AnoDeclaracaoController.getAnoDeclaracaoByAno
-)
-
-
 
 /**
  * @swagger
@@ -384,7 +313,5 @@ routes.delete(
   userPermissionMiddleware("deleteAnoDeclaracao"),
   AnoDeclaracaoController.deleteAnoDeclaracao
 )
-
-
 
 export default routes

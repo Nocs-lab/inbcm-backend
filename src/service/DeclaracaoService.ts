@@ -33,9 +33,10 @@ import {
   museologico
 } from "inbcm-xlsx-validator/schema"
 import HTTPError from "../utils/error"
+import { AnoDeclaracao } from "../models/AnoDeclaracao"
 
 class DeclaracaoService {
-  async showCards(declaracoes: any[]) {
+  async showCards(declaracoes: DeclaracaoModel[]) {
     // Contagem do total de declarações
     const totalDeclaracoes = declaracoes.length
 
@@ -103,7 +104,9 @@ class DeclaracaoService {
     }
   }
 
-  async quantidadeDeclaracoesPorEstadoERegiao(declaracoes: any[]): Promise<{
+  async quantidadeDeclaracoesPorEstadoERegiao(
+    declaracoes: DeclaracaoModel[]
+  ): Promise<{
     quantidadePorEstado: Record<string, number>
     quantidadePorRegiao: Record<string, number>
     statusPorRegiao: Record<string, Record<string, number>>
@@ -169,47 +172,6 @@ class DeclaracaoService {
     } catch (error) {
       throw new Error(
         `Erro ao calcular a quantidade de declarações por estado, região e status: `
-      )
-    }
-  }
-
-  async quantidadeDeclaracoesPorAnoEStatus(declaracoes: any[], anos: string[]) {
-    try {
-      // Inicializa o objeto para contagem
-      const declaracoesPorAno: Record<string, number> = {}
-      const statusPorAno: Record<string, Record<string, number>> = {}
-
-      // Inicializa os anos com contagem zerada
-      anos.forEach((ano) => {
-        declaracoesPorAno[ano] = 0
-        statusPorAno[ano] = {} // Inicializa o objeto para status por ano
-      })
-
-      // Conta as declarações por ano e status
-      declaracoes.forEach((declaracao) => {
-        const ano = declaracao.anoDeclaracao
-        const status = declaracao.status
-
-        // Incrementa a contagem para o ano
-        if (anos.includes(ano)) {
-          declaracoesPorAno[ano] = (declaracoesPorAno[ano] || 0) + 1
-
-          // Incrementa a contagem para o status dentro do ano
-          if (!statusPorAno[ano][status]) {
-            statusPorAno[ano][status] = 0
-          }
-          statusPorAno[ano][status] += 1
-        }
-      })
-
-      // Retorna o JSON com os dados de declarações por ano e status por ano
-      return {
-        quantidadePorAno: declaracoesPorAno,
-        statusPorAno
-      }
-    } catch (error) {
-      throw new Error(
-        `Erro ao calcular a quantidade de declarações por ano e status: `
       )
     }
   }
@@ -1100,27 +1062,42 @@ class DeclaracaoService {
   ) {
     const declaracoesExistentes = await Declaracoes.find({
       museu_id: new mongoose.Types.ObjectId(museuId),
-      anoDeclaracao: { $gte: anoInicio.toString(), $lte: anoFim.toString() },
       ultimaDeclaracao: true,
       status: { $ne: Status.Excluida }
     })
+      .populate({
+        path: "anoDeclaracao",
+        match: { ano: { $gte: anoInicio, $lte: anoFim } },
+        model: AnoDeclaracao,
+        select: ["_id", "ano"]
+      })
+      .exec()
 
-    if (declaracoesExistentes.length === 0) {
+    const declaracoesFiltradas = declaracoesExistentes.filter(
+      (declaracao) => declaracao.anoDeclaracao !== null
+    )
+
+    if (declaracoesFiltradas.length === 0) {
       throw new Error(
         `Nenhuma declaração encontrada para o museu ${museuId} entre ${anoInicio} e ${anoFim}`
       )
     }
 
+    const anos = declaracoesFiltradas.map(
+      (declaracao) => declaracao.anoDeclaracao
+    ) as unknown as { _id: mongoose.Types.ObjectId; ano: number }[]
+
+    const anoDeclaracaoIds = declaracoesFiltradas.map(
+      (declaracao) => declaracao.anoDeclaracao._id
+    )
+
     const agregacao = await Declaracoes.aggregate([
       {
         $match: {
           museu_id: new mongoose.Types.ObjectId(museuId),
-          anoDeclaracao: {
-            $gte: anoInicio.toString(),
-            $lte: anoFim.toString()
-          },
+          anoDeclaracao: { $in: anoDeclaracaoIds },
           ultimaDeclaracao: true,
-          isExcluded: { $ne: true }
+          status: { $ne: Status.Excluida }
         }
       },
       {
@@ -1156,7 +1133,15 @@ class DeclaracaoService {
       { $sort: { anoDeclaracao: 1 } }
     ])
 
-    return agregacao
+    const result = agregacao.map((item) => {
+      const ano = anos.find((ano) => ano._id.equals(item.anoDeclaracao))
+      return {
+        ...item,
+        ano: ano?.ano
+      }
+    })
+
+    return result
   }
 
   async concluirAnalise(id: string, status: Status): Promise<DeclaracaoModel> {
@@ -1240,7 +1225,7 @@ class DeclaracaoService {
       {
         $match: {
           "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
-          "declaracoes.anoDeclaracao": ano
+          "declaracoes.anoDeclaracao": new mongoose.Types.ObjectId(ano)
         }
       },
       {
@@ -1263,7 +1248,7 @@ class DeclaracaoService {
       declaracao_ref: {
         $in: await Declaracoes.find({
           museu_id: new mongoose.Types.ObjectId(museuId),
-          anoDeclaracao: ano
+          anoDeclaracao: new mongoose.Types.ObjectId(ano)
         }).select("_id")
       }
     }).select(retornoPorItem)
@@ -1331,7 +1316,7 @@ class DeclaracaoService {
       {
         $match: {
           "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
-          "declaracoes.anoDeclaracao": ano,
+          "declaracoes.anoDeclaracao": new mongoose.Types.ObjectId(ano),
           "declaracoes.responsavelEnvio": new mongoose.Types.ObjectId(userId)
         }
       },
@@ -1355,7 +1340,7 @@ class DeclaracaoService {
       declaracao_ref: {
         $in: await Declaracoes.find({
           museu_id: new mongoose.Types.ObjectId(museuId),
-          anoDeclaracao: ano,
+          anoDeclaracao: new mongoose.Types.ObjectId(ano),
           responsavelEnvio: new mongoose.Types.ObjectId(userId)
         }).select("_id")
       }
