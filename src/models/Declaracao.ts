@@ -83,7 +83,7 @@ const ArquivoSchema = new Schema<Arquivo>(
 export interface DeclaracaoModel extends Document {
   museu_id: mongoose.Types.ObjectId
   museu_nome: string
-  anoDeclaracao: string
+  anoDeclaracao: mongoose.Types.ObjectId
   responsavelEnvio: mongoose.Types.ObjectId
   responsavelEnvioNome: string
   hashDeclaracao: string
@@ -121,7 +121,11 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
     museu_id: { type: Schema.Types.ObjectId, ref: "Museu", required: true },
     museu_nome: String,
     versao: { type: Number, default: 0 },
-    anoDeclaracao: String,
+    anoDeclaracao: {
+      type: Schema.Types.ObjectId,
+      ref: "AnoDeclaracoes",
+      required: true
+    },
     responsavelEnvio: {
       type: Schema.Types.ObjectId,
       ref: "usuarios",

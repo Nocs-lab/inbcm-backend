@@ -2,7 +2,6 @@ import express from "express"
 import DeclaracaoController from "../../controllers/DeclaracaoController"
 import uploadMiddleware from "../../middlewares/UploadMiddleware"
 import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
-import uploadPeriodoMiddleware from "../../middlewares/UploadPeriodoMiddleware"
 import retificacaoPeriodoMiddleware from "../../middlewares/RetificacaoPeriodoMiddleware"
 
 const routes = express.Router()
@@ -120,7 +119,6 @@ routes.post(
   "/uploads/:museu/:anoDeclaracao",
   uploadMiddleware,
   userPermissionMiddleware("uploadDeclaracao"),
-  uploadPeriodoMiddleware,
   declaracaoController.uploadDeclaracao
 )
 
