@@ -1,21 +1,23 @@
 import mongoose from "mongoose"
 import path from "path"
 import { DataUtils } from "../utils/dataUtils"
-import { TDocumentDefinitions } from "pdfmake/interfaces"
+import { Content, TDocumentDefinitions } from "pdfmake/interfaces"
 import HTTPError from "../utils/error"
 import {
   buscaDeclaracao,
-  buscaMuseu,
-  buscaUsuario,
   MapeadorCamposPercentual,
   formatarDadosRecibo
 } from "./utilsDocuments"
-import { DeclaracaoModel } from "../models"
+import { DeclaracaoModel, IMuseu, IUsuario } from "../models"
 import PdfPrinter from "pdfmake"
+import { AnoDeclaracaoModel } from "../models/AnoDeclaracao"
 
 const gerarTabela = (
   tipo: "museologico" | "bibliografico" | "arquivistico",
-  declaracao: DeclaracaoModel
+  declaracao: DeclaracaoModel & {
+    museu_id: IMuseu & { usuario: IUsuario }
+    anoDeclaracao: AnoDeclaracaoModel
+  }
 ) => {
   const campos = MapeadorCamposPercentual[tipo]
   const porcentagemPorCampo = declaracao[tipo]?.porcentagemPorCampo || []
@@ -38,9 +40,10 @@ const gerarTabela = (
           { text: "Preenchimento", style: "tableHeader", alignment: "center" }
         ],
         ...porcentagemPorCampo.map(({ campo, percentual }) => {
+          const campoKey = campo as keyof typeof campos
           return [
             {
-              text: campos[campo] || campo,
+              text: campos[campoKey] || campo,
               style: "tableData",
               alignment: "left"
             },
@@ -78,11 +81,14 @@ async function gerarPDFRecibo(
   const printer = new PdfPrinter(fonts)
 
   try {
-    const declaracao = await buscaDeclaracao(declaracaoId)
-    const museu = await buscaMuseu(declaracao.museu_id)
-    const usuario = await buscaUsuario(museu.usuario)
+    const declaracao = (await buscaDeclaracao(
+      declaracaoId
+    )) as unknown as DeclaracaoModel & {
+      museu_id: IMuseu & { usuario: IUsuario }
+      anoDeclaracao: AnoDeclaracaoModel
+    }
 
-    const dadosFormatados = formatarDadosRecibo(declaracao, museu, usuario)
+    const dadosFormatados = formatarDadosRecibo(declaracao)
     const tabelaMuseologico = declaracao.museologico
       ? gerarTabela("museologico", declaracao)
       : undefined
@@ -95,7 +101,7 @@ async function gerarPDFRecibo(
       ? gerarTabela("arquivistico", declaracao)
       : undefined
 
-    const conteudo: any[] = []
+    const conteudo: Content[] = []
 
     // Adiciona tabela Museológica, se existir
     if (tabelaMuseologico) conteudo.push(tabelaMuseologico)
@@ -445,6 +451,7 @@ async function gerarPDFRecibo(
       pdfDoc.end()
     })
   } catch (error) {
+    console.error(error)
     throw new HTTPError("Erro ao gerar o recibo.", 500)
   }
 }

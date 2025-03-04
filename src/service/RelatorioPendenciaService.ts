@@ -2,16 +2,15 @@ import mongoose from "mongoose"
 import HTTPError from "../utils/error"
 import path from "path"
 import PdfPrinter from "pdfmake"
-import { TDocumentDefinitions } from "pdfmake/interfaces"
+import { Content, TDocumentDefinitions } from "pdfmake/interfaces"
 import { DataUtils } from "../utils/dataUtils"
 import {
   buscaDeclaracao,
-  buscaMuseu,
-  buscaUsuario,
   formatarDadosRecibo,
   MapeadorCamposPercentual
 } from "./utilsDocuments"
-import { DeclaracaoModel } from "../models"
+import { DeclaracaoModel, IMuseu, IUsuario } from "../models"
+import { AnoDeclaracaoModel } from "../models/AnoDeclaracao"
 
 const gerarTabelaPendencias = (
   tipo: "museologico" | "bibliografico" | "arquivistico",
@@ -98,6 +97,8 @@ const gerarTabelaPendencias = (
                 }
               ]
             } else {
+              const campoKey = campo as keyof typeof campos
+
               return [
                 {
                   text: `${erro.linha}`, // Usa o valor já incrementado
@@ -105,7 +106,7 @@ const gerarTabelaPendencias = (
                   alignment: "center"
                 },
                 {
-                  text: campos[campo] || campo,
+                  text: campos[campoKey] || campo,
                   style: "tableData",
                   alignment: "left",
                   noWrap: true
@@ -155,9 +156,13 @@ export async function gerarPDFRelatorioPendenciais(
   const printer = new PdfPrinter(fonts)
 
   try {
-    const declaracao = await buscaDeclaracao(declaracaoId)
-    const museu = await buscaMuseu(declaracao.museu_id)
-    const usuario = await buscaUsuario(museu.usuario)
+    const declaracao = (await buscaDeclaracao(
+      declaracaoId
+    )) as unknown as DeclaracaoModel & {
+      museu_id: IMuseu & { usuario: IUsuario }
+      anoDeclaracao: AnoDeclaracaoModel
+    }
+
     const tabelaMuseologico = declaracao.museologico
       ? gerarTabelaPendencias("museologico", declaracao)
       : undefined
@@ -170,7 +175,7 @@ export async function gerarPDFRelatorioPendenciais(
       ? gerarTabelaPendencias("arquivistico", declaracao)
       : undefined
 
-    const conteudo: any[] = []
+    const conteudo: Content[] = []
 
     // Adiciona tabela Museológica, se existir
     if (tabelaMuseologico) conteudo.push(tabelaMuseologico)
@@ -189,7 +194,7 @@ export async function gerarPDFRelatorioPendenciais(
       conteudo.push(tabelaArquivistico)
     }
 
-    const dadosFormatados = formatarDadosRecibo(declaracao, museu, usuario)
+    const dadosFormatados = formatarDadosRecibo(declaracao)
 
     const docDefinition: TDocumentDefinitions = {
       pageSize: "A4",

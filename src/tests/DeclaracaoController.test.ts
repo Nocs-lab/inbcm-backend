@@ -136,7 +136,7 @@ describe("GET /public/declaracoes", () => {
 
     const anosMuseus = new Set()
     response.body.forEach((declaracao: any) => {
-      const key = `${declaracao.museu_id._id}-${declaracao.anoDeclaracao}`
+      const key = `${declaracao.museu_id._id}-${declaracao.anoDeclaracao._id}`
       expect(anosMuseus.has(key)).toBe(false) // Cada museu-ano deve ser único
       anosMuseus.add(key)
     })

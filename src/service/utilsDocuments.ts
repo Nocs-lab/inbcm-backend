@@ -1,14 +1,8 @@
 import mongoose from "mongoose"
-import {
-  Declaracoes,
-  Museu,
-  Usuario,
-  DeclaracaoModel,
-  IMuseu,
-  IUsuario
-} from "../models"
+import { Declaracoes, DeclaracaoModel, IMuseu, IUsuario } from "../models"
 import { DataUtils } from "../utils/dataUtils"
 import HTTPError from "../utils/error"
+import { AnoDeclaracaoModel } from "../models/AnoDeclaracao"
 
 export const MapeadorCamposPercentual = {
   museologico: {
@@ -79,6 +73,12 @@ export const MapeadorCamposPercentual = {
  */
 export async function buscaDeclaracao(declaracaoId: mongoose.Types.ObjectId) {
   const declaracao = await Declaracoes.findById(declaracaoId)
+    .populate<{ museu_id: IMuseu & { usuario: IUsuario } }>({
+      path: "museu_id",
+      populate: { path: "usuario" }
+    })
+    .populate<{ anoDeclaracao: AnoDeclaracaoModel }>("anoDeclaracao")
+
   if (!declaracao) {
     throw new HTTPError(
       `Declaração não encontrada para o ID especificado: ${declaracaoId}`,
@@ -89,46 +89,16 @@ export async function buscaDeclaracao(declaracaoId: mongoose.Types.ObjectId) {
 }
 
 /**
- * Obtém um museu pelo seu ID.
- *
- * @param museuId - O ID do museu a ser obtido.
- * @returns Uma promessa que resolve com o museu encontrado.
- * @throws Um erro se o museu não for encontrado.
- */
-export async function buscaMuseu(museuId: mongoose.Types.ObjectId) {
-  const museu = await Museu.findById(museuId)
-  if (!museu) {
-    throw new HTTPError(
-      `Museu não encontrado para o ID especificado: ${museuId}`,
-      404
-    )
-  }
-  return museu
-}
-
-export async function buscaUsuario(usuarioId: mongoose.Types.ObjectId) {
-  const usuario = await Usuario.findById(usuarioId)
-  if (!usuario) {
-    throw new HTTPError(
-      `Usuário não encontrado para o ID especificado: ${usuarioId}`,
-      404
-    )
-  }
-  return usuario
-}
-
-/**
  * Formata os dados de uma declaração para o recibo.
  *
  * @param declaracao - A declaração a ser formatada.
- * @param museu - O museu relacionado à declaração.
- * @param usuario - O usuário relacionado ao museu.
  * @returns Os dados formatados para o recibo.
  */
 export function formatarDadosRecibo(
-  declaracao: DeclaracaoModel,
-  museu: IMuseu,
-  usuario: IUsuario
+  declaracao: DeclaracaoModel & {
+    museu_id: IMuseu & { usuario: IUsuario }
+    anoDeclaracao: AnoDeclaracaoModel
+  }
 ) {
   const totalBensDeclarados =
     (declaracao.arquivistico?.quantidadeItens || 0) +
@@ -145,17 +115,17 @@ export function formatarDadosRecibo(
   }
 
   return {
-    anoCalendario: declaracao.anoDeclaracao,
-    codigoIdentificador: museu.codIbram,
-    nomeMuseu: museu.nome,
-    logradouro: museu.endereco.logradouro,
-    numero: museu.endereco.numero,
-    complemento: museu.endereco.complemento,
-    bairro: museu.endereco.bairro,
-    cep: museu.endereco.cep,
-    municipio: museu.endereco.municipio,
-    uf: museu.endereco.uf,
-    nomeDeclarante: usuario.nome,
+    anoCalendario: declaracao.anoDeclaracao.ano,
+    codigoIdentificador: declaracao.museu_id.codIbram,
+    nomeMuseu: declaracao.museu_id.nome,
+    logradouro: declaracao.museu_id.endereco.logradouro,
+    numero: declaracao.museu_id.endereco.numero,
+    complemento: declaracao.museu_id.endereco.complemento,
+    bairro: declaracao.museu_id.endereco.bairro,
+    cep: declaracao.museu_id.endereco.cep,
+    municipio: declaracao.museu_id.endereco.municipio,
+    uf: declaracao.museu_id.endereco.uf,
+    nomeDeclarante: declaracao.museu_id.usuario.nome,
     data: DataUtils.gerarDataFormatada(declaracao.dataRecebimento),
     hora: DataUtils.gerarHoraFormatada(declaracao.dataRecebimento),
     numeroRecibo: declaracao.hashDeclaracao,
