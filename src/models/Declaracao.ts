@@ -118,7 +118,7 @@ export type ArquivoTypes =
 
 const DeclaracaoSchema = new Schema<DeclaracaoModel>(
   {
-    museu_id: { type: Schema.Types.ObjectId, ref: "Museu", required: true },
+    museu_id: { type: Schema.Types.ObjectId, ref: "museus", required: true },
     museu_nome: String,
     versao: { type: Number, default: 0 },
     anoDeclaracao: {
