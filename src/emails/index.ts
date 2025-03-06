@@ -1,23 +1,26 @@
+import config from "../config"
 import templates from "./templates"
 import nodemailer from "nodemailer"
 
 type Templates = {
   "forgot-password": { url: string }
+  "solicitar-acesso": { name: string }
 }
 
 const subjects: Record<
   keyof Templates,
   (data: Templates[keyof Templates]) => string
 > = {
-  "forgot-password": () => "Recuperação de senha"
+  "forgot-password": () => "Recuperação de senha",
+  "solicitar-acesso": () => "[INBCM] Solicitação de acesso ao módulo declarante"
 }
 
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: Number(process.env.EMAIL_PORT),
+  host: config.EMAIL_HOST,
+  port: config.EMAIL_PORT,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: config.EMAIL_USER,
+    pass: config.EMAIL_PASS
   }
 })
 
@@ -27,9 +30,9 @@ export function sendEmail(
   data: Templates[typeof template]
 ) {
   return transporter.sendMail({
-    from: process.env.EMAIL_FROM,
+    from: config.EMAIL_FROM,
     to,
     subject: subjects[template](data),
-    html: templates[template](data)
+    html: templates[`${template}.hbs`](data)
   })
 }
