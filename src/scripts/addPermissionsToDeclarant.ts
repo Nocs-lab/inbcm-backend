@@ -24,7 +24,8 @@ const addPermissionsToDeclarant = async () => {
     "getTimeLine",
     "getUsuario",
     "atualizarUsuario",
-    "gerarReciboDetalhamento"
+    "gerarReciboDetalhamento",
+    "downloadAnalise"
   ]
 
   try {
