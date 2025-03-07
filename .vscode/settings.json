@@ -25,4 +25,7 @@
   },
   "eslint.format.enable": true,
   "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "[handlebars]": {
+    "editor.defaultFormatter": "vscode.html-language-features"
+  }
 }

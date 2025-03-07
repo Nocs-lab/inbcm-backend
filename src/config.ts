@@ -22,7 +22,12 @@ const parsed = {
   SHORT_SHA: process.env.SHORT_SHA ?? "dev",
   METABASE_SITE_URL: process.env.METABASE_SITE_URL ?? "",
   METABASE_SECRET_KEY: process.env.METABASE_SECRET_KEY ?? "",
-  METABASE_DASHBOARD_ID: process.env.METABASE_DASHBOARD_ID ?? ""
+  METABASE_DASHBOARD_ID: process.env.METABASE_DASHBOARD_ID ?? "",
+  EMAIL_HOST: process.env.EMAIL_HOST ?? "",
+  EMAIL_PORT: process.env.EMAIL_PORT ?? "",
+  EMAIL_USER: process.env.EMAIL_USER ?? "",
+  EMAIL_PASS: process.env.EMAIL_PASS ?? "",
+  EMAIL_FROM: process.env.EMAIL_FROM ?? ""
 }
 logger.info("Carregando configurações...")
 
@@ -50,7 +55,15 @@ const schema = z.object({
   METABASE_DASHBOARD_ID: z
     .string()
     .min(1)
-    .transform((val) => parseInt(val))
+    .transform((val) => parseInt(val)),
+  EMAIL_HOST: z.string().min(1),
+  EMAIL_PORT: z
+    .string()
+    .min(1)
+    .transform((val) => parseInt(val, 10)),
+  EMAIL_USER: z.string().min(1),
+  EMAIL_PASS: z.string().min(1),
+  EMAIL_FROM: z.string().min(1)
 })
 
 const config = schema.parse(parsedEnv)

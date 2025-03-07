@@ -9,11 +9,11 @@ import { UpdateUserDto } from "../models/dto/UserDto"
 import { Status } from "../enums/Status"
 import HTTPError from "../utils/error"
 import argon2 from "@node-rs/argon2"
+import { sendEmail } from "../emails"
 
 class UsuarioController {
   async registerUsuarioExterno(req: Request, res: Response) {
     const { nome, email, cpf, museus } = req.body
-    console.log(nome, email, cpf, museus)
 
     try {
       await UsuarioService.validarUsuarioExterno({
@@ -30,12 +30,15 @@ class UsuarioController {
         museus
       })
 
+      await sendEmail("solicitar-acesso", email, { name: nome })
+
       return res.status(201).json({
         message:
           "Pedido de acesso ao sistema INBCM feito com sucesso. Aguarde análise.",
         usuario: novoUsuario
       })
     } catch (error: unknown) {
+      logger.error("Erro ao criar usuário externo:", error)
       if (error instanceof HTTPError) {
         return res.status(400).json({ message: error.message })
       }
