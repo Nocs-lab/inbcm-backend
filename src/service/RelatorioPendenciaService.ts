@@ -527,7 +527,6 @@ export async function gerarPDFRelatorioPendenciais(
       pdfDoc.end()
     })
   } catch (error) {
-    console.log(error)
     throw new HTTPError("Erro ao gerar o recibo.", 500)
   }
 }
