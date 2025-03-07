@@ -3,8 +3,21 @@ import { Request, RequestHandler } from "express"
 import { uploadFileAnaliseToMinio } from "../utils/minioUtil"
 import { Declaracoes } from "../models/Declaracao"
 
+const allowedMimeTypes = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain"
+]
+
 const upload = multer({
-  limits: { fileSize: 1024 * 1024 * 1024 }
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      return cb(null, false)
+    }
+    cb(null, true)
+  }
 }).fields([
   { name: "arquivistico", maxCount: 1 },
   { name: "bibliografico", maxCount: 1 },
@@ -33,7 +46,6 @@ const uploadAnalise: RequestHandler = async (req, res, next) => {
     }
 
     const uploadReq = req as SubmissionRequest
-
     const { arquivistico, bibliografico, museologico } = uploadReq.files
 
     if (!arquivistico && !bibliografico && !museologico) {
@@ -47,13 +59,10 @@ const uploadAnalise: RequestHandler = async (req, res, next) => {
     try {
       const declaracao = await Declaracoes.findById(declaracaoId)
       if (!declaracao) {
-        return res.status(404).json({
-          message: "Declaração não encontrada."
-        })
+        return res.status(404).json({ message: "Declaração não encontrada." })
       }
 
       const { museu_id } = declaracao
-
       const tiposArquivos = ["museologico", "bibliografico", "arquivistico"]
       if (!tiposArquivos.includes(tipoArquivo)) {
         return res.status(400).json({ message: "Tipo de arquivo inválido." })
