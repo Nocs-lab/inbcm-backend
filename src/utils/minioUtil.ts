@@ -1,6 +1,7 @@
 import { format } from "date-fns"
 import minioClient from "../db/minioClient"
 import HTTPError from "./error"
+import { Readable } from "stream"
 
 /**
  * Implementa regra de negócio para definição de nomenclatura dos arquivos.
@@ -91,7 +92,7 @@ export const uploadFileToMinio = async (
   await minioClient.putObject(
     "inbcm",
     objectPath,
-    file.stream,
+    Readable.from(file.buffer),
     file.buffer.length,
     {
       "Content-Type": file.mimetype,
