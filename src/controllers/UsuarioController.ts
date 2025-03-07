@@ -38,6 +38,7 @@ class UsuarioController {
         usuario: novoUsuario
       })
     } catch (error: unknown) {
+      logger.error("Erro ao criar usuário externo:", error)
       if (error instanceof HTTPError) {
         return res.status(400).json({ message: error.message })
       }

@@ -33,6 +33,6 @@ export function sendEmail(
     from: config.EMAIL_FROM,
     to,
     subject: subjects[template](data),
-    html: templates[`${template}.hbs`](data)
+    html: templates[template](data)
   })
 }
