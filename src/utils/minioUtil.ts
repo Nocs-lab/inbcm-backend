@@ -1,6 +1,5 @@
 import { format } from "date-fns"
 import minioClient from "../db/minioClient"
-import { Readable } from "stream"
 import HTTPError from "./error"
 
 /**
@@ -89,10 +88,14 @@ export const uploadFileToMinio = async (
     fileType
   )
 
-  const stream = Readable.from(file.buffer)
-
-  await minioClient.putObject("inbcm", objectPath, stream, file.buffer.length, {
-    "Content-Type": file.mimetype,
-    "x-amz-acl": "public-read"
-  })
+  await minioClient.putObject(
+    "inbcm",
+    objectPath,
+    file.stream,
+    file.buffer.length,
+    {
+      "Content-Type": file.mimetype,
+      "x-amz-acl": "public-read"
+    }
+  )
 }

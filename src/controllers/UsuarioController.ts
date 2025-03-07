@@ -9,7 +9,6 @@ import { UpdateUserDto } from "../models/dto/UserDto"
 import { Status } from "../enums/Status"
 import HTTPError from "../utils/error"
 import argon2 from "@node-rs/argon2"
-import { sendEmail } from "../emails"
 
 class UsuarioController {
   async registerUsuarioExterno(req: Request, res: Response) {
@@ -27,10 +26,9 @@ class UsuarioController {
         nome,
         email,
         cpf,
-        museus
+        museus: Array.isArray(museus) ? museus : [museus],
+        arquivos: req.files as Express.Multer.File[]
       })
-
-      await sendEmail("solicitar-acesso", email, { name: nome })
 
       return res.status(201).json({
         message:

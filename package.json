@@ -18,7 +18,7 @@
     "lint:fix": "eslint --cache --fix src",
     "add:permissions-declarant": "sucrase-node src/scripts/addPermissionsToDeclarant.ts",
     "add:permissions-analyst": "sucrase-node src/scripts/addPermissionsToAnalyst.ts",
-    "compile-emails": "handlebars -c \"handlebars\" src/emails/*.hbs -f src/emails/templates.ts --esm handlebars && node src/emails/conversor.mjs"
+    "compile-emails": "handlebars -c \"handlebars\" src/emails/*.hbs -f src/emails/templates.ts --esm handlebars && node src/emails/conversor.mjs && prettier src/emails/templates.ts --write"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +27,7 @@
     "@aws-sdk/client-s3": "^3.758.0",
     "@kaciras/deasync": "^1.1.0",
     "@node-rs/argon2": "^1.8.3",
+    "@pulsecron/pulse": "^1.6.7",
     "aws-sdk": "^2.1692.0",
     "axios": "^1.8.1",
     "body-parser": "^1.20.3",
@@ -76,8 +77,6 @@
     "@faker-js/faker": "^8.4.1",
     "@jest/globals": "^29.7.0",
     "@shelf/jest-mongodb": "^4.3.2",
-    "@swc/cli": "^0.6.0",
-    "@swc/core": "^1.11.7",
     "@types/amqplib": "^0.10.6",
     "@types/compression": "^1.7.5",
     "@types/cookie-parser": "^1.4.8",

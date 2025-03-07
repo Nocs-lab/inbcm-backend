@@ -9,7 +9,7 @@ const RetificacaoPeriodoMiddleware = async (
   try {
     const { anoDeclaracao } = req.params
 
-    const periodo = await AnoDeclaracao.findOne({ ano: anoDeclaracao })
+    const periodo = await AnoDeclaracao.findById(anoDeclaracao)
 
     if (!periodo) {
       return res.status(404).json({

@@ -5,6 +5,10 @@ import { Types } from "mongoose"
 import { IMuseu, Museu } from "../models"
 import HTTPError from "../utils/error"
 import { z } from "zod"
+import { sendEmail } from "../emails"
+import minioClient from "../db/minioClient"
+import { randomUUID } from "crypto"
+import { logger } from "handlebars"
 
 const usuarioExternoSchema = z.object({
   nome: z.string().min(1, "O nome é obrigatório."),
@@ -12,18 +16,21 @@ const usuarioExternoSchema = z.object({
   profile: z.string().min(1, "O perfil é obrigatório."),
   cpf: z.string().min(11, "CPF inválido.")
 })
+
 export class UsuarioService {
   static async criarUsuarioExterno({
     nome,
     email,
     cpf,
-    museus
+    museus,
+    arquivos
   }: {
     nome: string
     email: string
     cpf: string
     museus: string[]
     senha?: string
+    arquivos: Express.Multer.File[]
   }) {
     // Valida museus
     const museusValidos: string[] = []
@@ -54,12 +61,28 @@ export class UsuarioService {
     }
 
     if (erros.length > 0) {
-      throw new Error(`Falha ao associar museus: ${JSON.stringify(erros)}`)
+      throw new HTTPError(
+        `Falha ao associar museus: ${JSON.stringify(erros)}`,
+        500
+      )
     }
     const perfilDeclarant = await Profile.findOne({ name: "declarant" })
     if (!perfilDeclarant) {
-      throw new Error("Perfil 'declarant' não encontrado.")
+      throw new HTTPError("Perfil 'declarant' não encontrado.", 500)
     }
+
+    const arquivo = arquivos[0]
+
+    const documentoComprobatorio = `documentos/${email}/${randomUUID()}/${arquivo.originalname}`
+    await minioClient.putObject(
+      "inbcm",
+      documentoComprobatorio,
+      arquivo.buffer,
+      arquivo.size,
+      {
+        "Content-Type": arquivo.mimetype
+      }
+    )
 
     const novoUsuario = new Usuario({
       nome,
@@ -67,7 +90,8 @@ export class UsuarioService {
       cpf,
       profile: perfilDeclarant._id,
       situacao: SituacaoUsuario.ParaAprovar,
-      museus: museusValidos
+      museus: museusValidos,
+      documentoComprobatorio
     })
 
     await novoUsuario.save()
@@ -77,8 +101,11 @@ export class UsuarioService {
       { $set: { usuario: novoUsuario._id } }
     )
 
+    await sendEmail("solicitar-acesso", email, { name: nome })
+
     return novoUsuario
   }
+
   static async validarUsuarioExterno({
     nome,
     email,
