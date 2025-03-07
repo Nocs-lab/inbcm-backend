@@ -19,6 +19,7 @@ export interface IUsuario extends Document {
   situacao: SituacaoUsuario
   especialidadeAnalista: string[]
   cpf: string
+  documentoComprobatorio: string
 }
 
 export const UsuarioSchema = new Schema<IUsuario>({
@@ -56,7 +57,8 @@ export const UsuarioSchema = new Schema<IUsuario>({
       message: "CPF inválido"
     },
     set: (cpf: string) => cpf.replace(/\D/g, "")
-  }
+  },
+  documentoComprobatorio: { type: String, required: false }
 })
 
 export function validarCPF(cpf: string): boolean {

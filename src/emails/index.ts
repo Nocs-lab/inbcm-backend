@@ -1,11 +1,19 @@
 import config from "../config"
 import templates from "./templates"
 import nodemailer from "nodemailer"
+import Pulse from "@pulsecron/pulse"
 
 type Templates = {
   "forgot-password": { url: string }
   "solicitar-acesso": { name: string }
 }
+
+const pulse = new Pulse({
+  db: { address: config.DB_URL },
+  defaultConcurrency: 4,
+  maxConcurrency: 4,
+  resumeOnRestart: true
+})
 
 const subjects: Record<
   keyof Templates,
@@ -24,15 +32,28 @@ const transporter = nodemailer.createTransport({
   }
 })
 
+pulse.define<{
+  template: keyof Templates
+  to: string
+  data: Templates[keyof Templates]
+}>("send-email", async (job) => {
+  const { template, to, data } = job.attrs.data
+
+  await transporter.sendMail({
+    from: config.EMAIL_FROM,
+    to,
+    subject: subjects[template](data),
+    html: templates[template]({
+      ...data,
+      logoUrl: `${config.PUBLIC_SITE_URL}/logo-ibram.png`
+    })
+  })
+})
+
 export function sendEmail(
   template: keyof Templates,
   to: string,
   data: Templates[typeof template]
 ) {
-  return transporter.sendMail({
-    from: config.EMAIL_FROM,
-    to,
-    subject: subjects[template](data),
-    html: templates[template](data)
-  })
+  return pulse.now("send-email", { template, to, data })
 }

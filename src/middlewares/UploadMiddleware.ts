@@ -2,6 +2,7 @@ import multer, { MulterError } from "multer"
 import { Request, RequestHandler } from "express"
 import { uploadFileToMinio } from "../utils/minioUtil"
 import { AnoDeclaracao } from "../models/AnoDeclaracao"
+import logger from "../utils/logger"
 
 const upload = multer({
   limits: { fileSize: 1024 * 1024 * 1024 }
