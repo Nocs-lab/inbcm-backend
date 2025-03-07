@@ -13,7 +13,6 @@ import argon2 from "@node-rs/argon2"
 class UsuarioController {
   async registerUsuarioExterno(req: Request, res: Response) {
     const { nome, email, cpf, museus } = req.body
-    console.log(nome, email, cpf, museus)
 
     try {
       await UsuarioService.validarUsuarioExterno({
