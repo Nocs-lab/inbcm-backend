@@ -9,11 +9,14 @@ type Templates = {
 }
 
 const pulse = new Pulse({
-  db: { address: config.DB_URL },
-  defaultConcurrency: 4,
-  maxConcurrency: 4,
-  resumeOnRestart: true
+  db: { address: config.DB_URL, collection: "jobs" },
+  defaultConcurrency: 10,
+  maxConcurrency: 10,
+  resumeOnRestart: true,
+  processEvery: "10 seconds"
 })
+
+pulse.start()
 
 const subjects: Record<
   keyof Templates,
