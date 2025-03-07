@@ -29,6 +29,37 @@ export const generateFilePath = (
   const uniqueFileName = `${timestamp}-${sanitizedFileName}`
   return `${museuId}/${declarationYear}/${archiveType}/${uniqueFileName}`
 }
+export const uploadFileAnaliseToMinio = async (
+  file: Express.Multer.File,
+  declaracaoId: string,
+
+  fileType: string
+) => {
+  const objectPath = generateFilePathAnalise(
+    file.originalname,
+    declaracaoId,
+    fileType
+  )
+
+  const stream = Readable.from(file.buffer)
+
+  await minioClient.putObject("inbcm", objectPath, stream, file.buffer.length, {
+    "Content-Type": file.mimetype,
+    "x-amz-acl": "public-read"
+  })
+}
+export const generateFilePathAnalise = (
+  fileName: string,
+  declaracaoId: string,
+  archiveType: string
+): string => {
+  const now = Date.now()
+  const timestamp = format(now, "dd_MM_yyyy_HH_mm_ss_SSS")
+
+  const sanitizedFileName = fileName.replace(/\s+/g, "_")
+  const uniqueFileName = `${timestamp}-${sanitizedFileName}`
+  return `analise/${declaracaoId}/${archiveType}/${uniqueFileName}`
+}
 
 /**
  * Recupera o caminho do arquivo mais recente de um bucket e prefixo especificados no MinIO.
