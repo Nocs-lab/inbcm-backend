@@ -123,7 +123,6 @@ export class DeclaracaoController {
       const { id } = req.params
       const { statusBens } = req.body
       const autorId = req.user?.id
-      const arquivo = req.file
 
       const resultado = await this.declaracaoService.atualizarStatusBens(
         id,
@@ -558,25 +557,22 @@ export class DeclaracaoController {
 
       // Acessando o arquivo de acordo com o tipoArquivo
       const file = req.files?.[tipoArquivo]?.[0]
-      console.log(file)
 
       if (!file) {
-        return res.status(400).json({
-          error:
-            "Nenhum arquivo foi enviado para o tipo de arquivo: " + tipoArquivo
-        })
+        throw new HTTPError(
+          "Nenhum arquivo foi enviado para o tipo de arquivo: " + tipoArquivo,
+          400
+        )
       }
 
       const declaracao = await Declaracoes.findById(declaracaoId)
       if (!declaracao) {
-        return res.status(404).json({ error: "Declaração não encontrada" })
+        throw new HTTPError("Declaração não encontrada", 404)
       }
-      console.log("declaracao", declaracao)
-      console.log(declaracao.anoDeclaracao)
 
       const tiposArquivos = ["museologico", "bibliografico", "arquivistico"]
       if (!tiposArquivos.includes(tipoArquivo)) {
-        return res.status(400).json({ error: "Tipo de arquivo inválido" })
+        throw new HTTPError("Tipo de arquivo inválido", 400)
       }
 
       const filePath = generateFilePathAnalise(
@@ -589,10 +585,8 @@ export class DeclaracaoController {
 
       // Verifica se o tipo de arquivo já existe na declaração e atualiza o caminho
       if (declaracao[tipoArquivo]) {
-        // Atualiza o caminho do arquivo existente (ex: urlAnalise ou o campo correspondente)
         declaracao[tipoArquivo].analiseUrl = filePath
       } else {
-        // Se não existir o tipo de arquivo, cria o campo com o caminho do arquivo
         declaracao[tipoArquivo] = { analiseUrl: filePath }
       }
 
@@ -604,10 +598,11 @@ export class DeclaracaoController {
         declaracaoAtualizada: declaracao
       })
     } catch (error) {
-      console.log(error)
-      return res
-        .status(500)
-        .json({ error: "Erro ao anexar arquivo à declaração" })
+      if (error instanceof HTTPError) {
+        return res.status(error.status).json({ error: error.message })
+      } else {
+        throw new HTTPError("Erro ao anexar arquivo à declaração", 500)
+      }
     }
   }
 
@@ -655,8 +650,6 @@ export class DeclaracaoController {
   }
   async downloadAnalise(req: Request, res: Response) {
     try {
-      console.log("Parâmetros recebidos:", req.params) // 👀 Verificar o que está chegando
-
       const { declaracaoId, tipoArquivo } = req.params
 
       if (!declaracaoId || !tipoArquivo) {
@@ -666,8 +659,6 @@ export class DeclaracaoController {
       const prefix = `analise/${declaracaoId}/${tipoArquivo}/`
       const bucketName = "inbcm"
 
-      console.log("Prefixo do arquivo:", prefix) // 🔍 Verificar caminho
-
       const latestFilePath = await getLatestPathArchive(bucketName, prefix)
 
       if (!latestFilePath) {
@@ -675,8 +666,6 @@ export class DeclaracaoController {
           .status(404)
           .json({ message: "Arquivo de análise não encontrado." })
       }
-
-      console.log("Caminho do arquivo encontrado:", latestFilePath)
 
       const fileStream = await minioClient.getObject(bucketName, latestFilePath)
 
