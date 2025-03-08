@@ -5,6 +5,7 @@ import { TipoEnvio } from "../enums/tipoEnvio"
 export interface Arquivo {
   nome?: string
   caminho?: string
+  analiseUrl?: string
   status: Status
   pendencias?: string[]
   quantidadeItens: number
@@ -50,6 +51,7 @@ const ArquivoSchema = new Schema<Arquivo>(
   {
     nome: String,
     caminho: String,
+    analiseUrl: { type: String, required: false },
     status: {
       type: String,
       enum: Object.values(Status),

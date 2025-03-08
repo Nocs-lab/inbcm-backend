@@ -32,7 +32,6 @@ class ReciboController {
     }
   }
   async gerarReciboDetalhamento(req: Request, res: Response) {
-    console.log("testando detalhamento")
     try {
       const { id } = req.params
       if (!mongoose.Types.ObjectId.isValid(id)) {
