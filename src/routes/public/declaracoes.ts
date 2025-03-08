@@ -10,11 +10,13 @@ const declaracaoController = new DeclaracaoController()
 
 routes.get(
   "/download/analise/:declaracaoId/:tipoArquivo",
+  userPermissionMiddleware("downloadAnalise"),
   declaracaoController.downloadAnalise
 )
 
 routes.post(
   "/upload/analise/:declaracaoId/:tipoArquivo",
+  userPermissionMiddleware("uploadAnalise"),
   uploadAnalise,
   declaracaoController.uploadAnalise
 )
