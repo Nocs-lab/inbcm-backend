@@ -18,7 +18,9 @@ const addPermissionsToAnalyst = async () => {
     "atualizarStatusBensDeclaracao",
     "atualizarUsuario",
     "getUsuario",
-    "gerarReciboDetalhamento"
+    "gerarReciboDetalhamento",
+    "downloadAnalise",
+    "uploadAnalise"
   ]
 
   try {

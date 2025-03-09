@@ -6,7 +6,12 @@ import { generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
 import path from "path"
 import mongoose, { PipelineStage } from "mongoose"
-import { getLatestPathArchive } from "../utils/minioUtil"
+import {
+  generateFilePathAnalise,
+  getLatestPathArchive,
+  uploadFileAnaliseToMinio,
+  uploadFileToMinio
+} from "../utils/minioUtil"
 import minioClient from "../db/minioClient"
 import { DataUtils } from "../utils/dataUtils"
 import { Status } from "../enums/Status"
@@ -34,6 +39,8 @@ export class DeclaracaoController {
     this.getTimeLine = this.getTimeLine.bind(this)
     this.restaurarDeclaracao = this.restaurarDeclaracao.bind(this)
     this.alterarAnalistaArquivo = this.alterarAnalistaArquivo.bind(this)
+    this.uploadAnalise = this.uploadAnalise.bind(this)
+    this.downloadAnalise = this.downloadAnalise.bind(this)
   }
 
   /**
@@ -544,12 +551,65 @@ export class DeclaracaoController {
         .json({ message: "Erro ao enviar uma declaração: ", error })
     }
   }
+  async uploadAnalise(req: Request, res: Response) {
+    try {
+      const { declaracaoId, tipoArquivo } = req.params
+
+      // Acessando o arquivo de acordo com o tipoArquivo
+      const file = req.files?.[tipoArquivo]?.[0]
+
+      if (!file) {
+        throw new HTTPError(
+          "Nenhum arquivo foi enviado para o tipo de arquivo: " + tipoArquivo,
+          400
+        )
+      }
+
+      const declaracao = await Declaracoes.findById(declaracaoId)
+      if (!declaracao) {
+        throw new HTTPError("Declaração não encontrada", 404)
+      }
+
+      const tiposArquivos = ["museologico", "bibliografico", "arquivistico"]
+      if (!tiposArquivos.includes(tipoArquivo)) {
+        throw new HTTPError("Tipo de arquivo inválido", 400)
+      }
+
+      const filePath = generateFilePathAnalise(
+        file.originalname,
+        declaracaoId,
+        tipoArquivo
+      )
+
+      await uploadFileAnaliseToMinio(file, declaracaoId, tipoArquivo)
+
+      // Verifica se o tipo de arquivo já existe na declaração e atualiza o caminho
+      if (declaracao[tipoArquivo]) {
+        declaracao[tipoArquivo].analiseUrl = filePath
+      } else {
+        declaracao[tipoArquivo] = { analiseUrl: filePath }
+      }
+
+      // Salva a declaração com o caminho atualizado do arquivo
+      await declaracao.save()
+
+      return res.status(201).json({
+        message: "Arquivo anexado com sucesso",
+        declaracaoAtualizada: declaracao
+      })
+    } catch (error) {
+      if (error instanceof HTTPError) {
+        return res.status(error.status).json({ error: error.message })
+      } else {
+        throw new HTTPError("Erro ao anexar arquivo à declaração", 500)
+      }
+    }
+  }
 
   async downloadDeclaracao(req: Request, res: Response) {
     try {
       const { museu, anoDeclaracao, tipoArquivo } = req.params
 
-      // Verifique a declaração para o usuário
       const declaracao = await Declaracoes.findOne({
         museu_id: museu,
         anoDeclaracao
@@ -586,6 +646,41 @@ export class DeclaracaoController {
       return res
         .status(500)
         .json({ message: "Erro ao baixar arquivo da declaração." })
+    }
+  }
+  async downloadAnalise(req: Request, res: Response) {
+    try {
+      const { declaracaoId, tipoArquivo } = req.params
+
+      if (!declaracaoId || !tipoArquivo) {
+        return res.status(400).json({ message: "Parâmetros inválidos." })
+      }
+
+      const prefix = `analise/${declaracaoId}/${tipoArquivo}/`
+      const bucketName = "inbcm"
+
+      const latestFilePath = await getLatestPathArchive(bucketName, prefix)
+
+      if (!latestFilePath) {
+        return res
+          .status(404)
+          .json({ message: "Arquivo de análise não encontrado." })
+      }
+
+      const fileStream = await minioClient.getObject(bucketName, latestFilePath)
+
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=${path.basename(latestFilePath)}`
+      )
+      res.setHeader("Content-Type", "application/octet-stream")
+
+      fileStream.pipe(res)
+    } catch (error) {
+      console.error("Erro ao baixar arquivo de análise:", error)
+      return res
+        .status(500)
+        .json({ message: "Erro ao baixar arquivo de análise." })
     }
   }
 
