@@ -18,7 +18,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create file .env
-        run: echo "${{ secrets.ENVS }}" > .env
+        env:
+          ENVS: ${{ secrets.ENVS }}
+        run: echo "$ENVS" > .env
 
       - name: Set Docker repository name for main branch
         if: github.ref == 'refs/heads/main'
@@ -60,7 +62,9 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Create file .env
-        run: echo "${{ secrets.ENVS_UPDATE }}" > .env
+        env:
+          ENVS_UPDATE: ${{ secrets.ENVS_UPDATE }}
+        run: echo "$ENVS_UPDATE" > .env
 
       - name: Set Docker repository name for main branch
         if: github.ref == 'refs/heads/main'
