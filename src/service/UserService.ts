@@ -8,7 +8,6 @@ import { z } from "zod"
 import { sendEmail } from "../emails"
 import minioClient from "../db/minioClient"
 import { randomUUID } from "crypto"
-import { logger } from "handlebars"
 
 const usuarioExternoSchema = z.object({
   nome: z.string().min(1, "O nome é obrigatório."),
@@ -23,14 +22,14 @@ export class UsuarioService {
     email,
     cpf,
     museus,
-    arquivos
+    arquivo
   }: {
     nome: string
     email: string
     cpf: string
     museus: string[]
     senha?: string
-    arquivos: Express.Multer.File[]
+    arquivo: Express.Multer.File
   }) {
     // Valida museus
     const museusValidos: string[] = []
@@ -70,8 +69,6 @@ export class UsuarioService {
     if (!perfilDeclarant) {
       throw new HTTPError("Perfil 'declarant' não encontrado.", 500)
     }
-
-    const arquivo = arquivos[0]
 
     const documentoComprobatorio = `documentos/${email}/${randomUUID()}/${arquivo.originalname}`
     await minioClient.putObject(

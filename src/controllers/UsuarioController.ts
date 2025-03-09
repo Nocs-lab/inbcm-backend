@@ -27,7 +27,7 @@ class UsuarioController {
         email,
         cpf,
         museus: Array.isArray(museus) ? museus : [museus],
-        arquivos: req.files as Express.Multer.File[]
+        arquivo: req.file!
       })
 
       return res.status(201).json({
