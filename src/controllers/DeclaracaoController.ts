@@ -728,6 +728,16 @@ export class DeclaracaoController {
         req.params.museu,
         req.params.anoDeclaracao
       )
+    const anoDeclaracao = await AnoDeclaracao.findOne({ _id: req.params.anoDeclaracao })
+    if(!anoDeclaracao){
+      return res.status(404).json({
+        status: false,
+        message:
+          "Ano de declaração inválido."
+      })
+    }
+
+    const anoReferencia = anoDeclaracao.ano
 
     if (declaracaoExistente) {
       return res.status(406).json({
@@ -736,7 +746,11 @@ export class DeclaracaoController {
           "Já existe declaração para museu e ano referência informados. Para alterar a declaração é preciso retificá-la ou excluí-la e declarar novamente."
       })
     }
-    return this.criarDeclaracao(req, res)
+    const user_id = req.user.id
+    const museu = req.params.museu
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] }
+    const response = await this.declaracaoService.criarDeclaracao(museu, req.params.anoDeclaracao, user_id, files)
+    return res.status(201).json(response);
   }
 
   async retificarDeclaracao(req: Request, res: Response) {

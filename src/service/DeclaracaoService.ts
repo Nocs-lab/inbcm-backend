@@ -34,6 +34,7 @@ import {
 } from "inbcm-xlsx-validator/schema"
 import HTTPError from "../utils/error"
 import { AnoDeclaracao } from "../models/AnoDeclaracao"
+import { generateSalt } from "../utils/hashUtils"
 
 class DeclaracaoService {
   async showCards(declaracoes: DeclaracaoModel[]) {
@@ -1399,6 +1400,76 @@ class DeclaracaoService {
       logger.error("Erro ao salvar time-line na declaração:", error)
       throw new Error("Falha ao salvar a time-line de exclusão.")
     }
+  }
+
+  async criarDeclaracao(museu_id: string, anoDeclaracao: string, user_id: string, arquivos: object) {
+    if (!museu_id || !user_id) {
+      throw new HTTPError("Dados obrigatórios ausentes", 404)
+    }
+    const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
+    if (!museu) {
+      throw new HTTPError("Museu inválido", 404)
+    }
+
+    const files = arquivos as { [fieldname: string]: Express.Multer.File[] }
+    const salt = generateSalt()
+    const declaracaoExistente = await Declaracoes.findOne({
+      museu_id,
+      anoDeclaracao
+    })
+
+    if (declaracaoExistente) {throw new HTTPError("Já existe declaração para o museu e ano referência.", 403)}
+
+    const responsavelEnvio = await Usuario.findById(user_id).select("nome")
+    if (!responsavelEnvio) {throw new HTTPError("Usuário responsável pelo envio não encontrado.", 404)}
+
+    const novaDeclaracaoData =
+      await this.criarDadosDeclaracao(
+        museu,
+        user_id as unknown as mongoose.Types.ObjectId,
+        anoDeclaracao,
+        declaracaoExistente,
+        1,
+        salt,
+        DataUtils.getCurrentData(),
+        responsavelEnvio.nome
+      )
+
+    const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
+    novaDeclaracao.timeLine.push({
+      nomeEvento: Eventos.EnvioDeclaracao,
+      dataEvento: DataUtils.getCurrentData(),
+      autorEvento: responsavelEnvio.nome
+    })
+
+    await this.updateDeclaracao(
+      files["arquivistico"],
+      novaDeclaracao,
+      "arquivistico",
+      null,
+      1,
+      responsavelEnvio.nome
+    )
+    await this.updateDeclaracao(
+      files["bibliografico"],
+      novaDeclaracao,
+      "bibliografico",
+      null,
+      1,
+      responsavelEnvio.nome
+    )
+    await this.updateDeclaracao(
+      files["museologico"],
+      novaDeclaracao,
+      "museologico",
+      null,
+      1,
+      responsavelEnvio.nome
+    )
+
+    novaDeclaracao.ultimaDeclaracao = true
+    await novaDeclaracao.save()
+    return novaDeclaracao
   }
 }
 
