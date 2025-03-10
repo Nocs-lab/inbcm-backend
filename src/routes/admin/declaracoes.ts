@@ -78,26 +78,6 @@ routes.put(
 /**
  * @swagger
  * /api/admin/declaracoes/declaracoesFiltradas:
- *   get:
- *     summary: Obtém declarações com base em filtros.
- *     description: Endpoint para buscar declarações com base em filtros especificados.
- *     tags:
- *       - Declarações
- *     responses:
- *       '200':
- *         description: Declarações filtradas obtidas com sucesso.
- *       '500':
- *         description: Erro ao buscar declarações com filtros.
- */
-routes.post(
-  "/declaracoesFiltradas",
-  userPermissionMiddleware("getDeclaracaoFiltrada"),
-  declaracaoController.getDeclaracaoFiltrada
-)
-
-/**
- * @swagger
- * /api/admin/declaracoes/declaracoesFiltradas:
  *   post:
  *     summary: Obtém declarações com base em filtros.
  *     description: Endpoint para buscar declarações com base em filtros especificados.

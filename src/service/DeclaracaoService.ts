@@ -10,7 +10,8 @@ import {
   DeclaracaoModel,
   Usuario,
   IMuseu,
-  TimeLine
+  TimeLine,
+  AnoDeclaracao
 } from "../models"
 import { IUsuario, SituacaoUsuario } from "../models/Usuario"
 import mongoose from "mongoose"
@@ -33,7 +34,7 @@ import {
   museologico
 } from "inbcm-xlsx-validator/schema"
 import HTTPError from "../utils/error"
-import { AnoDeclaracao } from "../models/AnoDeclaracao"
+import { AnoDeclaracao, AnoDeclaracaoModel } from "../models/AnoDeclaracao"
 
 class DeclaracaoService {
   async showCards(declaracoes: DeclaracaoModel[]) {
@@ -196,7 +197,9 @@ class DeclaracaoService {
     ultimaDeclaracao: boolean
   }) {
     try {
-      let query = Declaracoes.find()
+      let query = Declaracoes.find().populate<{
+        anoDeclaracao: AnoDeclaracaoModel
+      }>("anoDeclaracao")
 
       if (ultimaDeclaracao || ultimaDeclaracao == null) {
         query = query.where({
