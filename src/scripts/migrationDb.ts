@@ -1,14 +1,13 @@
-import { Declaracoes } from "../models"
+import mongoose from "mongoose"
+import { AnoDeclaracao, Declaracoes } from "../models"
 
 async function createAnoToObjectIdMap() {
   const anoToObjectIdMap = new Map()
 
   try {
-    // Buscando os documentos da coleção AnoDeclaracoes
     const anosDeclaracao = await AnoDeclaracao.find({}, { ano: 1, _id: 1 })
 
     for (const doc of anosDeclaracao) {
-      // Mapeando o número do ano para o ObjectId
       anoToObjectIdMap.set(doc.ano.toString(), doc._id)
     }
 
@@ -24,35 +23,33 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
   try {
     const declaracoes = await Declaracoes.find({}, { _id: 1, anoDeclaracao: 1 })
 
-    console.log(
-      `🔄 Iniciando migração para ${declaracoes.length} declarações...`
-    )
+    console.log(`Iniciando migração para ${declaracoes.length} declarações...`)
+
+    // Logar as declarações encontradas para depuração
+    console.log("Declarações encontradas:", declaracoes)
 
     for (const doc of declaracoes) {
       const { _id, anoDeclaracao } = doc
-
-      // Log para inspecionar o valor e tipo de anoDeclaracao
       console.log(
-        `🔍 Verificando Declaração ${_id}: anoDeclaracao =`,
-        anoDeclaracao,
-        `(${typeof anoDeclaracao})`
+        `Processando declaração ${_id} com anoDeclaracao: ${anoDeclaracao}`
       )
 
+      // Verificar se o anoDeclaracao é uma string e se existe no mapa
       if (
         typeof anoDeclaracao === "string" &&
         anoToObjectIdMap.has(anoDeclaracao)
       ) {
-        // Se anoDeclaracao for uma string (ano como '2024', '2025', etc.)
         const objectId = anoToObjectIdMap.get(anoDeclaracao)
+        console.log(`Atualizando anoDeclaracao para ObjectId: ${objectId}`)
 
-        // Atualizando a declaração para ter o ObjectId no campo anoDeclaracao
-        await Declaracoes.updateOne(
+        const result = await Declaracoes.updateOne(
           { _id },
           { $set: { anoDeclaracao: objectId } }
         )
 
+        // Logar o resultado da atualização
         console.log(
-          `✅ Declaração ${_id} atualizada: ${anoDeclaracao} ➝ ${objectId}`
+          `✅ Declaração ${_id} atualizada: ${anoDeclaracao} ➝ ${objectId}, resultado: ${result}`
         )
       } else if (anoDeclaracao === undefined) {
         console.warn(`⚠️ Declaração ${_id} tem anoDeclaracao undefined!`)
@@ -68,3 +65,24 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
     console.error("❌ Erro durante a migração:", error)
   }
 }
+
+async function main() {
+  try {
+    console.log("🔗 Conectando ao banco de dados...")
+    await mongoose.connect(
+      "mongodb://root:asdf1234@mongo:27017/INBCM?authSource=admin"
+    )
+
+    console.log("✅ Conexão estabelecida!")
+
+    const anoToObjectIdMap = await createAnoToObjectIdMap()
+    await migrateAnoDeclaracao(anoToObjectIdMap)
+  } catch (error) {
+    console.error("❌ Erro no processo principal:", error)
+  } finally {
+    await mongoose.disconnect()
+    console.log("🔌 Conexão encerrada.")
+  }
+}
+
+main()
