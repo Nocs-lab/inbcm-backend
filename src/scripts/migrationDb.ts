@@ -50,7 +50,7 @@ async function main() {
   try {
     // Conecte-se ao banco de dados
     await mongoose.connect(
-      "mongodb://ifrn.2024:ifrn.2024@mongo:27017/inbcm?authSource=admin"
+      "mongodb://root:asdf1234@mongo:27017/INBCM?authSource=ad"
     )
 
     // Crie o mapa de ano para ObjectId
