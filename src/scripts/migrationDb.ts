@@ -25,6 +25,7 @@ async function createAnoToObjectIdMap() {
 async function migrateAnoDeclaracao(anoToObjectIdMap) {
   try {
     const declaracoes = await Declaracoes.find({})
+    console.log(declaracoes)
 
     for (const doc of declaracoes) {
       if (typeof doc.anoDeclaracao === "string") {
@@ -32,6 +33,7 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
 
         if (objectId) {
           doc.anoDeclaracao = objectId
+          console.log(doc.anoDeclaracao)
           await doc.save() // Salve a alteração
         } else {
           console.warn(
