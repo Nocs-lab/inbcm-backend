@@ -29,19 +29,23 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
     console.log(`Total de declarações encontradas: ${declaracoes.length}`)
 
     for (const doc of declaracoes) {
+      console.log(
+        `Processando declaração ${doc._id}: anoDeclaracao = ${doc.anoDeclaracao}`
+      )
+
       if (typeof doc.anoDeclaracao === "string") {
         const objectId = anoToObjectIdMap.get(doc.anoDeclaracao)
 
         if (objectId) {
+          console.log(
+            `Atualizando declaração ${doc._id}: anoDeclaracao = ${objectId}`
+          )
+
           // Atualize o campo anoDeclaracao
           doc.anoDeclaracao = objectId
 
           // Marque o campo como modificado
           doc.markModified("anoDeclaracao")
-
-          console.log(
-            `Atualizando declaração ${doc._id}: anoDeclaracao = ${objectId}`
-          )
 
           // Salve a alteração
           await doc.save()
@@ -51,6 +55,10 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
             `Nenhum ObjectId encontrado para o ano: ${doc.anoDeclaracao}`
           )
         }
+      } else {
+        console.warn(
+          `O campo anoDeclaracao da declaração ${doc._id} não é uma string. Valor atual: ${doc.anoDeclaracao}`
+        )
       }
     }
 
