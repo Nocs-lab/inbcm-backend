@@ -13,6 +13,7 @@
     "create:data": "sucrase-node src/scripts/generateMockData.ts",
     "insert:museus": "sucrase-node src/scripts/insertMuseusApiMuseusBr.ts",
     "create:permissions": "sucrase-node src/scripts/setPermissions.ts",
+"migration:db": "sucrase-node src/scripts/migrationDb.ts",
     "list:users": "sucrase-node src/scripts/listUsers.ts",
     "prepare": "[[ $NODE_ENV == 'development' ]] && husky install || true",
     "lint:fix": "eslint --cache --fix src",
