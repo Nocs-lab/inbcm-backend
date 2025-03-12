@@ -6,6 +6,7 @@ async function createAnoToObjectIdMap() {
 
   try {
     const anosDeclaracao = await AnoDeclaracao.find({}, { ano: 1, _id: 1 })
+    console.log("Dados dos anos encontrados:", anosDeclaracao)
 
     for (const doc of anosDeclaracao) {
       anoToObjectIdMap.set(doc.ano.toString(), doc._id)
@@ -21,7 +22,7 @@ async function createAnoToObjectIdMap() {
 
 async function migrateAnoDeclaracao(anoToObjectIdMap) {
   try {
-    const declaracoes = await Declaracoes.find({}).select("_id anoDeclaracao") // Seleciona os campos necessários
+    const declaracoes = await Declaracoes.find({})
 
     console.log(
       `🔄 Iniciando migração para ${declaracoes.length} declarações...`
@@ -31,7 +32,7 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
     for (const doc of declaracoes) {
       const { _id, anoDeclaracao } = doc
 
-      // Verificar se o campo anoDeclaracao foi preenchido como string
+      // Verificar se o campo anoDeclaracao está preenchido corretamente
       if (!anoDeclaracao) {
         console.warn(
           `⚠️ Declaração ${_id} tem anoDeclaracao undefined ou mal preenchido!`
@@ -39,14 +40,14 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
         continue // Pular para a próxima declaração se anoDeclaracao estiver faltando
       }
 
-      // Verificar se anoDeclaracao é uma string (como '2025') e precisa ser convertido
+      // Verificar se anoDeclaracao é uma string (como '2025') e se o mapa contém esse ano
       if (
         typeof anoDeclaracao === "string" &&
         anoToObjectIdMap.has(anoDeclaracao)
       ) {
-        const objectId = anoToObjectIdMap.get(anoDeclaracao) // Pega o ObjectId correspondente à string '2025'
+        const objectId = anoToObjectIdMap.get(anoDeclaracao) // Obter o ObjectId para o ano '2025'
 
-        // Atualizar o campo anoDeclaracao com o ObjectId correto
+        // Atualizar o campo anoDeclaracao com o ObjectId
         await Declaracoes.updateOne(
           { _id },
           { $set: { anoDeclaracao: objectId } }
