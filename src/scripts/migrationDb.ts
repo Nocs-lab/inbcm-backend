@@ -1,14 +1,11 @@
 import mongoose from "mongoose"
 import { AnoDeclaracao, Declaracoes } from "../models"
+import connect from "../db/conn" // Importe a função connect
 
-export async function createAnoToObjectIdMap() {
+async function createAnoToObjectIdMap() {
   const anoToObjectIdMap = new Map()
 
   try {
-    await mongoose.connect(
-      "mongodb://ifrn.2024:ifrn.2024@mongo:27017/inbcm?authSource=admin"
-    )
-
     // Busque todos os documentos da coleção anoDeclaracao
     const anosDeclaracao = await AnoDeclaracao.find({})
 
@@ -20,23 +17,13 @@ export async function createAnoToObjectIdMap() {
     console.log("Mapa criado com sucesso:", anoToObjectIdMap)
   } catch (error) {
     console.error("Erro ao criar o mapa:", error)
-  } finally {
-    await mongoose.disconnect()
   }
 
   return anoToObjectIdMap
 }
 
-createAnoToObjectIdMap().then((map) => {
-  console.log(map)
-})
-
 async function migrateAnoDeclaracao(anoToObjectIdMap) {
   try {
-    await mongoose.connect(
-      "mongodb://ifrn.2025:ifrn.2025@mongo:27017/inbcm?authSource=admin"
-    )
-
     const declaracoes = await Declaracoes.find({})
 
     for (const doc of declaracoes) {
@@ -57,11 +44,27 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
     console.log("Migração concluída com sucesso!")
   } catch (error) {
     console.error("Erro durante a migração:", error)
-  } finally {
-    await mongoose.disconnect()
   }
 }
 
-createAnoToObjectIdMap().then((map) => {
-  migrateAnoDeclaracao(map)
-})
+async function main() {
+  try {
+    // Conecte-se ao banco de dados
+    await connect()
+
+    // Crie o mapa de ano para ObjectId
+    const anoToObjectIdMap = await createAnoToObjectIdMap()
+
+    // Execute a migração
+    await migrateAnoDeclaracao(anoToObjectIdMap)
+  } catch (error) {
+    console.error("Erro no processo principal:", error)
+  } finally {
+    // Desconecte do banco de dados
+    await mongoose.disconnect()
+    console.log("Conexão com o banco de dados encerrada.")
+  }
+}
+
+// Execute o processo principal
+main()
