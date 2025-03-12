@@ -6,7 +6,7 @@ async function createAnoToObjectIdMap() {
   const anoToObjectIdMap = new Map()
 
   try {
-    // Busque todos os documentos da coleção anoDeclaracao
+    // Busque todos os documentos da coleção AnoDeclaracao
     const anosDeclaracao = await AnoDeclaracao.find({})
 
     // Crie um mapa de ano para ObjectId
@@ -24,17 +24,28 @@ async function createAnoToObjectIdMap() {
 
 async function migrateAnoDeclaracao(anoToObjectIdMap) {
   try {
+    // Busque todas as declarações
     const declaracoes = await Declaracoes.find({})
-    console.log(declaracoes)
+    console.log(`Total de declarações encontradas: ${declaracoes.length}`)
 
     for (const doc of declaracoes) {
       if (typeof doc.anoDeclaracao === "string") {
         const objectId = anoToObjectIdMap.get(doc.anoDeclaracao)
 
         if (objectId) {
+          // Atualize o campo anoDeclaracao
           doc.anoDeclaracao = objectId
-          console.log(doc.anoDeclaracao)
-          await doc.save() // Salve a alteração
+
+          // Marque o campo como modificado
+          doc.markModified("anoDeclaracao")
+
+          console.log(
+            `Atualizando declaração ${doc._id}: anoDeclaracao = ${objectId}`
+          )
+
+          // Salve a alteração
+          await doc.save()
+          console.log(`Declaração ${doc._id} atualizada com sucesso!`)
         } else {
           console.warn(
             `Nenhum ObjectId encontrado para o ano: ${doc.anoDeclaracao}`
