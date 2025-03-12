@@ -21,7 +21,9 @@ async function createAnoToObjectIdMap() {
 
 async function migrateAnoDeclaracao(anoToObjectIdMap) {
   try {
-    const declaracoes = await Declaracoes.find({}, { _id: 1, anoDeclaracao: 1 })
+    const declaracoes = await Declaracoes.find({})
+      .populate("anoDeclaracao") // Garante que a referência seja resolvida
+      .select("_id anoDeclaracao") // Seleciona apenas os campos necessários
 
     console.log(
       `🔄 Iniciando migração para ${declaracoes.length} declarações...`
@@ -31,29 +33,34 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
     for (const doc of declaracoes) {
       const { _id, anoDeclaracao } = doc
 
-      // Se anoDeclaracao for uma string, converta para ObjectId
-      if (
-        typeof anoDeclaracao === "string" &&
-        anoToObjectIdMap.has(anoDeclaracao)
-      ) {
-        const objectId = anoToObjectIdMap.get(anoDeclaracao)
+      // Verificar se o campo anoDeclaracao foi corretamente preenchido
+      if (!anoDeclaracao || !anoDeclaracao._id) {
+        console.warn(
+          `⚠️ Declaração ${_id} tem anoDeclaracao undefined ou mal populado!`
+        )
+        continue // Pular para a próxima declaração se anoDeclaracao estiver faltando
+      }
 
-        // Verificar se o campo já está com o ObjectId correto
-        if (anoDeclaracao !== objectId.toString()) {
+      // Se anoDeclaracao for um objeto (povoado), extraímos o ID
+      const anoObjectId = anoDeclaracao._id || anoDeclaracao
+
+      // Verificar se o campo já está com o ObjectId correto
+      if (anoToObjectIdMap.has(anoObjectId.toString())) {
+        const objectId = anoToObjectIdMap.get(anoObjectId.toString())
+
+        if (anoObjectId !== objectId.toString()) {
           await Declaracoes.updateOne(
             { _id },
             { $set: { anoDeclaracao: objectId } }
           )
 
           console.log(
-            `✅ Declaração ${_id} atualizada: ${anoDeclaracao} ➝ ${objectId}`
+            `✅ Declaração ${_id} atualizada: ${anoObjectId} ➝ ${objectId}`
           )
         }
-      } else if (anoDeclaracao === undefined) {
-        console.warn(`⚠️ Declaração ${_id} tem anoDeclaracao undefined!`)
       } else {
         console.warn(
-          `⚠️ Sem ObjectId para o ano: ${anoDeclaracao} (Declaração ${_id})`
+          `⚠️ Não foi possível encontrar o ObjectId para o ano: ${anoObjectId}`
         )
       }
     }
