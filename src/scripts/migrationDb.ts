@@ -23,34 +23,32 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
   try {
     const declaracoes = await Declaracoes.find({}, { _id: 1, anoDeclaracao: 1 })
 
-    console.log(`Iniciando migração para ${declaracoes.length} declarações...`)
-
-    // Logar as declarações encontradas para depuração
+    console.log(
+      `🔄 Iniciando migração para ${declaracoes.length} declarações...`
+    )
     console.log("Declarações encontradas:", declaracoes)
 
     for (const doc of declaracoes) {
       const { _id, anoDeclaracao } = doc
-      console.log(
-        `Processando declaração ${_id} com anoDeclaracao: ${anoDeclaracao}`
-      )
 
-      // Verificar se o anoDeclaracao é uma string e se existe no mapa
+      // Se anoDeclaracao for uma string, converta para ObjectId
       if (
         typeof anoDeclaracao === "string" &&
         anoToObjectIdMap.has(anoDeclaracao)
       ) {
         const objectId = anoToObjectIdMap.get(anoDeclaracao)
-        console.log(`Atualizando anoDeclaracao para ObjectId: ${objectId}`)
 
-        const result = await Declaracoes.updateOne(
-          { _id },
-          { $set: { anoDeclaracao: objectId } }
-        )
+        // Verificar se o campo já está com o ObjectId correto
+        if (anoDeclaracao !== objectId.toString()) {
+          await Declaracoes.updateOne(
+            { _id },
+            { $set: { anoDeclaracao: objectId } }
+          )
 
-        // Logar o resultado da atualização
-        console.log(
-          `✅ Declaração ${_id} atualizada: ${anoDeclaracao} ➝ ${objectId}, resultado: ${result}`
-        )
+          console.log(
+            `✅ Declaração ${_id} atualizada: ${anoDeclaracao} ➝ ${objectId}`
+          )
+        }
       } else if (anoDeclaracao === undefined) {
         console.warn(`⚠️ Declaração ${_id} tem anoDeclaracao undefined!`)
       } else {
