@@ -5,17 +5,15 @@ async function createAnoToObjectIdMap() {
   const anoToObjectIdMap = new Map()
 
   try {
-    // Busque todos os documentos da coleção anoDeclaracao
-    const anosDeclaracao = await AnoDeclaracao.find({})
+    const anosDeclaracao = await AnoDeclaracao.find({}, { ano: 1, _id: 1 })
 
-    // Crie um mapa de ano para ObjectId
     for (const doc of anosDeclaracao) {
       anoToObjectIdMap.set(doc.ano.toString(), doc._id)
     }
 
-    console.log("Mapa criado com sucesso:", anoToObjectIdMap)
+    console.log("✅ Mapa de anos criado com sucesso!", anoToObjectIdMap)
   } catch (error) {
-    console.error("Erro ao criar o mapa:", error)
+    console.error("Erro ao criar o mapa de anos:", error)
   }
 
   return anoToObjectIdMap
@@ -23,48 +21,61 @@ async function createAnoToObjectIdMap() {
 
 async function migrateAnoDeclaracao(anoToObjectIdMap) {
   try {
-    const declaracoes = await Declaracoes.find({})
+    const declaracoes = await Declaracoes.find({}, { _id: 1, anoDeclaracao: 1 })
+
+    console.log(
+      `🔄 Iniciando migração para ${declaracoes.length} declarações...`
+    )
 
     for (const doc of declaracoes) {
-      if (typeof doc.anoDeclaracao === "string") {
-        const objectId = anoToObjectIdMap.get(doc.anoDeclaracao)
+      const { _id, anoDeclaracao } = doc
 
-        if (objectId) {
-          doc.anoDeclaracao = objectId
-          await doc.save()
-        } else {
-          console.warn(
-            `Nenhum ObjectId encontrado para o ano: ${doc.anoDeclaracao}`
-          )
-        }
+      if (
+        typeof anoDeclaracao === "string" &&
+        anoToObjectIdMap.has(anoDeclaracao)
+      ) {
+        const objectId = anoToObjectIdMap.get(anoDeclaracao)
+
+        await Declaracoes.updateOne(
+          { _id },
+          { $set: { anoDeclaracao: objectId } }
+        )
+
+        console.log(
+          `✅ Declaração ${_id} atualizada: ${anoDeclaracao} ➝ ${objectId}`
+        )
+      } else if (anoDeclaracao === undefined) {
+        console.warn(`⚠️ Declaração ${_id} tem anoDeclaracao undefined!`)
+      } else {
+        console.warn(
+          `⚠️ Sem ObjectId para o ano: ${anoDeclaracao} (Declaração ${_id})`
+        )
       }
     }
 
-    console.log("Migração concluída com sucesso!")
+    console.log("🎉 Migração concluída com sucesso!")
   } catch (error) {
-    console.error("Erro durante a migração:", error)
+    console.error("❌ Erro durante a migração:", error)
   }
 }
 
 async function main() {
   try {
-    // Conecte-se ao banco de dados
+    console.log("🔗 Conectando ao banco de dados...")
     await mongoose.connect(
-      "mongodb://root:asdf1234@mongo:27017/INBCM?authSource=ad"
+      "mongodb://root:asdf1234@mongo:27017/INBCM?authSource=admin"
     )
 
-    // Crie o mapa de ano para ObjectId
-    const anoToObjectIdMap = await createAnoToObjectIdMap()
+    console.log("✅ Conexão estabelecida!")
 
-    // Execute a migração
+    const anoToObjectIdMap = await createAnoToObjectIdMap()
     await migrateAnoDeclaracao(anoToObjectIdMap)
   } catch (error) {
-    console.error("Erro no processo principal:", error)
+    console.error("❌ Erro no processo principal:", error)
   } finally {
-    // Desconecte do banco de dados
     await mongoose.disconnect()
+    console.log("🔌 Conexão encerrada.")
   }
 }
 
-// Execute o processo principal
 main()
