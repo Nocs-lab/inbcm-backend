@@ -8,6 +8,7 @@ async function createAnoToObjectIdMap() {
     const anosDeclaracao = await AnoDeclaracao.find({}, { ano: 1, _id: 1 })
     console.log("Dados dos anos encontrados:", anosDeclaracao)
 
+    // Popula o mapa com os anos e seus ObjectIds
     for (const doc of anosDeclaracao) {
       anoToObjectIdMap.set(doc.ano.toString(), doc._id)
     }
@@ -27,7 +28,8 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
     console.log(
       `🔄 Iniciando migração para ${declaracoes.length} declarações...`
     )
-    console.log("Declarações encontradas:", declaracoes)
+
+    const bulkOps = [] // Para armazenar as operações de atualização em massa
 
     for (const doc of declaracoes) {
       const { _id, anoDeclaracao } = doc
@@ -40,21 +42,24 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
         continue // Pular para a próxima declaração se anoDeclaracao estiver faltando
       }
 
-      // Verificar se anoDeclaracao é uma string (como '2025') e se o mapa contém esse ano
+      // Verificar se anoDeclaracao é uma string e se o mapa contém esse ano
       if (
         typeof anoDeclaracao === "string" &&
         anoToObjectIdMap.has(anoDeclaracao)
       ) {
-        const objectId = anoToObjectIdMap.get(anoDeclaracao) // Obter o ObjectId para o ano '2025'
+        const objectId = anoToObjectIdMap.get(anoDeclaracao) // Obter o ObjectId para o ano
 
-        // Atualizar o campo anoDeclaracao com o ObjectId
-        await Declaracoes.updateOne(
-          { _id },
-          { $set: { anoDeclaracao: objectId } }
-        )
+        // Adicionar operação de atualização no array bulkOps
+        bulkOps.push({
+          updateOne: {
+            filter: { _id },
+            update: { $set: { anoDeclaracao: objectId } },
+            upsert: false
+          }
+        })
 
         console.log(
-          `✅ Declaração ${_id} atualizada: ${anoDeclaracao} ➝ ${objectId}`
+          `✅ Declaração ${_id} será atualizada: ${anoDeclaracao} ➝ ${objectId}`
         )
       } else {
         console.warn(
@@ -63,7 +68,13 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
       }
     }
 
-    console.log("🎉 Migração concluída com sucesso!")
+    // Executar todas as atualizações em massa
+    if (bulkOps.length > 0) {
+      await Declaracoes.bulkWrite(bulkOps)
+      console.log("🎉 Migração concluída com sucesso!")
+    } else {
+      console.log("⚠️ Nenhuma declaração foi atualizada.")
+    }
   } catch (error) {
     console.error("❌ Erro durante a migração:", error)
   }
