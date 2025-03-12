@@ -24,9 +24,11 @@ async function createAnoToObjectIdMap() {
 
 async function migrateAnoDeclaracao(anoToObjectIdMap) {
   try {
-    // Busque todas as declarações
-    const declaracoes = await Declaracoes.find({})
-    console.log(`Total de declarações encontradas: ${declaracoes.length}`)
+    // Busque apenas as declarações que ainda têm anoDeclaracao como string
+    const declaracoes = await Declaracoes.find({
+      anoDeclaracao: { $type: "string" }
+    })
+    console.log(`Total de declarações a serem migradas: ${declaracoes.length}`)
 
     for (const doc of declaracoes) {
       console.log(
@@ -42,23 +44,17 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
           )
 
           // Atualize o campo anoDeclaracao
-          doc.anoDeclaracao = objectId
+          await Declaracoes.updateOne(
+            { _id: doc._id },
+            { $set: { anoDeclaracao: objectId } }
+          )
 
-          // Marque o campo como modificado
-          doc.markModified("anoDeclaracao")
-
-          // Salve a alteração
-          await doc.save()
           console.log(`Declaração ${doc._id} atualizada com sucesso!`)
         } else {
           console.warn(
             `Nenhum ObjectId encontrado para o ano: ${doc.anoDeclaracao}`
           )
         }
-      } else {
-        console.warn(
-          `O campo anoDeclaracao da declaração ${doc._id} não é uma string. Valor atual: ${doc.anoDeclaracao}`
-        )
       }
     }
 
