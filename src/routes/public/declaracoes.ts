@@ -2,11 +2,24 @@ import express from "express"
 import DeclaracaoController from "../../controllers/DeclaracaoController"
 import uploadMiddleware from "../../middlewares/UploadMiddleware"
 import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
-import uploadPeriodoMiddleware from "../../middlewares/UploadPeriodoMiddleware"
 import retificacaoPeriodoMiddleware from "../../middlewares/RetificacaoPeriodoMiddleware"
+import uploadAnalise from "../../middlewares/uploadAnalise"
 
 const routes = express.Router()
 const declaracaoController = new DeclaracaoController()
+
+routes.get(
+  "/download/analise/:declaracaoId/:tipoArquivo",
+  userPermissionMiddleware("downloadAnalise"),
+  declaracaoController.downloadAnalise
+)
+
+routes.post(
+  "/upload/analise/:declaracaoId/:tipoArquivo",
+  userPermissionMiddleware("uploadAnalise"),
+  uploadAnalise,
+  declaracaoController.uploadAnalise
+)
 
 routes.get(
   "/listar-itens/:museuId/:ano/:tipo",
@@ -120,7 +133,6 @@ routes.post(
   "/uploads/:museu/:anoDeclaracao",
   uploadMiddleware,
   userPermissionMiddleware("uploadDeclaracao"),
-  uploadPeriodoMiddleware,
   declaracaoController.uploadDeclaracao
 )
 
@@ -240,6 +252,7 @@ routes.put(
  *       '500':
  *         description: Erro ao baixar arquivo da declaração.
  */
+
 routes.get(
   "/download/:museu/:anoDeclaracao/:tipoArquivo",
   userPermissionMiddleware("downloadDeclaracao"),

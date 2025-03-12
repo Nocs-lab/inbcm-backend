@@ -19,7 +19,16 @@ const parsed = {
   MINIO_USE_SSL: process.env.MINIO_USE_SSL ?? "false",
   MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY ?? "",
   MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY ?? "",
-  SHORT_SHA: process.env.SHORT_SHA ?? "dev"
+  SHORT_SHA: process.env.SHORT_SHA ?? "dev",
+  METABASE_SITE_URL: process.env.METABASE_SITE_URL ?? "",
+  METABASE_SECRET_KEY: process.env.METABASE_SECRET_KEY ?? "",
+  METABASE_DASHBOARD_ID: process.env.METABASE_DASHBOARD_ID ?? "",
+  EMAIL_HOST: process.env.EMAIL_HOST ?? "",
+  EMAIL_PORT: process.env.EMAIL_PORT ?? "",
+  EMAIL_USER: process.env.EMAIL_USER ?? "",
+  EMAIL_PASS: process.env.EMAIL_PASS ?? "",
+  EMAIL_FROM: process.env.EMAIL_FROM ?? "",
+  PUBLIC_SITE_URL: process.env.PUBLIC_SITE_URL ?? "https://localhost:5173"
 }
 logger.info("Carregando configurações...")
 
@@ -41,7 +50,22 @@ const schema = z.object({
   MINIO_USE_SSL: z.enum(["true", "false"]),
   MINIO_ACCESS_KEY: z.string().min(1),
   MINIO_SECRET_KEY: z.string().min(1),
-  SHORT_SHA: z.string().min(1)
+  SHORT_SHA: z.string().min(1),
+  METABASE_SITE_URL: z.string().min(1).url(),
+  METABASE_SECRET_KEY: z.string().min(1),
+  METABASE_DASHBOARD_ID: z
+    .string()
+    .min(1)
+    .transform((val) => parseInt(val)),
+  EMAIL_HOST: z.string().min(1),
+  EMAIL_PORT: z
+    .string()
+    .min(1)
+    .transform((val) => parseInt(val, 10)),
+  EMAIL_USER: z.string().min(1),
+  EMAIL_PASS: z.string().min(1),
+  EMAIL_FROM: z.string().min(1),
+  PUBLIC_SITE_URL: z.string().min(1).url()
 })
 
 const config = schema.parse(parsedEnv)

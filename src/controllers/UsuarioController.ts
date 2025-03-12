@@ -13,7 +13,6 @@ import argon2 from "@node-rs/argon2"
 class UsuarioController {
   async registerUsuarioExterno(req: Request, res: Response) {
     const { nome, email, cpf, museus } = req.body
-    console.log(nome, email, cpf, museus)
 
     try {
       await UsuarioService.validarUsuarioExterno({
@@ -27,7 +26,8 @@ class UsuarioController {
         nome,
         email,
         cpf,
-        museus
+        museus: Array.isArray(museus) ? museus : [museus],
+        arquivo: req.file!
       })
 
       return res.status(201).json({
@@ -36,6 +36,7 @@ class UsuarioController {
         usuario: novoUsuario
       })
     } catch (error: unknown) {
+      logger.error("Erro ao criar usuário externo:", error)
       if (error instanceof HTTPError) {
         return res.status(400).json({ message: error.message })
       }
@@ -209,7 +210,9 @@ class UsuarioController {
       }
 
       if (perfil) {
-        const perfilValido = await Profile.findOne({ name: { $eq: perfil } }).exec()
+        const perfilValido = await Profile.findOne({
+          name: { $eq: perfil }
+        }).exec()
 
         if (!perfilValido) {
           return res

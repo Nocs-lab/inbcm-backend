@@ -35,10 +35,18 @@ class AnoDeclaracaoController {
       } = req.body
 
       // Usando o helper DataUtils para formatar as datas
-      const dataInicioSubmissaoFormatada = DataUtils.gerarDataHoraFormatada(new Date(dataInicioSubmissao))
-      const dataFimSubmissaoFormatada = DataUtils.gerarDataHoraFormatada(new Date(dataFimSubmissao))
-      const dataInicioRetificacaoFormatada = DataUtils.gerarDataHoraFormatada(new Date(dataInicioRetificacao))
-      const dataFimRetificacaoFormatada = DataUtils.gerarDataHoraFormatada(new Date(dataFimRetificacao))
+      const dataInicioSubmissaoFormatada = DataUtils.gerarDataHoraFormatada(
+        new Date(dataInicioSubmissao)
+      )
+      const dataFimSubmissaoFormatada = DataUtils.gerarDataHoraFormatada(
+        new Date(dataFimSubmissao)
+      )
+      const dataInicioRetificacaoFormatada = DataUtils.gerarDataHoraFormatada(
+        new Date(dataInicioRetificacao)
+      )
+      const dataFimRetificacaoFormatada = DataUtils.gerarDataHoraFormatada(
+        new Date(dataFimRetificacao)
+      )
 
       const anoExistente = await AnoDeclaracao.findOne({ ano })
       if (anoExistente) {
@@ -200,30 +208,43 @@ class AnoDeclaracaoController {
         metaDeclaracoesEnviadas
       } = req.body
 
-
       // Validação para não ser possível alterar o ano de um modelo com declaração vinculada
-      const anoDeclaracao = await AnoDeclaracao.findById(id);
+      const anoDeclaracao = await AnoDeclaracao.findById(id)
       if (!anoDeclaracao) {
-        return res.status(404).json({ message: "Ano de declaração não encontrado" });
+        return res
+          .status(404)
+          .json({ message: "Ano de declaração não encontrado" })
       }
 
       if (anoDeclaracao.declaracaoVinculada && ano !== anoDeclaracao.ano) {
-        return res.status(403).json({ message: "Não é permitido alterar o ano quando há declarações vinculadas." });
+        return res.status(403).json({
+          message:
+            "Não é permitido alterar o ano quando há declarações vinculadas."
+        })
       }
 
       // Convertendo as strings para objetos Date, se necessário
-      const dataInicioSubmissaoDate = new Date(dataInicioSubmissao)
-      const dataFimSubmissaoDate = new Date(dataFimSubmissao)
-      const dataInicioRetificacaoDate = new Date(dataInicioRetificacao)
-      const dataFimRetificacaoDate = new Date(dataFimRetificacao)
+      const dataInicioSubmissaoFormatada = DataUtils.gerarDataHoraFormatada(
+        new Date(dataInicioSubmissao)
+      )
+      const dataFimSubmissaoFormatada = DataUtils.gerarDataHoraFormatada(
+        new Date(dataFimSubmissao)
+      )
+      const dataInicioRetificacaoFormatada = DataUtils.gerarDataHoraFormatada(
+        new Date(dataInicioRetificacao)
+      )
+      const dataFimRetificacaoFormatada = DataUtils.gerarDataHoraFormatada(
+        new Date(dataFimRetificacao)
+      )
 
       const updatedAnoDeclaracao = await AnoDeclaracao.findByIdAndUpdate(
         id,
-        { ano,
-          dataInicioSubmissao: dataInicioSubmissaoDate,
-          dataFimSubmissao: dataFimSubmissaoDate,
-          dataInicioRetificacao: dataInicioRetificacaoDate,
-          dataFimRetificacao: dataFimRetificacaoDate,
+        {
+          ano,
+          dataInicioSubmissao: dataInicioSubmissaoFormatada,
+          dataFimSubmissao: dataFimSubmissaoFormatada,
+          dataInicioRetificacao: dataInicioRetificacaoFormatada,
+          dataFimRetificacao: dataFimRetificacaoFormatada,
           metaDeclaracoesEnviadas
         },
         { new: true }
@@ -269,7 +290,10 @@ class AnoDeclaracaoController {
           .json({ message: "Ano de declaração não encontrado" })
       }
       if (anoDeclaracao.declaracaoVinculada) {
-        return res.status(403).json({ message: "Não é possível excluir este modelo, pois há uma declaração vinculada." });
+        return res.status(403).json({
+          message:
+            "Não é possível excluir este modelo, pois há uma declaração vinculada."
+        })
       }
 
       return res
@@ -297,7 +321,7 @@ class AnoDeclaracaoController {
    * @throws {500} - Em caso de erro interno ao buscar os períodos vigentes.
    */
   public async getPeriodoDeclaracaoVigente(
-    req: Request,
+    _req: Request,
     res: Response
   ): Promise<Response> {
     try {

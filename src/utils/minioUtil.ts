@@ -1,7 +1,7 @@
 import { format } from "date-fns"
 import minioClient from "../db/minioClient"
-import { Readable } from "stream"
 import HTTPError from "./error"
+import { Readable } from "stream"
 
 /**
  * Implementa regra de negócio para definição de nomenclatura dos arquivos.
@@ -19,7 +19,7 @@ import HTTPError from "./error"
 export const generateFilePath = (
   fileName: string,
   museuId: string,
-  declarationYear: string,
+  declarationYear: number,
   archiveType: string
 ): string => {
   const now = Date.now()
@@ -28,6 +28,37 @@ export const generateFilePath = (
   const sanitizedFileName = fileName.replace(/\s+/g, "_")
   const uniqueFileName = `${timestamp}-${sanitizedFileName}`
   return `${museuId}/${declarationYear}/${archiveType}/${uniqueFileName}`
+}
+export const uploadFileAnaliseToMinio = async (
+  file: Express.Multer.File,
+  declaracaoId: string,
+
+  fileType: string
+) => {
+  const objectPath = generateFilePathAnalise(
+    file.originalname,
+    declaracaoId,
+    fileType
+  )
+
+  const stream = Readable.from(file.buffer)
+
+  await minioClient.putObject("inbcm", objectPath, stream, file.buffer.length, {
+    "Content-Type": file.mimetype,
+    "x-amz-acl": "public-read"
+  })
+}
+export const generateFilePathAnalise = (
+  fileName: string,
+  declaracaoId: string,
+  archiveType: string
+): string => {
+  const now = Date.now()
+  const timestamp = format(now, "dd_MM_yyyy_HH_mm_ss_SSS")
+
+  const sanitizedFileName = fileName.replace(/\s+/g, "_")
+  const uniqueFileName = `${timestamp}-${sanitizedFileName}`
+  return `analise/${declaracaoId}/${archiveType}/${uniqueFileName}`
 }
 
 /**
@@ -79,7 +110,7 @@ export async function getLatestPathArchive(
 export const uploadFileToMinio = async (
   file: Express.Multer.File,
   museumId: string,
-  declarationYear: string,
+  declarationYear: number,
   fileType: string
 ) => {
   const objectPath = generateFilePath(
@@ -89,10 +120,14 @@ export const uploadFileToMinio = async (
     fileType
   )
 
-  const stream = Readable.from(file.buffer)
-
-  await minioClient.putObject("inbcm", objectPath, stream, file.buffer.length, {
-    "Content-Type": file.mimetype,
-    "x-amz-acl": "public-read"
-  })
+  await minioClient.putObject(
+    "inbcm",
+    objectPath,
+    Readable.from(file.buffer),
+    file.buffer.length,
+    {
+      "Content-Type": file.mimetype,
+      "x-amz-acl": "public-read"
+    }
+  )
 }

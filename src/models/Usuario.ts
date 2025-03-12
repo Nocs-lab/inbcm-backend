@@ -5,8 +5,10 @@ import { IMuseu } from "./Museu"
 export enum SituacaoUsuario {
   ParaAprovar = 0,
   Ativo = 1,
-  Inativo = 2
+  Inativo = 2,
+  NaoAprovado = 3
 }
+
 export interface IUsuario extends Document {
   nome: string
   email: string
@@ -17,6 +19,7 @@ export interface IUsuario extends Document {
   situacao: SituacaoUsuario
   especialidadeAnalista: string[]
   cpf: string
+  documentoComprobatorio: string
 }
 
 export const UsuarioSchema = new Schema<IUsuario>({
@@ -30,7 +33,8 @@ export const UsuarioSchema = new Schema<IUsuario>({
     enum: [
       SituacaoUsuario.ParaAprovar,
       SituacaoUsuario.Ativo,
-      SituacaoUsuario.Inativo
+      SituacaoUsuario.Inativo,
+      SituacaoUsuario.NaoAprovado
     ],
     default: SituacaoUsuario.Ativo
   },
@@ -53,7 +57,8 @@ export const UsuarioSchema = new Schema<IUsuario>({
       message: "CPF inválido"
     },
     set: (cpf: string) => cpf.replace(/\D/g, "")
-  }
+  },
+  documentoComprobatorio: { type: String, required: false }
 })
 
 export function validarCPF(cpf: string): boolean {

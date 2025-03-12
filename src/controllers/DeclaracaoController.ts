@@ -5,8 +5,13 @@ import DeclaracaoService from "../service/DeclaracaoService"
 import { generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
 import path from "path"
-import mongoose from "mongoose"
-import { getLatestPathArchive } from "../utils/minioUtil"
+import mongoose, { PipelineStage } from "mongoose"
+import {
+  generateFilePathAnalise,
+  getLatestPathArchive,
+  uploadFileAnaliseToMinio,
+  uploadFileToMinio
+} from "../utils/minioUtil"
 import minioClient from "../db/minioClient"
 import { DataUtils } from "../utils/dataUtils"
 import { Status } from "../enums/Status"
@@ -24,7 +29,6 @@ export class DeclaracaoController {
 
     this.uploadDeclaracao = this.uploadDeclaracao.bind(this)
     this.getDeclaracaoFiltrada = this.getDeclaracaoFiltrada.bind(this)
-    this.getStatusEnum = this.getStatusEnum.bind(this)
     this.atualizarStatusBensDeclaracao =
       this.atualizarStatusBensDeclaracao.bind(this)
     this.getDeclaracoes = this.getDeclaracoes.bind(this)
@@ -33,9 +37,10 @@ export class DeclaracaoController {
     this.getItensPorAnoETipo = this.getItensPorAnoETipo.bind(this)
     this.excluirDeclaracao = this.excluirDeclaracao.bind(this)
     this.getTimeLine = this.getTimeLine.bind(this)
-    this.filtroDashBoard = this.filtroDashBoard.bind(this)
     this.restaurarDeclaracao = this.restaurarDeclaracao.bind(this)
     this.alterarAnalistaArquivo = this.alterarAnalistaArquivo.bind(this)
+    this.uploadAnalise = this.uploadAnalise.bind(this)
+    this.downloadAnalise = this.downloadAnalise.bind(this)
   }
 
   /**
@@ -93,102 +98,6 @@ export class DeclaracaoController {
     }
   }
 
-  async filtroDashBoard(req: Request, res: Response) {
-    try {
-      // Lista de estados válidos
-      const estadosValidos = [
-        "AC",
-        "AL",
-        "AP",
-        "AM",
-        "BA",
-        "CE",
-        "DF",
-        "ES",
-        "GO",
-        "MA",
-        "MT",
-        "MS",
-        "MG",
-        "PA",
-        "PB",
-        "PR",
-        "PE",
-        "PI",
-        "RJ",
-        "RN",
-        "RS",
-        "RO",
-        "RR",
-        "SC",
-        "SP",
-        "SE",
-        "TO"
-      ]
-
-      // Extraindo os filtros da query string
-      const { anos, estados, cidades, museu } = req.query
-
-      // Garantindo que os filtros sejam arrays
-      const anosArray = anos
-        ? Array.isArray(anos)
-          ? anos.map(String)
-          : String(anos).split(",") // Caso sejam passados como "anos=2023&anos=2024"
-        : []
-
-      const estadosArray = estados
-        ? Array.isArray(estados)
-          ? estados.map(String)
-          : [String(estados)]
-        : []
-
-      // Validando os estados
-      const estadosInvalidos = estadosArray.filter(
-        (estado) => !estadosValidos.includes(estado.toUpperCase())
-      )
-      if (estadosInvalidos.length > 0) {
-        return res.status(400).json({
-          message: "Estados inválidos encontrados.",
-          invalidStates: estadosInvalidos
-        })
-      }
-
-      const cidadesArray = cidades
-        ? Array.isArray(cidades)
-          ? cidades.map(String)
-          : [String(cidades)]
-        : []
-
-      const museuId = museu ? String(museu) : null
-      if (museuId && !museuId.match(/^[a-fA-F0-9]{24}$/)) {
-        return res.status(400).json({
-          message:
-            "O campo 'museu' deve conter um ID válido no formato ObjectId."
-        })
-      }
-
-      // Chamando o método do serviço para realizar o filtro
-      const declaracoes =
-        await this.declaracaoService.filtroDeclaracoesDashBoard(
-          anosArray,
-          estadosArray,
-          cidadesArray,
-          museuId
-        )
-
-      // Retornando as declarações filtradas
-      return res.status(200).json(declaracoes)
-    } catch (error) {
-      // Logando o erro em caso de falha
-      logger.error("Erro ao filtrar declarações para o dashboard:", error)
-
-      // Retornando status 500 com uma mensagem de erro
-      return res
-        .status(500)
-        .json({ message: "Erro ao filtrar declarações para o dashboard." })
-    }
-  }
-
   /**
    * Atualiza os status dos bens vinculados a uma declaração e altera o status geral da declaração.
    *
@@ -242,7 +151,7 @@ export class DeclaracaoController {
       })
 
       if (!declaracao) {
-        return res.status(404).json({
+        return res.status(204).json({
           message: "Declaração não encontrada para o ano especificado."
         })
       }
@@ -268,10 +177,15 @@ export class DeclaracaoController {
 
       const userProfile = (user.profile as IProfile).name
 
-      const declaracao = await Declaracoes.findById(id).populate({
-        path: "museu_id",
-        model: Museu
-      })
+      const declaracao = await Declaracoes.findById(id)
+        .populate({
+          path: "museu_id",
+          model: Museu
+        })
+        .populate({
+          path: "anoDeclaracao",
+          model: AnoDeclaracao
+        })
 
       if (!declaracao) {
         logger.error("Declaração não encontrada.")
@@ -321,7 +235,7 @@ export class DeclaracaoController {
 
           return acc
         },
-        {} as Record<string, any>
+        {} as Record<string, unknown>
       )
 
       logger.info(
@@ -354,7 +268,7 @@ export class DeclaracaoController {
 
       const userProfile = (user.profile as IProfile).name
 
-      let agregacao: any[] = [
+      let agregacao: PipelineStage[] = [
         {
           $match: {
             responsavelEnvio: new mongoose.Types.ObjectId(userId),
@@ -415,21 +329,19 @@ export class DeclaracaoController {
 
       const resultado = await Declaracoes.aggregate(agregacao)
 
-      const declaracoesPopuladas = await Museu.populate(resultado, {
-        path: "museu_id"
-      })
+      const declaracoesPopuladas = await Museu.populate(resultado, [
+        {
+          path: "museu_id",
+          model: Museu
+        },
+        { path: "anoDeclaracao", model: AnoDeclaracao }
+      ])
 
       return res.status(200).json(declaracoesPopuladas)
     } catch (error) {
       console.error("Erro ao buscar declarações:", error)
       return res.status(500).json({ message: "Erro ao buscar declarações." })
     }
-  }
-
-  async getStatusEnum(req: Request, res: Response) {
-    const statusEnum = Declaracoes.schema.path("status")
-    const status = Object.values(statusEnum)[0]
-    return res.status(200).json(status)
   }
 
   /*
@@ -441,7 +353,6 @@ export class DeclaracaoController {
    * @throws {500} - Se ocorrer um erro interno ao processar a requisição.
    *
    */
-
   async getDeclaracaoFiltrada(req: Request, res: Response) {
     try {
       const declaracoes = await this.declaracaoService.declaracaoComFiltros(
@@ -500,150 +411,59 @@ export class DeclaracaoController {
    * @throws {404} - Se a declaração a ser retificada não for encontrada.
    * @throws {500} - Se ocorrer um erro interno ao processar a declaração.
    */
-  async criarDeclaracao(req: Request, res: Response) {
+
+  async uploadAnalise(req: Request, res: Response) {
     try {
-      const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params
-      const user_id = req.user.id
+      const { declaracaoId, tipoArquivo } = req.params
 
-      if (!museu_id || !user_id) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Dados obrigatórios ausentes" })
-      }
+      // Acessando o arquivo de acordo com o tipoArquivo
+      const file = req.files?.[tipoArquivo]?.[0]
 
-      const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
-      if (!museu) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Museu inválido" })
-      }
-
-      const files = req.files as { [fieldname: string]: Express.Multer.File[] }
-      const salt = generateSalt()
-
-      const declaracaoExistente = idDeclaracao
-        ? await Declaracoes.findOne({
-            _id: idDeclaracao,
-            responsavelEnvio: user_id,
-            anoDeclaracao,
-            museu_id: museu_id
-          }).exec()
-        : await this.declaracaoService.verificarDeclaracaoExistente(
-            museu_id,
-            anoDeclaracao
-          )
-
-      if (idDeclaracao && !declaracaoExistente) {
-        return res.status(404).json({
-          message: "Não foi encontrada uma declaração anterior para retificar."
-        })
-      }
-
-      if (idDeclaracao && declaracaoExistente?.ultimaDeclaracao == false) {
-        return res.status(406).json({
-          message:
-            "Apenas a versão mais recente da declaração pode ser retificada."
-        })
-      }
-
-      const ultimaDeclaracao = await Declaracoes.findOne({
-        museu_id,
-        anoDeclaracao
-      })
-        .sort({ versao: -1 })
-        .exec()
-      const novaVersao = (ultimaDeclaracao?.versao || 0) + 1
-
-      const responsavelEnvio = await Usuario.findById(user_id).select("nome")
-      if (!responsavelEnvio) {
-        return res
-          .status(404)
-          .json({ message: "Usuário responsável pelo envio não encontrado." })
-      }
-
-      const novaDeclaracaoData =
-        await this.declaracaoService.criarDadosDeclaracao(
-          museu,
-          user_id as unknown as mongoose.Types.ObjectId,
-          anoDeclaracao,
-          declaracaoExistente,
-          novaVersao,
-          salt,
-          DataUtils.getCurrentData(),
-          responsavelEnvio.nome
+      if (!file) {
+        throw new HTTPError(
+          "Nenhum arquivo foi enviado para o tipo de arquivo: " + tipoArquivo,
+          400
         )
+      }
 
-      const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
+      const declaracao = await Declaracoes.findById(declaracaoId)
+      if (!declaracao) {
+        throw new HTTPError("Declaração não encontrada", 404)
+      }
 
-      if (idDeclaracao && declaracaoExistente) {
-        novaDeclaracao.status = Status.Recebida
-        const timeLineAnterior = ultimaDeclaracao?.timeLine || []
-        const novoEvento = {
-          nomeEvento: Eventos.RetificacaoDeclaracao,
-          dataEvento: DataUtils.getCurrentData(),
-          autorEvento: responsavelEnvio.nome
-        }
-        novaDeclaracao.timeLine = [...timeLineAnterior, novoEvento].sort(
-          (a, b) =>
-            new Date(a.dataEvento).getTime() - new Date(b.dataEvento).getTime()
-        )
+      const tiposArquivos = ["museologico", "bibliografico", "arquivistico"]
+      if (!tiposArquivos.includes(tipoArquivo)) {
+        throw new HTTPError("Tipo de arquivo inválido", 400)
+      }
+
+      const filePath = generateFilePathAnalise(
+        file.originalname,
+        declaracaoId,
+        tipoArquivo
+      )
+
+      await uploadFileAnaliseToMinio(file, declaracaoId, tipoArquivo)
+
+      // Verifica se o tipo de arquivo já existe na declaração e atualiza o caminho
+      if (declaracao[tipoArquivo]) {
+        declaracao[tipoArquivo].analiseUrl = filePath
       } else {
-        novaDeclaracao.timeLine.push({
-          nomeEvento: Eventos.EnvioDeclaracao,
-          dataEvento: DataUtils.getCurrentData(),
-          autorEvento: responsavelEnvio.nome
-        })
+        declaracao[tipoArquivo] = { analiseUrl: filePath }
       }
 
-      await this.declaracaoService.updateDeclaracao(
-        files["arquivistico"],
-        novaDeclaracao,
-        "arquivistico",
-        declaracaoExistente?.arquivistico || null,
-        novaVersao,
-        responsavelEnvio.nome
-      )
-      await this.declaracaoService.updateDeclaracao(
-        files["bibliografico"],
-        novaDeclaracao,
-        "bibliografico",
-        declaracaoExistente?.bibliografico || null,
-        novaVersao,
-        responsavelEnvio.nome
-      )
-      await this.declaracaoService.updateDeclaracao(
-        files["museologico"],
-        novaDeclaracao,
-        "museologico",
-        declaracaoExistente?.museologico || null,
-        novaVersao,
-        responsavelEnvio.nome
-      )
+      // Salva a declaração com o caminho atualizado do arquivo
+      await declaracao.save()
 
-      novaDeclaracao.ultimaDeclaracao = true
-      await novaDeclaracao.save()
-
-      await Declaracoes.updateMany(
-        {
-          museu_id,
-          anoDeclaracao,
-          _id: { $ne: novaDeclaracao._id }
-        },
-        { ultimaDeclaracao: false }
-      )
-
-      const anoDeclaracaoReferencia = await AnoDeclaracao.findOneAndUpdate(
-        { ano: anoDeclaracao },
-        { $set: { declaracaoVinculada: true } },
-        { new: true }
-      )
-
-      return res.status(200).json(novaDeclaracao)
+      return res.status(201).json({
+        message: "Arquivo anexado com sucesso",
+        declaracaoAtualizada: declaracao
+      })
     } catch (error) {
-      logger.error("Erro ao enviar uma declaração:", error)
-      return res
-        .status(500)
-        .json({ message: "Erro ao enviar uma declaração: ", error })
+      if (error instanceof HTTPError) {
+        return res.status(error.status).json({ error: error.message })
+      } else {
+        throw new HTTPError("Erro ao anexar arquivo à declaração", 500)
+      }
     }
   }
 
@@ -651,11 +471,10 @@ export class DeclaracaoController {
     try {
       const { museu, anoDeclaracao, tipoArquivo } = req.params
 
-      // Verifique a declaração para o usuário
       const declaracao = await Declaracoes.findOne({
         museu_id: museu,
         anoDeclaracao
-      })
+      }).populate("anoDeclaracao", ["_id", "ano"], AnoDeclaracao)
 
       if (!declaracao) {
         return res.status(404).json({
@@ -663,7 +482,7 @@ export class DeclaracaoController {
         })
       }
 
-      const prefix = `${museu}/${anoDeclaracao}/${tipoArquivo}/`
+      const prefix = `${museu}/${(declaracao.anoDeclaracao as unknown as { ano: number }).ano}/${tipoArquivo}/`
       const bucketName = "inbcm"
 
       const latestFilePath = await getLatestPathArchive(bucketName, prefix)
@@ -688,6 +507,41 @@ export class DeclaracaoController {
       return res
         .status(500)
         .json({ message: "Erro ao baixar arquivo da declaração." })
+    }
+  }
+  async downloadAnalise(req: Request, res: Response) {
+    try {
+      const { declaracaoId, tipoArquivo } = req.params
+
+      if (!declaracaoId || !tipoArquivo) {
+        return res.status(400).json({ message: "Parâmetros inválidos." })
+      }
+
+      const prefix = `analise/${declaracaoId}/${tipoArquivo}/`
+      const bucketName = "inbcm"
+
+      const latestFilePath = await getLatestPathArchive(bucketName, prefix)
+
+      if (!latestFilePath) {
+        return res
+          .status(404)
+          .json({ message: "Arquivo de análise não encontrado." })
+      }
+
+      const fileStream = await minioClient.getObject(bucketName, latestFilePath)
+
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=${path.basename(latestFilePath)}`
+      )
+      res.setHeader("Content-Type", "application/octet-stream")
+
+      fileStream.pipe(res)
+    } catch (error) {
+      console.error("Erro ao baixar arquivo de análise:", error)
+      return res
+        .status(500)
+        .json({ message: "Erro ao baixar arquivo de análise." })
     }
   }
 
@@ -735,7 +589,6 @@ export class DeclaracaoController {
         req.params.museu,
         req.params.anoDeclaracao
       )
-
     if (declaracaoExistente) {
       return res.status(406).json({
         status: false,
@@ -743,11 +596,49 @@ export class DeclaracaoController {
           "Já existe declaração para museu e ano referência informados. Para alterar a declaração é preciso retificá-la ou excluí-la e declarar novamente."
       })
     }
-    return this.criarDeclaracao(req, res)
+    const anoDeclaracao = await AnoDeclaracao.findOne({ _id: req.params.anoDeclaracao })
+    if(!anoDeclaracao){
+      return res.status(404).json({
+        status: false,
+        message:
+          "Ano de declaração inválido."
+      })
+    }
+
+    const user_id = req.user.id
+    const museu = req.params.museu
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] }
+    const response = await this.declaracaoService.criarDeclaracao(museu, req.params.anoDeclaracao, user_id, files)
+    return res.status(201).json(response);
   }
 
   async retificarDeclaracao(req: Request, res: Response) {
-    return this.criarDeclaracao(req, res)
+    const { idDeclaracao } = req.params
+    const declaracaoExistente = await Declaracoes.findOne({
+      ultimaDeclaracao: true,
+      status: { $ne: Status.Excluida }
+    })
+    if (!declaracaoExistente) {
+      return res.status(404).json({
+        status: false,
+        message: "Declaração não encontrada."
+      })
+    }
+    const anoDeclaracao = await AnoDeclaracao.findOne({ _id: req.params.anoDeclaracao })
+    if(!anoDeclaracao){
+      return res.status(404).json({
+        status: false,
+        message:
+          "Ano de declaração inválido."
+      })
+    }
+
+    const declaracao_id = idDeclaracao
+    const user_id = req.user.id
+    const museu = req.params.museu
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] }
+    const response = await this.declaracaoService.retificarDeclaracao(museu, req.params.anoDeclaracao, user_id, files, declaracao_id)
+    return res.status(201).json(response);
   }
   /**
    * Controlador responsável por chamar o método de serviço para restaurar uma declaração
@@ -1028,8 +919,7 @@ export class DeclaracaoController {
       )
 
       if (!agregacao || agregacao.length === 0) {
-        return res.status(404).json({
-          success: false,
+        return res.status(204).json({
           message:
             "Nenhuma declaração encontrada para os parâmetros fornecidos."
         })

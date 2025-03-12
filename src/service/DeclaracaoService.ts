@@ -33,90 +33,11 @@ import {
   museologico
 } from "inbcm-xlsx-validator/schema"
 import HTTPError from "../utils/error"
+import { AnoDeclaracao } from "../models/AnoDeclaracao"
+import { generateSalt } from "../utils/hashUtils"
 
 class DeclaracaoService {
-  async filtroDeclaracoesDashBoard(
-    anos: string[],
-    estados: string[],
-    cidades: string[],
-    museuId: string | null
-  ) {
-    try {
-      const match: any = {}
-
-      if (anos.length > 0) {
-        match.anoDeclaracao = { $in: anos }
-      }
-
-      if (estados.length > 0 || cidades.length > 0) {
-        const museuQuery: any = {}
-
-        if (estados.length > 0) {
-          museuQuery["endereco.uf"] = {
-            $in: estados.map((estado) => estado.toUpperCase())
-          }
-        }
-
-        if (cidades.length > 0) {
-          museuQuery["endereco.municipio"] = { $in: cidades }
-        }
-
-        // Busca IDs dos museus que atendem aos critérios
-        const museus = await Museu.find(museuQuery).select("_id").lean()
-        const museuIds = museus.map((museu) => museu._id)
-
-        // Adiciona os IDs dos museus encontrados ao filtro
-        match.museu_id = { $in: museuIds }
-      }
-
-      // Filtro por museu (caso seja enviado)
-      if (museuId) {
-        match.museu_id = museuId
-      }
-
-      // Filtro por "ultimaDeclaracao" sendo true e "status" diferente de 'Excluída'
-      match.ultimaDeclaracao = true
-      match.status = { $ne: "Excluída" }
-
-      // Agregação para buscar declarações com os filtros aplicados
-      const declaracoes = await Declaracoes.aggregate([
-        { $match: match },
-        {
-          $project: {
-            _id: 1,
-            museu_id: 1,
-            museu_nome: 1,
-            anoDeclaracao: 1,
-            responsavelEnvioNome: 1,
-            status: 1,
-            arquivistico: 1,
-            bibliografico: 1,
-            museologico: 1,
-            totalItensDeclarados: 1,
-            ultimaDeclaracao: 1
-          }
-        }
-      ])
-
-      // Chamando os métodos para poder construir o json
-      const cards = await this.showCards(declaracoes)
-      const quantidadePorEstadoERegiao =
-        await this.quantidadeDeclaracoesPorEstadoERegiao(declaracoes)
-      const quantidadeDeclaracoesPorAno =
-        await this.quantidadeDeclaracoesPorAnoEStatus(declaracoes, anos)
-
-      // Retornando apenas os dados dos métodos chamados
-      return {
-        cards,
-        quantidadePorEstadoERegiao,
-        quantidadeDeclaracoesPorAno
-      }
-    } catch (error) {
-      throw new Error(`Erro ao filtrar declarações para o dashboard: `)
-    }
-  }
-
-  async showCards(declaracoes: any[]) {
+  async showCards(declaracoes: DeclaracaoModel[]) {
     // Contagem do total de declarações
     const totalDeclaracoes = declaracoes.length
 
@@ -184,7 +105,9 @@ class DeclaracaoService {
     }
   }
 
-  async quantidadeDeclaracoesPorEstadoERegiao(declaracoes: any[]): Promise<{
+  async quantidadeDeclaracoesPorEstadoERegiao(
+    declaracoes: DeclaracaoModel[]
+  ): Promise<{
     quantidadePorEstado: Record<string, number>
     quantidadePorRegiao: Record<string, number>
     statusPorRegiao: Record<string, Record<string, number>>
@@ -250,47 +173,6 @@ class DeclaracaoService {
     } catch (error) {
       throw new Error(
         `Erro ao calcular a quantidade de declarações por estado, região e status: `
-      )
-    }
-  }
-
-  async quantidadeDeclaracoesPorAnoEStatus(declaracoes: any[], anos: string[]) {
-    try {
-      // Inicializa o objeto para contagem
-      const declaracoesPorAno: Record<string, number> = {}
-      const statusPorAno: Record<string, Record<string, number>> = {}
-
-      // Inicializa os anos com contagem zerada
-      anos.forEach((ano) => {
-        declaracoesPorAno[ano] = 0
-        statusPorAno[ano] = {} // Inicializa o objeto para status por ano
-      })
-
-      // Conta as declarações por ano e status
-      declaracoes.forEach((declaracao) => {
-        const ano = declaracao.anoDeclaracao
-        const status = declaracao.status
-
-        // Incrementa a contagem para o ano
-        if (anos.includes(ano)) {
-          declaracoesPorAno[ano] = (declaracoesPorAno[ano] || 0) + 1
-
-          // Incrementa a contagem para o status dentro do ano
-          if (!statusPorAno[ano][status]) {
-            statusPorAno[ano][status] = 0
-          }
-          statusPorAno[ano][status] += 1
-        }
-      })
-
-      // Retorna o JSON com os dados de declarações por ano e status por ano
-      return {
-        quantidadePorAno: declaracoesPorAno,
-        statusPorAno
-      }
-    } catch (error) {
-      throw new Error(
-        `Erro ao calcular a quantidade de declarações por ano e status: `
       )
     }
   }
@@ -466,8 +348,8 @@ class DeclaracaoService {
           museu_id: declaracaoExistente.museu_id,
           museu_nome: declaracaoExistente.museu_nome,
           anoDeclaracao: declaracaoExistente.anoDeclaracao,
-          responsavelEnvio: declaracaoExistente.responsavelEnvio,
-          responsavelEnvioNome: declaracaoExistente.responsavelEnvioNome,
+          responsavelEnvio: responsavelEnvio,
+          responsavelEnvioNome: responsavelEnvioNome,
           totalItensDeclarados: declaracaoExistente.totalItensDeclarados,
           status: declaracaoExistente.status,
           retificacao: true,
@@ -1181,27 +1063,42 @@ class DeclaracaoService {
   ) {
     const declaracoesExistentes = await Declaracoes.find({
       museu_id: new mongoose.Types.ObjectId(museuId),
-      anoDeclaracao: { $gte: anoInicio.toString(), $lte: anoFim.toString() },
       ultimaDeclaracao: true,
       status: { $ne: Status.Excluida }
     })
+      .populate({
+        path: "anoDeclaracao",
+        match: { ano: { $gte: anoInicio, $lte: anoFim } },
+        model: AnoDeclaracao,
+        select: ["_id", "ano"]
+      })
+      .exec()
 
-    if (declaracoesExistentes.length === 0) {
+    const declaracoesFiltradas = declaracoesExistentes.filter(
+      (declaracao) => declaracao.anoDeclaracao !== null
+    )
+
+    if (declaracoesFiltradas.length === 0) {
       throw new Error(
         `Nenhuma declaração encontrada para o museu ${museuId} entre ${anoInicio} e ${anoFim}`
       )
     }
 
+    const anos = declaracoesFiltradas.map(
+      (declaracao) => declaracao.anoDeclaracao
+    ) as unknown as { _id: mongoose.Types.ObjectId; ano: number }[]
+
+    const anoDeclaracaoIds = declaracoesFiltradas.map(
+      (declaracao) => declaracao.anoDeclaracao._id
+    )
+
     const agregacao = await Declaracoes.aggregate([
       {
         $match: {
           museu_id: new mongoose.Types.ObjectId(museuId),
-          anoDeclaracao: {
-            $gte: anoInicio.toString(),
-            $lte: anoFim.toString()
-          },
+          anoDeclaracao: { $in: anoDeclaracaoIds },
           ultimaDeclaracao: true,
-          isExcluded: { $ne: true }
+          status: { $ne: Status.Excluida }
         }
       },
       {
@@ -1237,7 +1134,15 @@ class DeclaracaoService {
       { $sort: { anoDeclaracao: 1 } }
     ])
 
-    return agregacao
+    const result = agregacao.map((item) => {
+      const ano = anos.find((ano) => ano._id.equals(item.anoDeclaracao))
+      return {
+        ...item,
+        ano: ano?.ano
+      }
+    })
+
+    return result
   }
 
   async concluirAnalise(id: string, status: Status): Promise<DeclaracaoModel> {
@@ -1321,7 +1226,7 @@ class DeclaracaoService {
       {
         $match: {
           "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
-          "declaracoes.anoDeclaracao": ano
+          "declaracoes.anoDeclaracao": new mongoose.Types.ObjectId(ano)
         }
       },
       {
@@ -1344,7 +1249,7 @@ class DeclaracaoService {
       declaracao_ref: {
         $in: await Declaracoes.find({
           museu_id: new mongoose.Types.ObjectId(museuId),
-          anoDeclaracao: ano
+          anoDeclaracao: new mongoose.Types.ObjectId(ano)
         }).select("_id")
       }
     }).select(retornoPorItem)
@@ -1412,7 +1317,7 @@ class DeclaracaoService {
       {
         $match: {
           "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
-          "declaracoes.anoDeclaracao": ano,
+          "declaracoes.anoDeclaracao": new mongoose.Types.ObjectId(ano),
           "declaracoes.responsavelEnvio": new mongoose.Types.ObjectId(userId)
         }
       },
@@ -1436,7 +1341,7 @@ class DeclaracaoService {
       declaracao_ref: {
         $in: await Declaracoes.find({
           museu_id: new mongoose.Types.ObjectId(museuId),
-          anoDeclaracao: ano,
+          anoDeclaracao: new mongoose.Types.ObjectId(ano),
           responsavelEnvio: new mongoose.Types.ObjectId(userId)
         }).select("_id")
       }
@@ -1496,6 +1401,185 @@ class DeclaracaoService {
       throw new Error("Falha ao salvar a time-line de exclusão.")
     }
   }
+
+  async criarDeclaracao(museu_id: string, anoDeclaracao: string, user_id: string, arquivos: object) {
+    if (!museu_id || !user_id) {
+      throw new HTTPError("Dados obrigatórios ausentes", 404)
+    }
+    const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
+    if (!museu) {
+      throw new HTTPError("Museu inválido", 404)
+    }
+
+    const files = arquivos as { [fieldname: string]: Express.Multer.File[] }
+    const salt = generateSalt()
+    const declaracaoExistente = await Declaracoes.findOne({
+      museu_id: museu_id,
+      anoDeclaracao,
+      status: { $ne: Status.Excluida },
+      ultimaDeclaracao: true
+    })
+
+    if (declaracaoExistente) {throw new HTTPError("Já existe declaração para o museu e ano referência.", 403)}
+
+    const responsavelEnvio = await Usuario.findById(user_id).select("nome")
+    if (!responsavelEnvio) {throw new HTTPError("Usuário responsável pelo envio não encontrado.", 404)}
+
+    const novaDeclaracaoData =
+      await this.criarDadosDeclaracao(
+        museu,
+        user_id as unknown as mongoose.Types.ObjectId,
+        anoDeclaracao,
+        declaracaoExistente,
+        1,
+        salt,
+        DataUtils.getCurrentData(),
+        responsavelEnvio.nome
+      )
+
+    const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
+    novaDeclaracao.timeLine.push({
+      nomeEvento: Eventos.EnvioDeclaracao,
+      dataEvento: DataUtils.getCurrentData(),
+      autorEvento: responsavelEnvio.nome
+    })
+
+    await this.updateDeclaracao(
+      files["arquivistico"],
+      novaDeclaracao,
+      "arquivistico",
+      null,
+      1,
+      responsavelEnvio.nome
+    )
+    await this.updateDeclaracao(
+      files["bibliografico"],
+      novaDeclaracao,
+      "bibliografico",
+      null,
+      1,
+      responsavelEnvio.nome
+    )
+    await this.updateDeclaracao(
+      files["museologico"],
+      novaDeclaracao,
+      "museologico",
+      null,
+      1,
+      responsavelEnvio.nome
+    )
+
+    novaDeclaracao.ultimaDeclaracao = true
+    await novaDeclaracao.save()
+    return novaDeclaracao
+  }
+
+  async retificarDeclaracao(museu_id: string, anoDeclaracao: string, user_id: string, arquivos: object, idDeclaracao: string) {
+
+    if (!museu_id || !user_id || !idDeclaracao) {
+      throw new HTTPError("Dados obrigatórios ausentes", 404)
+    }
+    const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
+    if (!museu) {
+      throw new HTTPError("Museu inválido", 404)
+    }
+
+    const files = arquivos as { [fieldname: string]: Express.Multer.File[] }
+    const salt = generateSalt()
+
+    const declaracaoExistente = await Declaracoes.findOne({
+          _id: idDeclaracao,
+          anoDeclaracao,
+          museu_id: museu_id,
+          status: { $ne: Status.Excluida }
+        }).exec()
+
+
+    if (!declaracaoExistente || declaracaoExistente == null) {
+      throw new HTTPError("Não foi encontrada declaração para retificar.", 404)
+    }
+
+    if(declaracaoExistente?.ultimaDeclaracao == false){
+      throw new HTTPError("Apenas a versão mais recente da declaração pode ser retificada.", 404)
+    }
+
+    const novaVersao = (declaracaoExistente?.versao || 0) + 1
+
+    const responsavelEnvio = await Usuario.findById(user_id).select("nome")
+    if (!responsavelEnvio) {
+      throw new HTTPError("Não foi possível encontrar o responsável pelo envio.", 404)
+    }
+
+    const novaDeclaracaoData =
+      await this.criarDadosDeclaracao(
+        museu,
+        user_id as unknown as mongoose.Types.ObjectId,
+        anoDeclaracao,
+        declaracaoExistente,
+        novaVersao,
+        salt,
+        DataUtils.getCurrentData(),
+        responsavelEnvio.nome
+      )
+
+    const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
+
+    if (idDeclaracao && declaracaoExistente) {
+      novaDeclaracao.status = Status.Recebida
+      const timeLineAnterior = declaracaoExistente?.timeLine || []
+      const novoEvento = {
+        nomeEvento: Eventos.RetificacaoDeclaracao,
+        dataEvento: DataUtils.getCurrentData(),
+        autorEvento: responsavelEnvio.nome
+      }
+      novaDeclaracao.timeLine = [...timeLineAnterior, novoEvento].sort(
+        (a, b) =>
+          new Date(a.dataEvento).getTime() - new Date(b.dataEvento).getTime()
+      )
+    }
+
+    await this.updateDeclaracao(
+      files["arquivistico"],
+      novaDeclaracao,
+      "arquivistico",
+      declaracaoExistente?.arquivistico || null,
+      novaVersao,
+      responsavelEnvio.nome
+    )
+    await this.updateDeclaracao(
+      files["bibliografico"],
+      novaDeclaracao,
+      "bibliografico",
+      declaracaoExistente?.bibliografico || null,
+      novaVersao,
+      responsavelEnvio.nome
+    )
+    await this.updateDeclaracao(
+      files["museologico"],
+      novaDeclaracao,
+      "museologico",
+      declaracaoExistente?.museologico || null,
+      novaVersao,
+      responsavelEnvio.nome
+    )
+
+    novaDeclaracao.ultimaDeclaracao = true
+    await novaDeclaracao.save()
+
+    await Declaracoes.updateMany(
+      {
+        museu_id,
+        anoDeclaracao,
+        _id: { $ne: novaDeclaracao._id }
+      },
+      { ultimaDeclaracao: false }
+    )
+
+    return novaDeclaracao
+
+  }
 }
+
+
 
 export default DeclaracaoService

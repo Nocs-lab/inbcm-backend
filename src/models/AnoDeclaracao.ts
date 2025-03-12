@@ -26,7 +26,7 @@ const AnoDeclaracaoSchema = new Schema<AnoDeclaracaoModel>(
     dataInicioRetificacao: { type: Date },
     dataFimRetificacao: { type: Date },
     metaDeclaracoesEnviadas: { type: Number, required: true },
-    declaracaoVinculada: {type: Boolean, default: false}
+    declaracaoVinculada: { type: Boolean, default: false }
   },
   { timestamps: true, versionKey: false }
 )

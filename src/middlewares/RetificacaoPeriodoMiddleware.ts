@@ -9,18 +9,7 @@ const RetificacaoPeriodoMiddleware = async (
   try {
     const { anoDeclaracao } = req.params
 
-    if (
-      !anoDeclaracao ||
-      isNaN(Number(anoDeclaracao)) ||
-      Number(anoDeclaracao) <= 2000
-    ) {
-      return res.status(400).json({
-        message:
-          "Ano de declaração inválido. Por favor, forneça um número válido."
-      })
-    }
-
-    const periodo = await AnoDeclaracao.findOne({ ano: anoDeclaracao })
+    const periodo = await AnoDeclaracao.findById(anoDeclaracao)
 
     if (!periodo) {
       return res.status(404).json({

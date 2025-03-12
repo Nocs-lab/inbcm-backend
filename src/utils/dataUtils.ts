@@ -1,4 +1,5 @@
 import { formatInTimeZone } from "date-fns-tz"
+import { addHours } from "date-fns";
 
 export class DataUtils {
   static getCurrentData() {
@@ -15,8 +16,11 @@ export class DataUtils {
   }
 
   static gerarDataHoraFormatada(data: Date = this.getCurrentData()): string {
-    const timeZone = "America/Sao_Paulo"
+    // Configurar timeZone com UTC para compatibilizar com o servidor
+    const timeZone = "UTC"
+    // Adiciona 3 horas para configurar com o horário de São Paulo
+    const dataAjustada = addHours(data, 3);
     // Formatar a data e a hora juntas no formato ISO
-    return formatInTimeZone(data, timeZone, "yyyy-MM-dd'T'HH:mm:ss")
+    return formatInTimeZone(dataAjustada, timeZone, "yyyy-MM-dd'T'HH:mm:ss")
   }
 }

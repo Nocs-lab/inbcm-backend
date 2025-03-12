@@ -1,11 +1,23 @@
 import multer, { MulterError } from "multer"
 import { Request, RequestHandler } from "express"
-import { uploadFileToMinio } from "../utils/minioUtil"
-import { AnoDeclaracao } from "../models/AnoDeclaracao"
-import logger from "../utils/logger"
+import { uploadFileAnaliseToMinio } from "../utils/minioUtil"
+import { Declaracoes } from "../models/Declaracao"
+
+const allowedMimeTypes = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain"
+]
 
 const upload = multer({
-  limits: { fileSize: 1024 * 1024 * 1024 }
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      return cb(null, false)
+    }
+    cb(null, true)
+  }
 }).fields([
   { name: "arquivistico", maxCount: 1 },
   { name: "bibliografico", maxCount: 1 },
@@ -20,7 +32,7 @@ interface SubmissionRequest extends Request {
   }
 }
 
-const uploadMiddleware: RequestHandler = async (req, res, next) => {
+const uploadAnalise: RequestHandler = async (req, res, next) => {
   upload(req, res, async (err) => {
     if (err) {
       const errorMessage =
@@ -34,7 +46,6 @@ const uploadMiddleware: RequestHandler = async (req, res, next) => {
     }
 
     const uploadReq = req as SubmissionRequest
-
     const { arquivistico, bibliografico, museologico } = uploadReq.files
 
     if (!arquivistico && !bibliografico && !museologico) {
@@ -43,51 +54,40 @@ const uploadMiddleware: RequestHandler = async (req, res, next) => {
         .json({ message: "Pelo menos um arquivo deve ser enviado." })
     }
 
-    const { museu, anoDeclaracao } = req.params
-
-    const periodo = await AnoDeclaracao.findById(anoDeclaracao)
-
-    if (!periodo) {
-      return res.status(404).json({
-        message: "Ano de declaração não encontrado."
-      })
-    }
-
-    const agora = new Date()
-
-    if (
-      agora < periodo.dataInicioSubmissao ||
-      agora > periodo.dataFimSubmissao
-    ) {
-      return res.status(403).json({
-        message: "O período de submissão para este ano está fechado."
-      })
-    }
+    const { declaracaoId, tipoArquivo } = req.params
 
     try {
+      const declaracao = await Declaracoes.findById(declaracaoId)
+      if (!declaracao) {
+        return res.status(404).json({ message: "Declaração não encontrada." })
+      }
+
+      const { museu_id } = declaracao
+      const tiposArquivos = ["museologico", "bibliografico", "arquivistico"]
+      if (!tiposArquivos.includes(tipoArquivo)) {
+        return res.status(400).json({ message: "Tipo de arquivo inválido." })
+      }
+
       if (arquivistico && arquivistico.length > 0) {
-        await uploadFileToMinio(
+        await uploadFileAnaliseToMinio(
           arquivistico[0],
-          museu,
-          periodo.ano,
+          museu_id.toString(),
           "arquivistico"
         )
       }
 
       if (bibliografico && bibliografico.length > 0) {
-        await uploadFileToMinio(
+        await uploadFileAnaliseToMinio(
           bibliografico[0],
-          museu,
-          periodo.ano,
+          museu_id.toString(),
           "bibliografico"
         )
       }
 
       if (museologico && museologico.length > 0) {
-        await uploadFileToMinio(
+        await uploadFileAnaliseToMinio(
           museologico[0],
-          museu,
-          periodo.ano,
+          museu_id.toString(),
           "museologico"
         )
       }
@@ -102,4 +102,4 @@ const uploadMiddleware: RequestHandler = async (req, res, next) => {
   })
 }
 
-export default uploadMiddleware
+export default uploadAnalise

@@ -94,6 +94,16 @@ const setPermissions = async () => {
       label: "Gerar recibo de detalhamento de pendências",
       description:
         "Permite gerar um recibo pdf com detalhamento de pendências do recibo"
+    },
+    {
+      name: "downloadAnalise",
+      label: "Gera download de documento de analise",
+      description: "Permite realizar download de análise"
+    },
+    {
+      name: "uploadAnalise",
+      label: "Realiza upload de analise para o perfil analyst ou admin",
+      description: "Permite upload de analise para o perfil analyst ou admin"
     }
   ]
 
