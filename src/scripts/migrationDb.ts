@@ -1,72 +1,46 @@
 import mongoose from "mongoose"
-
 import { AnoDeclaracao, Declaracoes } from "../models"
-import config from "../config"
-const mongoURI = `mongodb://${config.DB_USER}:${config.DB_PASS}@mongo:27017/inbcm?authSource=admin`
-
-async function connect() {
-  try {
-    await mongoose.connect(mongoURI)
-    console.log("Conectado ao MongoDB com sucesso!")
-  } catch (error) {
-    console.error("Erro ao conectar ao MongoDB:", error)
-    process.exit(1)
-  }
-}
 
 async function createAnoToObjectIdMap() {
   const anoToObjectIdMap = new Map()
+
   try {
+    // Busque todos os documentos da coleção anoDeclaracao
     const anosDeclaracao = await AnoDeclaracao.find({})
+
+    // Crie um mapa de ano para ObjectId
     for (const doc of anosDeclaracao) {
       anoToObjectIdMap.set(doc.ano.toString(), doc._id)
     }
-    console.log(
-      "📌 Mapa de anoDeclaracao criado com sucesso:",
-      anoToObjectIdMap
-    )
+
+    console.log("Mapa criado com sucesso:", anoToObjectIdMap)
   } catch (error) {
     console.error("Erro ao criar o mapa:", error)
   }
+
   return anoToObjectIdMap
 }
 
 async function migrateAnoDeclaracao(anoToObjectIdMap) {
   try {
-    const declaracoes = await Declaracoes.find({}, { _id: 1, anoDeclaracao: 1 })
-    console.log(
-      `📊 Total de declarações a serem migradas: ${declaracoes.length}`
-    )
+    const declaracoes = await Declaracoes.find({})
 
     for (const doc of declaracoes) {
-      const docObject = doc.toObject() // Garante um objeto puro
-      const ano = docObject.anoDeclaracao
-      console.log(`🔄 Processando declaração ${doc._id}: anoDeclaracao =`, ano)
+      if (typeof doc.anoDeclaracao === "string") {
+        const objectId = anoToObjectIdMap.get(doc.anoDeclaracao)
 
-      if (typeof ano === "string" && anoToObjectIdMap.has(ano)) {
-        const objectId = anoToObjectIdMap.get(ano)
-        console.log(
-          `✅ Atualizando declaração ${doc._id}: anoDeclaracao = ${objectId}`
-        )
-
-        await Declaracoes.updateOne(
-          { _id: doc._id },
-          { $set: { anoDeclaracao: objectId } }
-        )
-
-        console.log(`🎉 Declaração ${doc._id} atualizada com sucesso!`)
-      } else if (ano === undefined) {
-        console.warn(
-          `ERRO: O campo anoDeclaracao da declaração ${doc._id} está como undefined!`
-        )
-      } else {
-        console.warn(
-          `Nenhum ObjectId encontrado para o ano: ${ano} na declaração ${doc._id}`
-        )
+        if (objectId) {
+          doc.anoDeclaracao = objectId
+          await doc.save()
+        } else {
+          console.warn(
+            `Nenhum ObjectId encontrado para o ano: ${doc.anoDeclaracao}`
+          )
+        }
       }
     }
 
-    console.log("🚀 Migração concluída com sucesso!")
+    console.log("Migração concluída com sucesso!")
   } catch (error) {
     console.error("Erro durante a migração:", error)
   }
@@ -74,15 +48,23 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
 
 async function main() {
   try {
-    await connect()
+    // Conecte-se ao banco de dados
+    await mongoose.connect(
+      "mongodb://ifrn.2024:ifrn.2024@mongo:27017/inbcm?authSource=admin"
+    )
+
+    // Crie o mapa de ano para ObjectId
     const anoToObjectIdMap = await createAnoToObjectIdMap()
+
+    // Execute a migração
     await migrateAnoDeclaracao(anoToObjectIdMap)
   } catch (error) {
     console.error("Erro no processo principal:", error)
   } finally {
+    // Desconecte do banco de dados
     await mongoose.disconnect()
-    console.log("🔌 Conexão com o banco de dados encerrada.")
   }
 }
 
+// Execute o processo principal
 main()
