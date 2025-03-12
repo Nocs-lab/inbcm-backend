@@ -6,7 +6,7 @@ async function createAnoToObjectIdMap() {
   const anoToObjectIdMap = new Map()
 
   try {
-    // Busque todos os documentos da coleção AnoDeclaracao
+    // Busque todos os documentos da coleção anoDeclaracao
     const anosDeclaracao = await AnoDeclaracao.find({})
 
     // Crie um mapa de ano para ObjectId
