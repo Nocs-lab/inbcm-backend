@@ -28,6 +28,7 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
     const declaracoes = await Declaracoes.find({
       anoDeclaracao: { $type: "string" }
     })
+
     console.log(`Total de declarações a serem migradas: ${declaracoes.length}`)
 
     for (const doc of declaracoes) {
@@ -36,6 +37,8 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
       )
 
       if (typeof doc.anoDeclaracao === "string") {
+        console.log(`Declaração completa: ${JSON.stringify(doc, null, 2)}`)
+        console.log(`Tipo do anoDeclaracao:`, typeof doc.anoDeclaracao)
         const objectId = anoToObjectIdMap.get(doc.anoDeclaracao)
 
         if (objectId) {
