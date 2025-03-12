@@ -21,9 +21,7 @@ async function createAnoToObjectIdMap() {
 
 async function migrateAnoDeclaracao(anoToObjectIdMap) {
   try {
-    const declaracoes = await Declaracoes.find({})
-      .populate("anoDeclaracao") // Garante que a referência seja resolvida
-      .select("_id anoDeclaracao") // Seleciona apenas os campos necessários
+    const declaracoes = await Declaracoes.find({}).select("_id anoDeclaracao") // Seleciona os campos necessários
 
     console.log(
       `🔄 Iniciando migração para ${declaracoes.length} declarações...`
@@ -33,34 +31,33 @@ async function migrateAnoDeclaracao(anoToObjectIdMap) {
     for (const doc of declaracoes) {
       const { _id, anoDeclaracao } = doc
 
-      // Verificar se o campo anoDeclaracao foi corretamente preenchido
-      if (!anoDeclaracao || !anoDeclaracao._id) {
+      // Verificar se o campo anoDeclaracao foi preenchido como string
+      if (!anoDeclaracao) {
         console.warn(
-          `⚠️ Declaração ${_id} tem anoDeclaracao undefined ou mal populado!`
+          `⚠️ Declaração ${_id} tem anoDeclaracao undefined ou mal preenchido!`
         )
         continue // Pular para a próxima declaração se anoDeclaracao estiver faltando
       }
 
-      // Se anoDeclaracao for um objeto (povoado), extraímos o ID
-      const anoObjectId = anoDeclaracao._id || anoDeclaracao
+      // Verificar se anoDeclaracao é uma string (como '2025') e precisa ser convertido
+      if (
+        typeof anoDeclaracao === "string" &&
+        anoToObjectIdMap.has(anoDeclaracao)
+      ) {
+        const objectId = anoToObjectIdMap.get(anoDeclaracao) // Pega o ObjectId correspondente à string '2025'
 
-      // Verificar se o campo já está com o ObjectId correto
-      if (anoToObjectIdMap.has(anoObjectId.toString())) {
-        const objectId = anoToObjectIdMap.get(anoObjectId.toString())
+        // Atualizar o campo anoDeclaracao com o ObjectId correto
+        await Declaracoes.updateOne(
+          { _id },
+          { $set: { anoDeclaracao: objectId } }
+        )
 
-        if (anoObjectId !== objectId.toString()) {
-          await Declaracoes.updateOne(
-            { _id },
-            { $set: { anoDeclaracao: objectId } }
-          )
-
-          console.log(
-            `✅ Declaração ${_id} atualizada: ${anoObjectId} ➝ ${objectId}`
-          )
-        }
+        console.log(
+          `✅ Declaração ${_id} atualizada: ${anoDeclaracao} ➝ ${objectId}`
+        )
       } else {
         console.warn(
-          `⚠️ Não foi possível encontrar o ObjectId para o ano: ${anoObjectId}`
+          `⚠️ Não foi possível encontrar o ObjectId para o ano: ${anoDeclaracao}`
         )
       }
     }
