@@ -1414,8 +1414,10 @@ class DeclaracaoService {
     const files = arquivos as { [fieldname: string]: Express.Multer.File[] }
     const salt = generateSalt()
     const declaracaoExistente = await Declaracoes.findOne({
-      museu_id,
-      anoDeclaracao
+      museu_id: museu_id,
+      anoDeclaracao,
+      status: { $ne: Status.Excluida },
+      ultimaDeclaracao: true
     })
 
     if (declaracaoExistente) {throw new HTTPError("Já existe declaração para o museu e ano referência.", 403)}
@@ -1471,6 +1473,113 @@ class DeclaracaoService {
     await novaDeclaracao.save()
     return novaDeclaracao
   }
+
+  async retificarDeclaracao(museu_id: string, anoDeclaracao: string, user_id: string, arquivos: object, idDeclaracao: string) {
+
+    if (!museu_id || !user_id || !idDeclaracao) {
+      throw new HTTPError("Dados obrigatórios ausentes", 404)
+    }
+    const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
+    if (!museu) {
+      throw new HTTPError("Museu inválido", 404)
+    }
+
+    const files = arquivos as { [fieldname: string]: Express.Multer.File[] }
+    const salt = generateSalt()
+
+    const declaracaoExistente = await Declaracoes.findOne({
+          _id: idDeclaracao,
+          anoDeclaracao,
+          museu_id: museu_id,
+          status: { $ne: Status.Excluida }
+        }).exec()
+
+
+    if (!declaracaoExistente || declaracaoExistente == null) {
+      throw new HTTPError("Não foi encontrada declaração para retificar.", 404)
+    }
+
+    if(declaracaoExistente?.ultimaDeclaracao == false){
+      throw new HTTPError("Apenas a versão mais recente da declaração pode ser retificada.", 404)
+    }
+
+    const novaVersao = (declaracaoExistente?.versao || 0) + 1
+
+    const responsavelEnvio = await Usuario.findById(user_id).select("nome")
+    if (!responsavelEnvio) {
+      throw new HTTPError("Não foi possível encontrar o responsável pelo envio.", 404)
+    }
+
+    const novaDeclaracaoData =
+      await this.criarDadosDeclaracao(
+        museu,
+        user_id as unknown as mongoose.Types.ObjectId,
+        anoDeclaracao,
+        declaracaoExistente,
+        novaVersao,
+        salt,
+        DataUtils.getCurrentData(),
+        responsavelEnvio.nome
+      )
+
+    const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
+
+    if (idDeclaracao && declaracaoExistente) {
+      novaDeclaracao.status = Status.Recebida
+      const timeLineAnterior = declaracaoExistente?.timeLine || []
+      const novoEvento = {
+        nomeEvento: Eventos.RetificacaoDeclaracao,
+        dataEvento: DataUtils.getCurrentData(),
+        autorEvento: responsavelEnvio.nome
+      }
+      novaDeclaracao.timeLine = [...timeLineAnterior, novoEvento].sort(
+        (a, b) =>
+          new Date(a.dataEvento).getTime() - new Date(b.dataEvento).getTime()
+      )
+    }
+
+    await this.updateDeclaracao(
+      files["arquivistico"],
+      novaDeclaracao,
+      "arquivistico",
+      declaracaoExistente?.arquivistico || null,
+      novaVersao,
+      responsavelEnvio.nome
+    )
+    await this.updateDeclaracao(
+      files["bibliografico"],
+      novaDeclaracao,
+      "bibliografico",
+      declaracaoExistente?.bibliografico || null,
+      novaVersao,
+      responsavelEnvio.nome
+    )
+    await this.updateDeclaracao(
+      files["museologico"],
+      novaDeclaracao,
+      "museologico",
+      declaracaoExistente?.museologico || null,
+      novaVersao,
+      responsavelEnvio.nome
+    )
+
+    novaDeclaracao.ultimaDeclaracao = true
+    await novaDeclaracao.save()
+
+    await Declaracoes.updateMany(
+      {
+        museu_id,
+        anoDeclaracao,
+        _id: { $ne: novaDeclaracao._id }
+      },
+      { ultimaDeclaracao: false }
+    )
+
+    return novaDeclaracao
+
+  }
 }
+
+
 
 export default DeclaracaoService
