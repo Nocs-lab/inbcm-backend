@@ -10,8 +10,7 @@ import {
   DeclaracaoModel,
   Usuario,
   IMuseu,
-  TimeLine,
-  AnoDeclaracao
+  TimeLine
 } from "../models"
 import { IUsuario, SituacaoUsuario } from "../models/Usuario"
 import mongoose from "mongoose"
