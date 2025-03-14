@@ -399,14 +399,6 @@ class MuseuController {
           continue
         }
 
-        if (museu.usuario) {
-          resultados.push({
-            museuId: id,
-            mensagem: "Este museu já possui um usuário associado."
-          })
-          continue
-        }
-
         museu.usuario = usuarioId
         await museu.save()
 
