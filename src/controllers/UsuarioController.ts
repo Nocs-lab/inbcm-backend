@@ -252,14 +252,6 @@ class UsuarioController {
             continue
           }
 
-          if (museu.usuario) {
-            resultadosVinculacao.push({
-              museuId,
-              message: "Este museu já possui um usuário associado."
-            })
-            continue
-          }
-
           museu.usuario = new Types.ObjectId(id)
           await museu.save()
 
