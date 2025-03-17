@@ -2,20 +2,16 @@ import { Request, Response } from "express"
 import { Declaracoes, Usuario } from "../models"
 import { AnoDeclaracao } from "../models/AnoDeclaracao"
 import DeclaracaoService from "../service/DeclaracaoService"
-import { generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
 import path from "path"
 import mongoose, { PipelineStage } from "mongoose"
 import {
   generateFilePathAnalise,
   getLatestPathArchive,
-  uploadFileAnaliseToMinio,
-  uploadFileToMinio
+  uploadFileAnaliseToMinio
 } from "../utils/minioUtil"
 import minioClient from "../db/minioClient"
-import { DataUtils } from "../utils/dataUtils"
 import { Status } from "../enums/Status"
-import { Eventos } from "../enums/Eventos"
 import logger from "../utils/logger"
 import { IProfile } from "../models/Profile"
 import HTTPError from "../utils/error"
@@ -584,32 +580,58 @@ export class DeclaracaoController {
   }
 
   async uploadDeclaracao(req: Request, res: Response) {
-    const declaracaoExistente =
-      await this.declaracaoService.verificarDeclaracaoExistente(
-        req.params.museu,
-        req.params.anoDeclaracao
-      )
-    if (declaracaoExistente) {
-      return res.status(406).json({
-        status: false,
-        message:
-          "Já existe declaração para museu e ano referência informados. Para alterar a declaração é preciso retificá-la ou excluí-la e declarar novamente."
-      })
-    }
-    const anoDeclaracao = await AnoDeclaracao.findOne({ _id: req.params.anoDeclaracao })
-    if(!anoDeclaracao){
-      return res.status(404).json({
-        status: false,
-        message:
-          "Ano de declaração inválido."
-      })
-    }
+    try {
+      const declaracaoExistente =
+        await this.declaracaoService.verificarDeclaracaoExistente(
+          req.params.museu,
+          req.params.anoDeclaracao
+        )
+      if (declaracaoExistente) {
+        return res.status(406).json({
+          status: false,
+          message:
+            "Já existe declaração para museu e ano referência informados. Para alterar a declaração é preciso retificá-la ou excluí-la e declarar novamente."
+        })
+      }
 
-    const user_id = req.user.id
-    const museu = req.params.museu
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] }
-    const response = await this.declaracaoService.criarDeclaracao(museu, req.params.anoDeclaracao, user_id, files)
-    return res.status(201).json(response);
+      const anoDeclaracao = await AnoDeclaracao.findOne({
+        _id: req.params.anoDeclaracao
+      })
+      if (!anoDeclaracao) {
+        return res.status(404).json({
+          status: false,
+          message: "Ano de declaração inválido."
+        })
+      }
+
+      const user_id = req.user.id
+      const museu = req.params.museu
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] }
+
+      const response = await this.declaracaoService.criarDeclaracao(
+        museu,
+        req.params.anoDeclaracao,
+        user_id,
+        files
+      )
+
+      logger.info(response)
+
+      return res.status(201).json(response)
+    } catch (error) {
+      if (error instanceof HTTPError) {
+        logger.error(error)
+        return res.status(error.status).json({
+          status: false,
+          message: error.message
+        })
+      }
+      logger.error(error)
+      return res.status(500).json({
+        status: false,
+        message: "Erro interno do servidor. Tente novamente mais tarde."
+      })
+    }
   }
 
   async retificarDeclaracao(req: Request, res: Response) {
@@ -624,12 +646,13 @@ export class DeclaracaoController {
         message: "Declaração não encontrada."
       })
     }
-    const anoDeclaracao = await AnoDeclaracao.findOne({ _id: req.params.anoDeclaracao })
-    if(!anoDeclaracao){
+    const anoDeclaracao = await AnoDeclaracao.findOne({
+      _id: req.params.anoDeclaracao
+    })
+    if (!anoDeclaracao) {
       return res.status(404).json({
         status: false,
-        message:
-          "Ano de declaração inválido."
+        message: "Ano de declaração inválido."
       })
     }
 
@@ -637,8 +660,14 @@ export class DeclaracaoController {
     const user_id = req.user.id
     const museu = req.params.museu
     const files = req.files as { [fieldname: string]: Express.Multer.File[] }
-    const response = await this.declaracaoService.retificarDeclaracao(museu, req.params.anoDeclaracao, user_id, files, declaracao_id)
-    return res.status(201).json(response);
+    const response = await this.declaracaoService.retificarDeclaracao(
+      museu,
+      req.params.anoDeclaracao,
+      user_id,
+      files,
+      declaracao_id
+    )
+    return res.status(201).json(response)
   }
   /**
    * Controlador responsável por chamar o método de serviço para restaurar uma declaração

@@ -1,5 +1,5 @@
 import { Status } from "../enums/Status"
-import { createHashUpdate } from "../utils/hashUtils"
+import { createHashUpdate, generateSalt } from "../utils/hashUtils"
 import {
   Declaracoes,
   Museu,
@@ -10,8 +10,7 @@ import {
   DeclaracaoModel,
   Usuario,
   IMuseu,
-  TimeLine,
-  AnoDeclaracao
+  TimeLine
 } from "../models"
 import { IUsuario, SituacaoUsuario } from "../models/Usuario"
 import mongoose from "mongoose"
@@ -1405,31 +1404,48 @@ class DeclaracaoService {
     }
   }
 
-  async criarDeclaracao(museu_id: string, anoDeclaracao: string, user_id: string, arquivos: object) {
-    if (!museu_id || !user_id) {
-      throw new HTTPError("Dados obrigatórios ausentes", 404)
-    }
-    const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
-    if (!museu) {
-      throw new HTTPError("Museu inválido", 404)
-    }
+  async criarDeclaracao(
+    museu_id: string,
+    anoDeclaracao: string,
+    user_id: string,
+    arquivos: object
+  ) {
+    try {
+      if (!museu_id || !user_id) {
+        throw new HTTPError("Dados obrigatórios ausentes", 404)
+      }
 
-    const files = arquivos as { [fieldname: string]: Express.Multer.File[] }
-    const salt = generateSalt()
-    const declaracaoExistente = await Declaracoes.findOne({
-      museu_id: museu_id,
-      anoDeclaracao,
-      status: { $ne: Status.Excluida },
-      ultimaDeclaracao: true
-    })
+      const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
+      if (!museu) {
+        throw new HTTPError("Museu inválido", 404)
+      }
 
-    if (declaracaoExistente) {throw new HTTPError("Já existe declaração para o museu e ano referência.", 403)}
+      const files = arquivos as { [fieldname: string]: Express.Multer.File[] }
+      const salt = generateSalt()
 
-    const responsavelEnvio = await Usuario.findById(user_id).select("nome")
-    if (!responsavelEnvio) {throw new HTTPError("Usuário responsável pelo envio não encontrado.", 404)}
+      const declaracaoExistente = await Declaracoes.findOne({
+        museu_id: museu_id,
+        anoDeclaracao,
+        status: { $ne: Status.Excluida },
+        ultimaDeclaracao: true
+      })
 
-    const novaDeclaracaoData =
-      await this.criarDadosDeclaracao(
+      if (declaracaoExistente) {
+        throw new HTTPError(
+          "Já existe declaração para o museu e ano referência.",
+          403
+        )
+      }
+
+      const responsavelEnvio = await Usuario.findById(user_id).select("nome")
+      if (!responsavelEnvio) {
+        throw new HTTPError(
+          "Usuário responsável pelo envio não encontrado.",
+          404
+        )
+      }
+
+      const novaDeclaracaoData = await this.criarDadosDeclaracao(
         museu,
         user_id as unknown as mongoose.Types.ObjectId,
         anoDeclaracao,
@@ -1440,45 +1456,62 @@ class DeclaracaoService {
         responsavelEnvio.nome
       )
 
-    const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
-    novaDeclaracao.timeLine.push({
-      nomeEvento: Eventos.EnvioDeclaracao,
-      dataEvento: DataUtils.getCurrentData(),
-      autorEvento: responsavelEnvio.nome
-    })
+      const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
+      novaDeclaracao.timeLine.push({
+        nomeEvento: Eventos.EnvioDeclaracao,
+        dataEvento: DataUtils.getCurrentData(),
+        autorEvento: responsavelEnvio.nome
+      })
 
-    await this.updateDeclaracao(
-      files["arquivistico"],
-      novaDeclaracao,
-      "arquivistico",
-      null,
-      1,
-      responsavelEnvio.nome
-    )
-    await this.updateDeclaracao(
-      files["bibliografico"],
-      novaDeclaracao,
-      "bibliografico",
-      null,
-      1,
-      responsavelEnvio.nome
-    )
-    await this.updateDeclaracao(
-      files["museologico"],
-      novaDeclaracao,
-      "museologico",
-      null,
-      1,
-      responsavelEnvio.nome
-    )
+      await this.updateDeclaracao(
+        files["arquivistico"],
+        novaDeclaracao,
+        "arquivistico",
+        null,
+        1,
+        responsavelEnvio.nome
+      )
+      await this.updateDeclaracao(
+        files["bibliografico"],
+        novaDeclaracao,
+        "bibliografico",
+        null,
+        1,
+        responsavelEnvio.nome
+      )
+      await this.updateDeclaracao(
+        files["museologico"],
+        novaDeclaracao,
+        "museologico",
+        null,
+        1,
+        responsavelEnvio.nome
+      )
 
-    novaDeclaracao.ultimaDeclaracao = true
-    await novaDeclaracao.save()
-    return novaDeclaracao
+      novaDeclaracao.ultimaDeclaracao = true
+      await novaDeclaracao.save()
+
+      return novaDeclaracao
+    } catch (error) {
+      if (error instanceof HTTPError) {
+        logger.error(`Erro ao fazer upload de declaração`, error)
+        throw error
+      }
+      logger.error(
+        `erro desconhecido ao tentar fazer upload de declaração`,
+        error
+      )
+      throw new HTTPError("Erro interno no servidor.", 500)
+    }
   }
 
-  async retificarDeclaracao(museu_id: string, anoDeclaracao: string, user_id: string, arquivos: object, idDeclaracao: string) {
-
+  async retificarDeclaracao(
+    museu_id: string,
+    anoDeclaracao: string,
+    user_id: string,
+    arquivos: object,
+    idDeclaracao: string
+  ) {
     if (!museu_id || !user_id || !idDeclaracao) {
       throw new HTTPError("Dados obrigatórios ausentes", 404)
     }
@@ -1491,39 +1524,43 @@ class DeclaracaoService {
     const salt = generateSalt()
 
     const declaracaoExistente = await Declaracoes.findOne({
-          _id: idDeclaracao,
-          anoDeclaracao,
-          museu_id: museu_id,
-          status: { $ne: Status.Excluida }
-        }).exec()
-
+      _id: idDeclaracao,
+      anoDeclaracao,
+      museu_id: museu_id,
+      status: { $ne: Status.Excluida }
+    }).exec()
 
     if (!declaracaoExistente || declaracaoExistente == null) {
       throw new HTTPError("Não foi encontrada declaração para retificar.", 404)
     }
 
-    if(declaracaoExistente?.ultimaDeclaracao == false){
-      throw new HTTPError("Apenas a versão mais recente da declaração pode ser retificada.", 404)
+    if (declaracaoExistente?.ultimaDeclaracao == false) {
+      throw new HTTPError(
+        "Apenas a versão mais recente da declaração pode ser retificada.",
+        404
+      )
     }
 
     const novaVersao = (declaracaoExistente?.versao || 0) + 1
 
     const responsavelEnvio = await Usuario.findById(user_id).select("nome")
     if (!responsavelEnvio) {
-      throw new HTTPError("Não foi possível encontrar o responsável pelo envio.", 404)
+      throw new HTTPError(
+        "Não foi possível encontrar o responsável pelo envio.",
+        404
+      )
     }
 
-    const novaDeclaracaoData =
-      await this.criarDadosDeclaracao(
-        museu,
-        user_id as unknown as mongoose.Types.ObjectId,
-        anoDeclaracao,
-        declaracaoExistente,
-        novaVersao,
-        salt,
-        DataUtils.getCurrentData(),
-        responsavelEnvio.nome
-      )
+    const novaDeclaracaoData = await this.criarDadosDeclaracao(
+      museu,
+      user_id as unknown as mongoose.Types.ObjectId,
+      anoDeclaracao,
+      declaracaoExistente,
+      novaVersao,
+      salt,
+      DataUtils.getCurrentData(),
+      responsavelEnvio.nome
+    )
 
     const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
 
@@ -1579,10 +1616,7 @@ class DeclaracaoService {
     )
 
     return novaDeclaracao
-
   }
 }
-
-
 
 export default DeclaracaoService

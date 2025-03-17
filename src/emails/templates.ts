@@ -248,6 +248,139 @@ templates["layout"] = template({
   usePartial: true,
   useData: true
 })
+templates["novo-usuario-admin"] = template({
+  "1": function (container, depth0, helpers, partials, data) {
+    var helper,
+      alias1 = depth0 != null ? depth0 : container.nullContext || {},
+      alias2 = container.hooks.helperMissing,
+      alias3 = "function",
+      alias4 = container.escapeExpression,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (
+      '\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Um novo usuário solicitou acesso à plataforma INBCM.</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Por favor, acesse o painel de administração para revisar e aprovar o cadastro.</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Dados do usuário:</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Pedimos que aguarde o nosso contato para receber as instruções de acesso.</p>\n\n\n<ul style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  <li><strong>Nome:</strong> ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "nome") ||
+            (depth0 != null ? lookupProperty(depth0, "nome") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "nome",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 17, column: 29 },
+                end: { line: 17, column: 37 }
+              }
+            })
+          : helper)
+      ) +
+      "</li>\n  <li><strong>E-mail:</strong> " +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "mail") ||
+            (depth0 != null ? lookupProperty(depth0, "mail") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "mail",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 18, column: 31 },
+                end: { line: 18, column: 39 }
+              }
+            })
+          : helper)
+      ) +
+      "</li>\n  <li><strong>Horário da solicitação:</strong> " +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "horario") ||
+            (depth0 != null ? lookupProperty(depth0, "horario") : depth0)) !=
+          null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "horario",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 19, column: 47 },
+                end: { line: 19, column: 58 }
+              }
+            })
+          : helper)
+      ) +
+      '</li>\n</ul>\n<br><hr><br>\n<div style="text-align: center;">\n  <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n    Acesse o sistema para gerenciar as solicitações de acesso:\n  </p>\n\n  <a href="' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "url") ||
+            (depth0 != null ? lookupProperty(depth0, "url") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "url",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 27, column: 11 },
+                end: { line: 27, column: 18 }
+              }
+            })
+          : helper)
+      ) +
+      '" style="font-family: Helvetica, sans-serif; font-size: 16px; color: #ffffff; text-decoration: none; background-color: #1351b4; padding: 12px 24px; border-radius: 30px; display: inline-block;">\n    Gestão de usuários\n  </a>\n</div>\n\n\n\n'
+    )
+  },
+  compiler: [8, ">= 4.3.0"],
+  main: function (container, depth0, helpers, partials, data) {
+    var stack1,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (stack1 = container.invokePartial(
+      lookupProperty(partials, "layout"),
+      depth0,
+      {
+        name: "layout",
+        hash: { title: "[INBCM] Novo usuário solicitou acesso ao INBCM" },
+        fn: container.program(1, data, 0),
+        inverse: container.noop,
+        data: data,
+        helpers: helpers,
+        partials: partials,
+        decorators: container.decorators
+      }
+    )) != null
+      ? stack1
+      : ""
+  },
+  usePartial: true,
+  useData: true
+})
 templates["solicitar-acesso"] = template({
   "1": function (container, depth0, helpers, partials, data) {
     var helper,

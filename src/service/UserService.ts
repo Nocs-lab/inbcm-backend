@@ -8,6 +8,8 @@ import { z } from "zod"
 import { sendEmail } from "../emails"
 import minioClient from "../db/minioClient"
 import { randomUUID } from "crypto"
+import { DataUtils } from "../utils/dataUtils"
+import config from "../config"
 
 const usuarioExternoSchema = z.object({
   nome: z.string().min(1, "O nome é obrigatório."),
@@ -45,14 +47,6 @@ export class UsuarioService {
 
       if (!museu) {
         erros.push({ museuId: id, message: "Museu não encontrado." })
-        continue
-      }
-
-      if (museu.usuario) {
-        erros.push({
-          museuId: id,
-          message: "Este museu já possui um usuário associado."
-        })
         continue
       }
 
@@ -98,7 +92,17 @@ export class UsuarioService {
       { $set: { usuario: novoUsuario._id } }
     )
 
+    // Envio e-mail para o usuário solicitante
     await sendEmail("solicitar-acesso", email, { name: nome })
+
+    // Envio de e-mail para os administradores informando novo usuário solicitando acesso
+    const usuarios = await Usuario.find({ ativo: true }).populate<{ profile: IProfile }>("profile");
+    const emails = usuarios
+      .filter(usuario => usuario.profile?.name === "admin")
+      .map(usuario => usuario.email);
+    const urlGestaoUsuario =  `${config.ADMIN_SITE_URL}/usuarios`
+    const horario = `${DataUtils.gerarDataFormatada()} às ${DataUtils.gerarHoraFormatada()}`
+    await sendEmail("novo-usuario-admin", emails, { nome, email, horario, url: urlGestaoUsuario})
 
     return novoUsuario
   }
@@ -249,14 +253,6 @@ export class UsuarioService {
 
       if (!museu) {
         erros.push({ museuId: id, message: "Museu não encontrado." })
-        continue
-      }
-
-      if (museu.usuario) {
-        erros.push({
-          museuId: id,
-          message: "Este museu já possui um usuário associado."
-        })
         continue
       }
 

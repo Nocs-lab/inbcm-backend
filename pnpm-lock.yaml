@@ -73,7 +73,7 @@ importers:
         version: 7.2.0
       inbcm-xlsx-validator:
         specifier: github:Nocs-lab/inbcm-xlsx-parser
-        version: https://codeload.github.com/Nocs-lab/inbcm-xlsx-parser/tar.gz/4cc372d95a9918c97d646b98985a7f22d5830b88
+        version: https://codeload.github.com/Nocs-lab/inbcm-xlsx-parser/tar.gz/3c95eb66ff19252fb95f6e990993094b86c506aa
       inquirer:
         specifier: ^9.3.7
         version: 9.3.7
@@ -3169,8 +3169,8 @@ packages:
     resolution: {integrity: sha512-JmXMZ6wuvDmLiHEml9ykzqO6lwFbof0GG4IkcGaENdCRDDmMVnny7s5HsIgHCbaq0w2MyPhDqkhTUgS2LU2PHA==}
     engines: {node: '>=0.8.19'}
 
-  inbcm-xlsx-validator@https://codeload.github.com/Nocs-lab/inbcm-xlsx-parser/tar.gz/4cc372d95a9918c97d646b98985a7f22d5830b88:
-    resolution: {tarball: https://codeload.github.com/Nocs-lab/inbcm-xlsx-parser/tar.gz/4cc372d95a9918c97d646b98985a7f22d5830b88}
+  inbcm-xlsx-validator@https://codeload.github.com/Nocs-lab/inbcm-xlsx-parser/tar.gz/3c95eb66ff19252fb95f6e990993094b86c506aa:
+    resolution: {tarball: https://codeload.github.com/Nocs-lab/inbcm-xlsx-parser/tar.gz/3c95eb66ff19252fb95f6e990993094b86c506aa}
     version: 1.0.0
 
   inflight@1.0.6:
@@ -9035,7 +9035,7 @@ snapshots:
 
   imurmurhash@0.1.4: {}
 
-  inbcm-xlsx-validator@https://codeload.github.com/Nocs-lab/inbcm-xlsx-parser/tar.gz/4cc372d95a9918c97d646b98985a7f22d5830b88:
+  inbcm-xlsx-validator@https://codeload.github.com/Nocs-lab/inbcm-xlsx-parser/tar.gz/3c95eb66ff19252fb95f6e990993094b86c506aa:
     dependencies:
       typescript: 5.8.2
       xlsx: 0.18.5
