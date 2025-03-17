@@ -2,20 +2,16 @@ import { Request, Response } from "express"
 import { Declaracoes, Usuario } from "../models"
 import { AnoDeclaracao } from "../models/AnoDeclaracao"
 import DeclaracaoService from "../service/DeclaracaoService"
-import { generateSalt } from "../utils/hashUtils"
 import { Museu } from "../models"
 import path from "path"
 import mongoose, { PipelineStage } from "mongoose"
 import {
   generateFilePathAnalise,
   getLatestPathArchive,
-  uploadFileAnaliseToMinio,
-  uploadFileToMinio
+  uploadFileAnaliseToMinio
 } from "../utils/minioUtil"
 import minioClient from "../db/minioClient"
-import { DataUtils } from "../utils/dataUtils"
 import { Status } from "../enums/Status"
-import { Eventos } from "../enums/Eventos"
 import logger from "../utils/logger"
 import { IProfile } from "../models/Profile"
 import HTTPError from "../utils/error"
@@ -411,146 +407,7 @@ export class DeclaracaoController {
    * @throws {404} - Se a declaração a ser retificada não for encontrada.
    * @throws {500} - Se ocorrer um erro interno ao processar a declaração.
    */
-  async criarDeclaracao(req: Request, res: Response) {
-    try {
-      const { anoDeclaracao, museu: museu_id, idDeclaracao } = req.params
-      const user_id = req.user.id
 
-      if (!museu_id || !user_id) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Dados obrigatórios ausentes" })
-      }
-
-      const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
-      if (!museu) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Museu inválido" })
-      }
-
-      const files = req.files as { [fieldname: string]: Express.Multer.File[] }
-      const salt = generateSalt()
-
-      const declaracaoExistente = idDeclaracao
-        ? await Declaracoes.findOne({
-            _id: idDeclaracao,
-            responsavelEnvio: user_id,
-            anoDeclaracao,
-            museu_id: museu_id
-          }).exec()
-        : await this.declaracaoService.verificarDeclaracaoExistente(
-            museu_id,
-            anoDeclaracao
-          )
-
-      if (idDeclaracao && !declaracaoExistente) {
-        return res.status(404).json({
-          message: "Não foi encontrada uma declaração anterior para retificar."
-        })
-      }
-
-      if (idDeclaracao && declaracaoExistente?.ultimaDeclaracao == false) {
-        return res.status(406).json({
-          message:
-            "Apenas a versão mais recente da declaração pode ser retificada."
-        })
-      }
-
-      const ultimaDeclaracao = await Declaracoes.findOne({
-        museu_id,
-        anoDeclaracao
-      })
-        .sort({ versao: -1 })
-        .exec()
-      const novaVersao = (ultimaDeclaracao?.versao || 0) + 1
-
-      const responsavelEnvio = await Usuario.findById(user_id).select("nome")
-      if (!responsavelEnvio) {
-        return res
-          .status(404)
-          .json({ message: "Usuário responsável pelo envio não encontrado." })
-      }
-
-      const novaDeclaracaoData =
-        await this.declaracaoService.criarDadosDeclaracao(
-          museu,
-          user_id as unknown as mongoose.Types.ObjectId,
-          anoDeclaracao,
-          declaracaoExistente,
-          novaVersao,
-          salt,
-          DataUtils.getCurrentData(),
-          responsavelEnvio.nome
-        )
-
-      const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
-
-      if (idDeclaracao && declaracaoExistente) {
-        novaDeclaracao.status = Status.Recebida
-        const timeLineAnterior = ultimaDeclaracao?.timeLine || []
-        const novoEvento = {
-          nomeEvento: Eventos.RetificacaoDeclaracao,
-          dataEvento: DataUtils.getCurrentData(),
-          autorEvento: responsavelEnvio.nome
-        }
-        novaDeclaracao.timeLine = [...timeLineAnterior, novoEvento].sort(
-          (a, b) =>
-            new Date(a.dataEvento).getTime() - new Date(b.dataEvento).getTime()
-        )
-      } else {
-        novaDeclaracao.timeLine.push({
-          nomeEvento: Eventos.EnvioDeclaracao,
-          dataEvento: DataUtils.getCurrentData(),
-          autorEvento: responsavelEnvio.nome
-        })
-      }
-
-      await this.declaracaoService.updateDeclaracao(
-        files["arquivistico"],
-        novaDeclaracao,
-        "arquivistico",
-        declaracaoExistente?.arquivistico || null,
-        novaVersao,
-        responsavelEnvio.nome
-      )
-      await this.declaracaoService.updateDeclaracao(
-        files["bibliografico"],
-        novaDeclaracao,
-        "bibliografico",
-        declaracaoExistente?.bibliografico || null,
-        novaVersao,
-        responsavelEnvio.nome
-      )
-      await this.declaracaoService.updateDeclaracao(
-        files["museologico"],
-        novaDeclaracao,
-        "museologico",
-        declaracaoExistente?.museologico || null,
-        novaVersao,
-        responsavelEnvio.nome
-      )
-
-      novaDeclaracao.ultimaDeclaracao = true
-      await novaDeclaracao.save()
-
-      await Declaracoes.updateMany(
-        {
-          museu_id,
-          anoDeclaracao,
-          _id: { $ne: novaDeclaracao._id }
-        },
-        { ultimaDeclaracao: false }
-      )
-
-      return res.status(200).json(novaDeclaracao)
-    } catch (error) {
-      logger.error("Erro ao enviar uma declaração:", error)
-      return res
-        .status(500)
-        .json({ message: "Erro ao enviar uma declaração: ", error })
-    }
-  }
   async uploadAnalise(req: Request, res: Response) {
     try {
       const { declaracaoId, tipoArquivo } = req.params
@@ -723,24 +580,94 @@ export class DeclaracaoController {
   }
 
   async uploadDeclaracao(req: Request, res: Response) {
-    const declaracaoExistente =
-      await this.declaracaoService.verificarDeclaracaoExistente(
-        req.params.museu,
-        req.params.anoDeclaracao
+    try {
+      const declaracaoExistente =
+        await this.declaracaoService.verificarDeclaracaoExistente(
+          req.params.museu,
+          req.params.anoDeclaracao
+        )
+      if (declaracaoExistente) {
+        return res.status(406).json({
+          status: false,
+          message:
+            "Já existe declaração para museu e ano referência informados. Para alterar a declaração é preciso retificá-la ou excluí-la e declarar novamente."
+        })
+      }
+
+      const anoDeclaracao = await AnoDeclaracao.findOne({
+        _id: req.params.anoDeclaracao
+      })
+      if (!anoDeclaracao) {
+        return res.status(404).json({
+          status: false,
+          message: "Ano de declaração inválido."
+        })
+      }
+
+      const user_id = req.user.id
+      const museu = req.params.museu
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] }
+
+      const response = await this.declaracaoService.criarDeclaracao(
+        museu,
+        req.params.anoDeclaracao,
+        user_id,
+        files
       )
 
-    if (declaracaoExistente) {
-      return res.status(406).json({
+      logger.info(response)
+
+      return res.status(201).json(response)
+    } catch (error) {
+      if (error instanceof HTTPError) {
+        logger.error(error)
+        return res.status(error.status).json({
+          status: false,
+          message: error.message
+        })
+      }
+      logger.error(error)
+      return res.status(500).json({
         status: false,
-        message:
-          "Já existe declaração para museu e ano referência informados. Para alterar a declaração é preciso retificá-la ou excluí-la e declarar novamente."
+        message: "Erro interno do servidor. Tente novamente mais tarde."
       })
     }
-    return this.criarDeclaracao(req, res)
   }
 
   async retificarDeclaracao(req: Request, res: Response) {
-    return this.criarDeclaracao(req, res)
+    const { idDeclaracao } = req.params
+    const declaracaoExistente = await Declaracoes.findOne({
+      ultimaDeclaracao: true,
+      status: { $ne: Status.Excluida }
+    })
+    if (!declaracaoExistente) {
+      return res.status(404).json({
+        status: false,
+        message: "Declaração não encontrada."
+      })
+    }
+    const anoDeclaracao = await AnoDeclaracao.findOne({
+      _id: req.params.anoDeclaracao
+    })
+    if (!anoDeclaracao) {
+      return res.status(404).json({
+        status: false,
+        message: "Ano de declaração inválido."
+      })
+    }
+
+    const declaracao_id = idDeclaracao
+    const user_id = req.user.id
+    const museu = req.params.museu
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] }
+    const response = await this.declaracaoService.retificarDeclaracao(
+      museu,
+      req.params.anoDeclaracao,
+      user_id,
+      files,
+      declaracao_id
+    )
+    return res.status(201).json(response)
   }
   /**
    * Controlador responsável por chamar o método de serviço para restaurar uma declaração

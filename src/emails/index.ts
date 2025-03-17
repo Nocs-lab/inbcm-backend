@@ -6,7 +6,12 @@ import Pulse from "@pulsecron/pulse"
 type Templates = {
   "forgot-password": { url: string }
   "solicitar-acesso": { name: string }
-  "novo-usuario-admin": { nome: string; email: string; horario: string; url: string }
+  "novo-usuario-admin": {
+    nome: string
+    email: string
+    horario: string
+    url: string
+  }
 }
 
 const pulse = new Pulse({
@@ -24,7 +29,8 @@ const subjects: Record<
   (data: Templates[keyof Templates]) => string
 > = {
   "forgot-password": () => "Recuperação de senha",
-  "solicitar-acesso": () => "[INBCM] Solicitação de acesso ao módulo declarante",
+  "solicitar-acesso": () =>
+    "[INBCM] Solicitação de acesso ao módulo declarante",
   "novo-usuario-admin": () => "[INBCM] Novo usuário solicitou acesso ao INBCM"
 }
 
