@@ -26,6 +26,7 @@ routes.use(((err, _req, res, next) => {
   if (err instanceof HTTPError) {
     res.status(err.status).json({ message: err.message })
   } else {
+    logger.error(err)
     res.status(500).json({ message: "Ocorreu um erro inesperado" })
   }
 }) as ErrorRequestHandler)
