@@ -48,14 +48,6 @@ export class UsuarioService {
         continue
       }
 
-      if (museu.usuario) {
-        erros.push({
-          museuId: id,
-          message: "Este museu já possui um usuário associado."
-        })
-        continue
-      }
-
       museusValidos.push(id)
     }
 
@@ -249,14 +241,6 @@ export class UsuarioService {
 
       if (!museu) {
         erros.push({ museuId: id, message: "Museu não encontrado." })
-        continue
-      }
-
-      if (museu.usuario) {
-        erros.push({
-          museuId: id,
-          message: "Este museu já possui um usuário associado."
-        })
         continue
       }
 
