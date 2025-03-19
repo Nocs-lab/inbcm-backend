@@ -9,6 +9,7 @@ import { UpdateUserDto } from "../models/dto/UserDto"
 import { Status } from "../enums/Status"
 import HTTPError from "../utils/error"
 import argon2 from "@node-rs/argon2"
+import { sendEmail } from "../emails"
 
 class UsuarioController {
   async registerUsuarioExterno(req: Request, res: Response) {
@@ -195,7 +196,9 @@ class UsuarioController {
           throw new HTTPError("Usuário não está ativo.", 400)
         }
         if (situacao == SituacaoUsuario.Ativo) {
-          const senhadefault = await argon2.hash("1234")
+          const senhaEstatica = "1234"
+          const senhadefault = await argon2.hash(senhaEstatica)
+          await sendEmail("aprovacao-cadastro-usuario", usuario.email, {nome:usuario.nome, email:usuario.email, senha:senhaEstatica})
           usuario.senha = senhadefault
         }
         usuario.situacao = situacao
