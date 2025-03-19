@@ -31,7 +31,10 @@ class AnoDeclaracaoController {
         dataFimSubmissao,
         dataInicioRetificacao,
         dataFimRetificacao,
-        metaDeclaracoesEnviadas
+        metaDeclaracoesEnviadas,
+        diasAlertaPrazo,
+        quantidadeLembretesEmail,
+        intervaloLembretesEmail
       } = req.body
 
       // Usando o helper DataUtils para formatar as datas
@@ -61,7 +64,10 @@ class AnoDeclaracaoController {
         dataFimSubmissao: dataFimSubmissaoFormatada,
         dataInicioRetificacao: dataInicioRetificacaoFormatada,
         dataFimRetificacao: dataFimRetificacaoFormatada,
-        metaDeclaracoesEnviadas
+        metaDeclaracoesEnviadas,
+        diasAlertaPrazo,
+        quantidadeLembretesEmail,
+        intervaloLembretesEmail
       })
 
       await anoDeclaracao.save()
@@ -73,6 +79,7 @@ class AnoDeclaracaoController {
         .json({ message: "Erro ao criar o ano de declaração" })
     }
   }
+
 
   /**
    * Retorna uma lista de anos de declaração.
@@ -205,7 +212,10 @@ class AnoDeclaracaoController {
         dataFimSubmissao,
         dataInicioRetificacao,
         dataFimRetificacao,
-        metaDeclaracoesEnviadas
+        metaDeclaracoesEnviadas,
+        diasAlertaPrazo,
+        quantidadeLembretesEmail,
+        intervaloLembretesEmail
       } = req.body
 
       // Validação para não ser possível alterar o ano de um modelo com declaração vinculada
@@ -245,7 +255,10 @@ class AnoDeclaracaoController {
           dataFimSubmissao: dataFimSubmissaoFormatada,
           dataInicioRetificacao: dataInicioRetificacaoFormatada,
           dataFimRetificacao: dataFimRetificacaoFormatada,
-          metaDeclaracoesEnviadas
+          metaDeclaracoesEnviadas,
+          diasAlertaPrazo,
+          quantidadeLembretesEmail,
+          intervaloLembretesEmail
         },
         { new: true }
       )
@@ -264,6 +277,7 @@ class AnoDeclaracaoController {
         .json({ message: "Erro ao atualizar o ano de declaração" })
     }
   }
+
 
   /**
    * Exclui um ano de declaração pelo ID.
