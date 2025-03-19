@@ -3,6 +3,118 @@
 import Handlebars from "handlebars"
 var template = Handlebars.template,
   templates = (Handlebars.templates = Handlebars.templates || {})
+templates["aprovacao-cadastro-usuario"] = template({
+  "1": function (container, depth0, helpers, partials, data) {
+    var helper,
+      alias1 = depth0 != null ? depth0 : container.nullContext || {},
+      alias2 = container.hooks.helperMissing,
+      alias3 = "function",
+      alias4 = container.escapeExpression,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (
+      '\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Olá, ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "nome") ||
+            (depth0 != null ? lookupProperty(depth0, "nome") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "nome",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 4, column: 7 },
+                end: { line: 4, column: 15 }
+              }
+            })
+          : helper)
+      ) +
+      ',</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Seu cadastro na plataforma INBCM foi aprovado. Agora você pode acessar o sistema utilizando as credenciais abaixo:</p>\n\n\n<ul style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; padding: 0;">\n  <li style="margin-bottom: 16px;">E-mail: ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "email") ||
+            (depth0 != null ? lookupProperty(depth0, "email") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "email",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 11, column: 43 },
+                end: { line: 11, column: 52 }
+              }
+            })
+          : helper)
+      ) +
+      '</li>\n  <li style="margin-bottom: 16px;">Senha temporária: ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "senha") ||
+            (depth0 != null ? lookupProperty(depth0, "senha") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "senha",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 12, column: 53 },
+                end: { line: 12, column: 62 }
+              }
+            })
+          : helper)
+      ) +
+      '</li>\n</ul>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Por motivos de segurança, altere sua senha no primeiro acesso.</p>\n'
+    )
+  },
+  compiler: [8, ">= 4.3.0"],
+  main: function (container, depth0, helpers, partials, data) {
+    var stack1,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (stack1 = container.invokePartial(
+      lookupProperty(partials, "layout"),
+      depth0,
+      {
+        name: "layout",
+        hash: { title: "[INBCM] Novo usuário solicitou acesso ao INBCM" },
+        fn: container.program(1, data, 0),
+        inverse: container.noop,
+        data: data,
+        helpers: helpers,
+        partials: partials,
+        decorators: container.decorators
+      }
+    )) != null
+      ? stack1
+      : ""
+  },
+  usePartial: true,
+  useData: true
+})
 templates["button"] = template({
   compiler: [8, ">= 4.3.0"],
   main: function (container, depth0, helpers, partials, data) {
@@ -265,7 +377,7 @@ templates["novo-usuario-admin"] = template({
         }
 
     return (
-      '\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Um novo usuário solicitou acesso à plataforma INBCM.</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Por favor, acesse o painel de administração para revisar e aprovar o cadastro.</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Dados do usuário:</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Pedimos que aguarde o nosso contato para receber as instruções de acesso.</p>\n\n\n<ul style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  <li><strong>Nome:</strong> ' +
+      '\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Um novo usuário solicitou acesso à plataforma INBCM.</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Por favor, acesse o painel de administração para revisar e aprovar o cadastro.</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Dados do usuário:</p>\n\n<ul style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  <li><strong>Nome:</strong> ' +
       alias4(
         ((helper =
           (helper =
@@ -279,8 +391,8 @@ templates["novo-usuario-admin"] = template({
               hash: {},
               data: data,
               loc: {
-                start: { line: 17, column: 29 },
-                end: { line: 17, column: 37 }
+                start: { line: 13, column: 29 },
+                end: { line: 13, column: 37 }
               }
             })
           : helper)
@@ -299,8 +411,8 @@ templates["novo-usuario-admin"] = template({
               hash: {},
               data: data,
               loc: {
-                start: { line: 18, column: 31 },
-                end: { line: 18, column: 39 }
+                start: { line: 14, column: 31 },
+                end: { line: 14, column: 39 }
               }
             })
           : helper)
@@ -320,8 +432,8 @@ templates["novo-usuario-admin"] = template({
               hash: {},
               data: data,
               loc: {
-                start: { line: 19, column: 47 },
-                end: { line: 19, column: 58 }
+                start: { line: 15, column: 47 },
+                end: { line: 15, column: 58 }
               }
             })
           : helper)
@@ -340,13 +452,13 @@ templates["novo-usuario-admin"] = template({
               hash: {},
               data: data,
               loc: {
-                start: { line: 27, column: 11 },
-                end: { line: 27, column: 18 }
+                start: { line: 23, column: 11 },
+                end: { line: 23, column: 18 }
               }
             })
           : helper)
       ) +
-      '" style="font-family: Helvetica, sans-serif; font-size: 16px; color: #ffffff; text-decoration: none; background-color: #1351b4; padding: 12px 24px; border-radius: 30px; display: inline-block;">\n    Gestão de usuários\n  </a>\n</div>\n\n\n\n'
+      '" style="font-family: Helvetica, sans-serif; font-size: 16px; color: #ffffff; text-decoration: none; background-color: #1351b4; padding: 10px 24px; border-radius: 30px; display: inline-block;">\n    Gestão de usuários\n  </a>\n</div>\n\n\n\n'
     )
   },
   compiler: [8, ">= 4.3.0"],
