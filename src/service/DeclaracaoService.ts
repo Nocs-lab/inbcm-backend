@@ -394,9 +394,16 @@ class DeclaracaoService {
     tipo: "arquivistico" | "bibliografico" | "museologico",
     arquivoAnterior: Arquivo | null,
     novaVersao: number,
-    responsavelEnvioNome: string
+    responsavelEnvioNome: string,
+    userId: string
   ) {
     try {
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        throw new Error("ID do usuário inválido")
+      }
+
+      const userObjectId = new mongoose.Types.ObjectId(userId) // Converte para ObjectId
+
       if (arquivos && arquivos.length > 0) {
         const novoHashBemCultural = createHashUpdate(
           arquivos[0].path,
@@ -469,13 +476,15 @@ class DeclaracaoService {
           versao: novaVersao,
           porcentagemGeral,
           porcentagemPorCampo,
-          detailedErrors: detailedErrorsFinal
+          detailedErrors: detailedErrorsFinal,
+          usuario: userObjectId
         }
 
         novaDeclaracao[tipo] = {
           ...arquivoAnterior,
           ...dadosAlterados
         } as Arquivo
+        dadosAlterados.usuarioNome = responsavelEnvioNome
 
         arquivoData.forEach((item: { [key: string]: unknown }) => {
           item.declaracao_ref = novaDeclaracao._id
@@ -1469,6 +1478,7 @@ class DeclaracaoService {
         "arquivistico",
         null,
         1,
+        user_id,
         responsavelEnvio.nome
       )
       await this.updateDeclaracao(
@@ -1477,6 +1487,7 @@ class DeclaracaoService {
         "bibliografico",
         null,
         1,
+        user_id,
         responsavelEnvio.nome
       )
       await this.updateDeclaracao(
@@ -1485,6 +1496,7 @@ class DeclaracaoService {
         "museologico",
         null,
         1,
+        user_id,
         responsavelEnvio.nome
       )
 

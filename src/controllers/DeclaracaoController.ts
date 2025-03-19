@@ -615,8 +615,6 @@ export class DeclaracaoController {
         files
       )
 
-      logger.info(response)
-
       return res.status(201).json(response)
     } catch (error) {
       if (error instanceof HTTPError) {
