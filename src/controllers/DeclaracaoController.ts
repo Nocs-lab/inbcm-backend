@@ -607,7 +607,7 @@ export class DeclaracaoController {
       const user_id = req.user.id
       const museu = req.params.museu
       const files = req.files as { [fieldname: string]: Express.Multer.File[] }
-
+      console.log('userid'+user_id)
       const response = await this.declaracaoService.criarDeclaracao(
         museu,
         req.params.anoDeclaracao,
