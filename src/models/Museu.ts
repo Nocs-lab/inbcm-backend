@@ -46,7 +46,7 @@ export interface IMuseu extends Document {
     municipio: string
     uf: string
   }
-  usuario: Types.ObjectId | null
+  usuarios: Types.ObjectId[]
 }
 const MuseuSchema: Schema = new Schema({
   codIbram: { type: String, required: true },
@@ -61,12 +61,13 @@ const MuseuSchema: Schema = new Schema({
     municipio: { type: String, required: true },
     uf: { type: String, required: true }
   },
-  usuario: {
-    type: Schema.Types.ObjectId,
-    required: false,
-    ref: "usuarios",
-    default: null
-  }
+  usuarios: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "usuarios",
+      required: false
+    }
+  ]
 })
 MuseuSchema.index({ nome: "text" })
 export const Museu = mongoose.model<IMuseu>("museus", MuseuSchema)
