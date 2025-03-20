@@ -16,6 +16,7 @@ type Templates = {
     nome:string
     email:string
     senha:string
+    url: string
   }
 }
 

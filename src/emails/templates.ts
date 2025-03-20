@@ -80,7 +80,27 @@ templates["aprovacao-cadastro-usuario"] = template({
             })
           : helper)
       ) +
-      '</li>\n</ul>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Por motivos de segurança, altere sua senha no primeiro acesso.</p>\n'
+      '</li>\n</ul>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Por motivos de segurança, altere sua senha no primeiro acesso.</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Para acessar a plataforma, clique no link abaixo:</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "url") ||
+            (depth0 != null ? lookupProperty(depth0, "url") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "url",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 22, column: 2 },
+                end: { line: 22, column: 9 }
+              }
+            })
+          : helper)
+      ) +
+      '</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Se você não realizou essa solicitação ou precisa de suporte, entre em contato com nossa equipe de administração.</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Atenciosamente,</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Equipe INBCM</p>\n\n'
     )
   },
   compiler: [8, ">= 4.3.0"],
@@ -100,7 +120,7 @@ templates["aprovacao-cadastro-usuario"] = template({
       depth0,
       {
         name: "layout",
-        hash: { title: "[INBCM] Novo usuário solicitou acesso ao INBCM" },
+        hash: { title: "[INBCM] Seu acesso ao INBCM foi aprovado!" },
         fn: container.program(1, data, 0),
         inverse: container.noop,
         data: data,
@@ -401,18 +421,18 @@ templates["novo-usuario-admin"] = template({
       alias4(
         ((helper =
           (helper =
-            lookupProperty(helpers, "mail") ||
-            (depth0 != null ? lookupProperty(depth0, "mail") : depth0)) != null
+            lookupProperty(helpers, "email") ||
+            (depth0 != null ? lookupProperty(depth0, "email") : depth0)) != null
             ? helper
             : alias2),
         typeof helper === alias3
           ? helper.call(alias1, {
-              name: "mail",
+              name: "email",
               hash: {},
               data: data,
               loc: {
                 start: { line: 14, column: 31 },
-                end: { line: 14, column: 39 }
+                end: { line: 14, column: 40 }
               }
             })
           : helper)

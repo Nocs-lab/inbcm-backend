@@ -10,6 +10,7 @@ import { Status } from "../enums/Status"
 import HTTPError from "../utils/error"
 import argon2 from "@node-rs/argon2"
 import { sendEmail } from "../emails"
+import config from "../config"
 
 class UsuarioController {
   async registerUsuarioExterno(req: Request, res: Response) {
@@ -198,7 +199,8 @@ class UsuarioController {
         if (situacao == SituacaoUsuario.Ativo) {
           const senhaEstatica = "1234"
           const senhadefault = await argon2.hash(senhaEstatica)
-          await sendEmail("aprovacao-cadastro-usuario", usuario.email, {nome:usuario.nome, email:usuario.email, senha:senhaEstatica})
+          const urlDeclarant =  `${config.PUBLIC_SITE_URL}/login`
+          await sendEmail("aprovacao-cadastro-usuario", usuario.email, {nome:usuario.nome, email:usuario.email, senha:senhaEstatica, url:urlDeclarant})
           usuario.senha = senhadefault
         }
         usuario.situacao = situacao
