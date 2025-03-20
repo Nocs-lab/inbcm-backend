@@ -198,9 +198,12 @@ class UsuarioController {
         }
         if (situacao == SituacaoUsuario.Ativo) {
           const senhaEstatica = "1234"
+          if(usuario.situacao == 0){
+            const urlDeclarant =  `${config.PUBLIC_SITE_URL}/login`
+            await sendEmail("aprovacao-cadastro-usuario", usuario.email, {
+              nome:usuario.nome, email:usuario.email, senha:senhaEstatica, url:urlDeclarant})
+          }
           const senhadefault = await argon2.hash(senhaEstatica)
-          const urlDeclarant =  `${config.PUBLIC_SITE_URL}/login`
-          await sendEmail("aprovacao-cadastro-usuario", usuario.email, {nome:usuario.nome, email:usuario.email, senha:senhaEstatica, url:urlDeclarant})
           usuario.senha = senhadefault
         }
         usuario.situacao = situacao
