@@ -46,7 +46,7 @@ export interface IMuseu extends Document {
     municipio: string
     uf: string
   }
-  usuarios: Types.ObjectId[]
+  usuario: Types.ObjectId[]
 }
 const MuseuSchema: Schema = new Schema({
   codIbram: { type: String, required: true },
@@ -61,7 +61,7 @@ const MuseuSchema: Schema = new Schema({
     municipio: { type: String, required: true },
     uf: { type: String, required: true }
   },
-  usuarios: [
+  usuario: [
     {
       type: Schema.Types.ObjectId,
       ref: "usuarios",
