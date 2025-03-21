@@ -12,12 +12,7 @@ type Templates = {
     horario: string
     url: string
   }
-  "aprovacao-cadastro-usuario": {
-    nome:string
-    email:string
-    senha:string
-    url: string
-  }
+  "reprovacao-cadastro-usuario": {nome:string}
 }
 
 const pulse = new Pulse({
@@ -38,7 +33,7 @@ const subjects: Record<
   "solicitar-acesso": () =>
     "[INBCM] Solicitação de acesso ao módulo declarante",
   "novo-usuario-admin": () => "[INBCM] Novo usuário solicitou acesso ao INBCM",
-  "aprovacao-cadastro-usuario": () => "[INBCM] Seu acesso ao INBCM foi aprovado!"
+  "reprovacao-cadastro-usuario": () => "[INBCM] Seu acesso ao INBCM foi reprovado.",
 }
 
 const transporter = nodemailer.createTransport({

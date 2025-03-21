@@ -178,6 +178,24 @@ class UsuarioController {
         return res.status(404).json({ message: "Usuário não encontrado." })
       }
 
+      if (situacao !== undefined && situacao === SituacaoUsuario.Inativo) {
+        const declaracoesUsuario = await Declaracoes.find({
+          responsavelEnvio: id,
+          ultimaDeclaracao: true,
+          status: { $ne: "Excluída" }
+        })
+        if (declaracoesUsuario.length > 0) {
+          throw new HTTPError(
+            "Não é possível inativar o usuário porque ele está vinculado a declarações.",
+            400
+          )
+        }
+      }
+
+      if (usuario.situacao == 0 && situacao == 3){
+        await sendEmail("reprovacao-cadastro-usuario", usuario.email, {nome:usuario.nome})
+      }
+
       if (situacao !== undefined) {
         if (!Object.values(SituacaoUsuario).includes(situacao)) {
           throw new HTTPError("Situação do usuário inválida.", 400)
