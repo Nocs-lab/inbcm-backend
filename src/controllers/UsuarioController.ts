@@ -9,7 +9,6 @@ import { UpdateUserDto } from "../models/dto/UserDto"
 import { Status } from "../enums/Status"
 import HTTPError from "../utils/error"
 import argon2 from "@node-rs/argon2"
-import { sendEmail } from "../emails"
 
 class UsuarioController {
   async registerUsuarioExterno(req: Request, res: Response) {
