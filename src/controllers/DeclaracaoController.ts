@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { Declaracoes, Usuario } from "../models"
+import { Declaracoes, IMuseu, Usuario } from "../models"
 import { AnoDeclaracao } from "../models/AnoDeclaracao"
 import DeclaracaoService from "../service/DeclaracaoService"
 import { Museu } from "../models"
@@ -256,18 +256,21 @@ export class DeclaracaoController {
   async getDeclaracoes(req: Request, res: Response) {
     try {
       const userId = req.user?.id
-      const user = await Usuario.findById(userId).populate("profile")
+      const user = await Usuario.findById(userId).populate("museus")
 
       if (!user) {
         return res.status(404).json({ message: "Usuário não encontrado." })
       }
+
+      // Obter os IDs dos museus vinculados ao usuário
+      const museusDoUsuario = user.museus.map((museu: IMuseu) => museu._id)
 
       const userProfile = (user.profile as IProfile).name
 
       let agregacao: PipelineStage[] = [
         {
           $match: {
-            responsavelEnvio: new mongoose.Types.ObjectId(userId),
+            museu_id: { $in: museusDoUsuario },
             status: { $ne: Status.Excluida },
             ultimaDeclaracao: true
           }
@@ -607,15 +610,13 @@ export class DeclaracaoController {
       const user_id = req.user.id
       const museu = req.params.museu
       const files = req.files as { [fieldname: string]: Express.Multer.File[] }
-
+      console.log("userid" + user_id)
       const response = await this.declaracaoService.criarDeclaracao(
         museu,
         req.params.anoDeclaracao,
         user_id,
         files
       )
-
-      logger.info(response)
 
       return res.status(201).json(response)
     } catch (error) {
