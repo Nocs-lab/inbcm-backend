@@ -24,6 +24,11 @@ routes.get(
   userPermissionMiddleware("UsuarioController"),
   UsuarioController.getUsuarioPorId
 )
+routes.get(
+  "/documento/:id",
+  userPermissionMiddleware("UsuarioController"),
+  UsuarioController.getDocumento
+)
 routes.put(
   "/:id",
   userPermissionMiddleware("atualizarUsuario"),

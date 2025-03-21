@@ -9,6 +9,7 @@ import { UpdateUserDto } from "../models/dto/UserDto"
 import { Status } from "../enums/Status"
 import HTTPError from "../utils/error"
 import argon2 from "@node-rs/argon2"
+import minioClient from "../db/minioClient"
 
 class UsuarioController {
   async registerUsuarioExterno(req: Request, res: Response) {
@@ -514,6 +515,29 @@ class UsuarioController {
       return res
         .status(500)
         .json({ message: "Erro ao listar usuários por perfil." })
+    }
+  }
+
+  async getDocumento(req: Request, res: Response) {
+    const { id } = req.params
+
+    try {
+      const usuario = await Usuario.findById(id)
+
+      if (!usuario) {
+        return res.status(404).json({ message: "Usuário não encontrado." })
+      }
+
+      const url = await minioClient.presignedUrl(
+        "GET",
+        "inbcm",
+        usuario.documentoComprobatorio
+      )
+
+      return res.status(200).json({ url })
+    } catch (error) {
+      logger.error("Erro ao buscar documento:", error)
+      return res.status(500).json({ message: "Erro ao buscar documento." })
     }
   }
 }
