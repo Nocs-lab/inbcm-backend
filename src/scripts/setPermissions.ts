@@ -7,6 +7,18 @@ const setPermissions = async () => {
 
   const permissions = [
     {
+      name: "getAnoDeclaracaoById",
+      label: "Pegar ano da declaração por ID",
+      description:
+        "Recuperar o ano da declaração associada ao ID fornecido, retornando os campos do objeto."
+    },
+    {
+      name: "getPeriodoDeclaracaoVigente",
+      label: "Pegar período da declaração vigente",
+      description:
+        "Obter o anos com o período atual para o envio declaração."
+    },
+    {
       name: "getUsuario",
       label: "Pegar dados do usuário logado",
       description:
