@@ -89,7 +89,7 @@ export class UsuarioService {
 
     await Museu.updateMany(
       { _id: { $in: museusValidos } },
-      { $set: { usuario: novoUsuario._id } }
+      { $addToSet: { usuario: novoUsuario._id } }
     )
 
     // Envio e-mail para o usuário solicitante
@@ -286,7 +286,7 @@ export class UsuarioService {
     // Atualiza os museus com o usuário recém-criado
     await Museu.updateMany(
       { _id: { $in: museusValidos } },
-      { $set: { usuario: novoUsuario._id } }
+      { $addToSet: { usuario: novoUsuario._id } }
     )
 
     return novoUsuario
