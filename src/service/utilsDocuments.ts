@@ -73,9 +73,12 @@ export const MapeadorCamposPercentual = {
  */
 export async function buscaDeclaracao(declaracaoId: mongoose.Types.ObjectId) {
   const declaracao = await Declaracoes.findById(declaracaoId)
-    .populate<{ museu_id: IMuseu & { usuario: IUsuario } }>({
+    .populate<{ museu_id: IMuseu & { usuario: IUsuario[] } }>({
       path: "museu_id",
-      populate: { path: "usuario" }
+      populate: {
+        path: "usuario",
+        model: "usuarios"
+      }
     })
     .populate<{ anoDeclaracao: AnoDeclaracaoModel }>("anoDeclaracao")
 
@@ -85,6 +88,9 @@ export async function buscaDeclaracao(declaracaoId: mongoose.Types.ObjectId) {
       404
     )
   }
+
+  console.log("Museu populado:", JSON.stringify(declaracao.museu_id, null, 2))
+
   return declaracao
 }
 
@@ -113,6 +119,10 @@ export function formatarDadosRecibo(
   const verificarPendencias = (pendencias: unknown[] | undefined): string => {
     return pendencias && pendencias.length > 0 ? "Sim" : "---"
   }
+  const nomeDeclarante =
+    declaracao.museu_id.usuario.length > 0
+      ? declaracao.museu_id.usuario[0].nome
+      : "Nome não disponível"
 
   return {
     anoCalendario: declaracao.anoDeclaracao.ano,
@@ -125,7 +135,7 @@ export function formatarDadosRecibo(
     cep: declaracao.museu_id.endereco.cep,
     municipio: declaracao.museu_id.endereco.municipio,
     uf: declaracao.museu_id.endereco.uf,
-    nomeDeclarante: declaracao.museu_id.usuario.nome,
+    nomeDeclarante,
     data: DataUtils.gerarDataFormatada(declaracao.dataRecebimento),
     hora: DataUtils.gerarHoraFormatada(declaracao.dataRecebimento),
     numeroRecibo: declaracao.hashDeclaracao,
