@@ -12,6 +12,12 @@ import { DeclaracaoModel, IMuseu, IUsuario } from "../models"
 import PdfPrinter from "pdfmake"
 import { AnoDeclaracaoModel } from "../models/AnoDeclaracao"
 
+const corrigirOrtografia: Record<string, string> = {
+  museologico: "museológico",
+  arquivistico: "arquivístico",
+  bibliografico: "bibliográfico"
+}
+
 const gerarTabela = (
   tipo: "museologico" | "bibliografico" | "arquivistico",
   declaracao: DeclaracaoModel & {
@@ -22,13 +28,16 @@ const gerarTabela = (
   const campos = MapeadorCamposPercentual[tipo]
   const porcentagemPorCampo = declaracao[tipo]?.porcentagemPorCampo || []
 
+  // Aplica a correção ortográfica
+  const tipoCorrigido = corrigirOrtografia[tipo] || tipo
+
   return {
     table: {
       widths: ["60%", "40%"],
       body: [
         [
           {
-            text: ` Acervo ${tipo.charAt(0).toLowerCase() + tipo.slice(1)}`,
+            text: `Acervo ${tipoCorrigido}`,
             style: "tableHeader",
             fillColor: "#D9D9D9",
             colSpan: 2
@@ -123,6 +132,39 @@ async function gerarPDFRecibo(
     const docDefinition: TDocumentDefinitions = {
       pageSize: "A4",
       pageMargins: [40, 60, 40, 60],
+      footer: function (currentPage, pageCount) {
+        const tipoDeclaracao = declaracao.retificacao
+          ? "retificadora"
+          : "original"
+
+        return {
+          columns: [
+            {
+              text:
+                declaracao.museu_id.nome +
+                "\nDeclaração " +
+                tipoDeclaracao +
+                " referente ao ano " +
+                declaracao.anoDeclaracao.ano +
+                "\nApresentada em " +
+                DataUtils.gerarDataFormatada(declaracao.dataRecebimento) +
+                ", às " +
+                DataUtils.gerarHoraFormatada(declaracao.dataRecebimento),
+              alignment: "left",
+              fontSize: 10,
+              width: "80%"
+            },
+            {
+              text: currentPage + " de " + pageCount,
+              alignment: "right",
+              fontSize: 10,
+              width: "20%",
+              margin: [0, 20, 0, 0]
+            }
+          ],
+          margin: [40, 10, 40, 40]
+        }
+      },
 
       content: [
         // Primeira página (conteúdo existente)
@@ -173,7 +215,8 @@ async function gerarPDFRecibo(
                 },
                 {
                   text: dadosFormatados.statusDeclaracao,
-                  fillColor: "#F5F5F5",
+                  fillColor: "#FFFFFF",
+                  color: "#000000",
                   border: [true, true, true, true]
                 }
               ]
@@ -329,27 +372,18 @@ async function gerarPDFRecibo(
               [
                 {
                   text: "TOTAL DE ITENS",
-                  colSpan: 1,
+                  colSpan: 3,
                   style: "tableHeader",
                   bold: true,
-                  alignment: "left"
+                  alignment: "right"
                 },
+                {},
+                {},
                 {
                   text: dadosFormatados.totalBensDeclarados || "0",
                   style: "tableData",
                   bold: true,
-                  alignment: "right"
-                },
-                {
-                  text: "",
-                  style: "tableData",
-                  border: [false, true, false, true],
-                  fillColor: "#BFBFBF"
-                },
-                {
-                  text: "",
-                  style: "tableData",
-                  border: [false, true, true, true],
+                  alignment: "right",
                   fillColor: "#BFBFBF"
                 }
               ]
