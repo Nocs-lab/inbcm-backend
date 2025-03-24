@@ -460,6 +460,19 @@ class DeclaracaoService {
           errors: camposObrigatorios
         } = calcularPercentuais(arquivoData, requiredFields)
 
+        if (naoEncontradosArray.length > 0) {
+          const situacaoNaoLocalizado = naoEncontradosArray.some((item) =>
+            item.camposComErro.includes("Não localizado")
+          )
+
+          if (
+            situacaoNaoLocalizado &&
+            !camposObrigatorios.includes("situacao")
+          ) {
+            camposObrigatorios.push("situacao")
+          }
+        }
+
         // Prepara os dados alterados
         const dadosAlterados: Partial<Arquivo> = {
           nome: arquivos[0].filename,
