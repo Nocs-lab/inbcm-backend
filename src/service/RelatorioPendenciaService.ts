@@ -96,7 +96,7 @@ const gerarTabelaPendencias = (
                   noWrap: true
                 },
                 {
-                  text: "Ítem não localizado",
+                  text: "Item não localizado",
                   style: "tableData",
                   alignment: "left",
                   noWrap: true
@@ -119,7 +119,7 @@ const gerarTabelaPendencias = (
                 {
                   text: "Campo vazio",
                   style: "tableData",
-                  alignment: "center",
+                  alignment: "left",
                   noWrap: true
                 }
               ]
