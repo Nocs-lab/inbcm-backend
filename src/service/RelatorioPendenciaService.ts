@@ -221,15 +221,18 @@ export async function gerarPDFRelatorioPendenciais(
                 ", às " +
                 DataUtils.gerarHoraFormatada(declaracao.dataRecebimento),
               alignment: "left",
-              fontSize: 10
+              fontSize: 10,
+              width: "80%"
             },
             {
               text: currentPage + " de " + pageCount,
               alignment: "right",
-              fontSize: 10
+              fontSize: 10,
+              width: "20%",
+              margin: [0, 20, 0, 0]
             }
           ],
-          margin: [40, 10, 40, 0]
+          margin: [40, 10, 40, 20]
         }
       },
 
