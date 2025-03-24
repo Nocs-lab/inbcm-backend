@@ -284,7 +284,8 @@ export async function gerarPDFRelatorioPendenciais(
                 },
                 {
                   text: dadosFormatados.statusDeclaracao,
-                  fillColor: "#F5F5F5",
+                  fillColor: "#FFFFFF",
+                  color: "#000000",
                   border: [true, true, true, true]
                 }
               ]
@@ -441,27 +442,18 @@ export async function gerarPDFRelatorioPendenciais(
               [
                 {
                   text: "TOTAL DE ITENS",
-                  colSpan: 1,
+                  colSpan: 3,
                   style: "tableHeader",
                   bold: true,
-                  alignment: "left"
+                  alignment: "right"
                 },
+                {},
+                {},
                 {
                   text: dadosFormatados.totalBensDeclarados || "0",
                   style: "tableData",
                   bold: true,
-                  alignment: "right"
-                },
-                {
-                  text: "",
-                  style: "tableData",
-                  border: [false, true, false, true],
-                  fillColor: "#BFBFBF"
-                },
-                {
-                  text: "",
-                  style: "tableData",
-                  border: [false, true, true, true],
+                  alignment: "right",
                   fillColor: "#BFBFBF"
                 }
               ]

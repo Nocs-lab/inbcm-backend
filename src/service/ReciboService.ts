@@ -162,7 +162,7 @@ async function gerarPDFRecibo(
               margin: [0, 20, 0, 0]
             }
           ],
-          margin: [40, 10, 40, 20]
+          margin: [40, 10, 40, 40]
         }
       },
 
@@ -215,7 +215,8 @@ async function gerarPDFRecibo(
                 },
                 {
                   text: dadosFormatados.statusDeclaracao,
-                  fillColor: "#F5F5F5",
+                  fillColor: "#FFFFFF",
+                  color: "#000000",
                   border: [true, true, true, true]
                 }
               ]
@@ -371,27 +372,18 @@ async function gerarPDFRecibo(
               [
                 {
                   text: "TOTAL DE ITENS",
-                  colSpan: 1,
+                  colSpan: 3,
                   style: "tableHeader",
                   bold: true,
-                  alignment: "left"
+                  alignment: "right"
                 },
+                {},
+                {},
                 {
                   text: dadosFormatados.totalBensDeclarados || "0",
                   style: "tableData",
                   bold: true,
-                  alignment: "right"
-                },
-                {
-                  text: "",
-                  style: "tableData",
-                  border: [false, true, false, true],
-                  fillColor: "#BFBFBF"
-                },
-                {
-                  text: "",
-                  style: "tableData",
-                  border: [false, true, true, true],
+                  alignment: "right",
                   fillColor: "#BFBFBF"
                 }
               ]
