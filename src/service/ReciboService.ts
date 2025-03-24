@@ -12,6 +12,12 @@ import { DeclaracaoModel, IMuseu, IUsuario } from "../models"
 import PdfPrinter from "pdfmake"
 import { AnoDeclaracaoModel } from "../models/AnoDeclaracao"
 
+const corrigirOrtografia: Record<string, string> = {
+  museologico: "museológico",
+  arquivistico: "arquivístico",
+  bibliografico: "bibliográfico"
+}
+
 const gerarTabela = (
   tipo: "museologico" | "bibliografico" | "arquivistico",
   declaracao: DeclaracaoModel & {
@@ -22,13 +28,16 @@ const gerarTabela = (
   const campos = MapeadorCamposPercentual[tipo]
   const porcentagemPorCampo = declaracao[tipo]?.porcentagemPorCampo || []
 
+  // Aplica a correção ortográfica
+  const tipoCorrigido = corrigirOrtografia[tipo] || tipo
+
   return {
     table: {
       widths: ["60%", "40%"],
       body: [
         [
           {
-            text: ` Acervo ${tipo.charAt(0).toLowerCase() + tipo.slice(1)}`,
+            text: `Acervo ${tipoCorrigido}`,
             style: "tableHeader",
             fillColor: "#D9D9D9",
             colSpan: 2
@@ -123,6 +132,36 @@ async function gerarPDFRecibo(
     const docDefinition: TDocumentDefinitions = {
       pageSize: "A4",
       pageMargins: [40, 60, 40, 60],
+      footer: function (currentPage, pageCount) {
+        const tipoDeclaracao = declaracao.retificacao
+          ? "retificadora"
+          : "original"
+
+        return {
+          columns: [
+            {
+              text:
+                declaracao.museu_id.nome +
+                "\nDeclaração " +
+                tipoDeclaracao +
+                " referente ao ano " +
+                declaracao.anoDeclaracao.ano +
+                "\nApresentada em " +
+                DataUtils.gerarDataFormatada(declaracao.dataRecebimento) +
+                ", às " +
+                DataUtils.gerarHoraFormatada(declaracao.dataRecebimento),
+              alignment: "left",
+              fontSize: 10
+            },
+            {
+              text: currentPage + " de " + pageCount,
+              alignment: "right",
+              fontSize: 10
+            }
+          ],
+          margin: [40, 10, 40, 0]
+        }
+      },
 
       content: [
         // Primeira página (conteúdo existente)
