@@ -10,6 +10,7 @@ import { Status } from "../enums/Status"
 import HTTPError from "../utils/error"
 import argon2 from "@node-rs/argon2"
 import minioClient from "../db/minioClient"
+import { sendEmail } from "../emails"
 
 class UsuarioController {
   async registerUsuarioExterno(req: Request, res: Response) {
@@ -192,10 +193,6 @@ class UsuarioController {
         }
       }
 
-      if (usuario.situacao == 0 && situacao == 3){
-        await sendEmail("reprovacao-cadastro-usuario", usuario.email, {nome:usuario.nome})
-      }
-
       if (situacao !== undefined) {
         if (!Object.values(SituacaoUsuario).includes(situacao)) {
           throw new HTTPError("Situação do usuário inválida.", 400)
@@ -318,6 +315,9 @@ class UsuarioController {
       }
 
       await usuario.save()
+      if (usuario.situacao == 0 && situacao == 3){
+        await sendEmail("reprovacao-cadastro-usuario", usuario.email, {nome:usuario.nome})
+      }
       return res
         .status(200)
         .json({ message: "Usuário atualizado com sucesso.", usuario })
