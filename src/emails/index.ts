@@ -9,6 +9,7 @@ type Templates = {
   "novo-usuario-admin": {nome: string, email: string, horario: string, url: string}
   "reprovacao-cadastro-usuario": {nome:string}
   "confirmacao-envio-declaracao" : {url:string, horario:string, response:object, museu:object, anoReferencia:number}
+  "confirmacao-retificacao-declaracao" : {url:string, horario:string, response:object, museu:object, anoReferencia:number, hashOriginal:string}
 }
 
 const pulse = new Pulse({
@@ -31,6 +32,7 @@ const subjects: Record<
   "novo-usuario-admin": () => "[INBCM] Novo usuário solicitou acesso ao INBCM",
   "reprovacao-cadastro-usuario": () => "[INBCM] Seu acesso ao INBCM foi reprovado.",
   "confirmacao-envio-declaracao": () => "[INBCM] Sua declaração foi recebida com sucesso!",
+  "confirmacao-retificacao-declaracao": () => "[INBCM] Sua declaração retificadora foi recebida com sucesso!",
 }
 
 const transporter = nodemailer.createTransport({
