@@ -128,13 +128,9 @@ class MuseuController {
    */
   static async listarMuseus(req: Request, res: Response) {
     try {
-      const { semVinculoUsuario, search, page, limit } = req.query
+      const { search, page, limit } = req.query
 
       const filtro: MuseuFiltro = {}
-
-      if (semVinculoUsuario === "true") {
-        filtro.usuario = null
-      }
 
       if (search) {
         const busca = (search as string)

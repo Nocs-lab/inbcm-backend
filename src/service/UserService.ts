@@ -89,20 +89,27 @@ export class UsuarioService {
 
     await Museu.updateMany(
       { _id: { $in: museusValidos } },
-      { $set: { usuario: novoUsuario._id } }
+      { $addToSet: { usuario: novoUsuario._id } }
     )
 
     // Envio e-mail para o usuário solicitante
     await sendEmail("solicitar-acesso", email, { name: nome })
 
     // Envio de e-mail para os administradores informando novo usuário solicitando acesso
-    const usuarios = await Usuario.find({ ativo: true }).populate<{ profile: IProfile }>("profile");
+    const usuarios = await Usuario.find({ ativo: true }).populate<{
+      profile: IProfile
+    }>("profile")
     const emails = usuarios
-      .filter(usuario => usuario.profile?.name === "admin")
-      .map(usuario => usuario.email);
-    const urlGestaoUsuario =  `${config.ADMIN_SITE_URL}/usuarios`
+      .filter((usuario) => usuario.profile?.name === "admin")
+      .map((usuario) => usuario.email)
+    const urlGestaoUsuario = `${config.ADMIN_SITE_URL}/usuarios`
     const horario = `${DataUtils.gerarDataFormatada()} às ${DataUtils.gerarHoraFormatada()}`
-    await sendEmail("novo-usuario-admin", emails, { nome, email, horario, url: urlGestaoUsuario})
+    await sendEmail("novo-usuario-admin", emails, {
+      nome,
+      email,
+      horario,
+      url: urlGestaoUsuario
+    })
 
     return novoUsuario
   }
@@ -279,7 +286,7 @@ export class UsuarioService {
     // Atualiza os museus com o usuário recém-criado
     await Museu.updateMany(
       { _id: { $in: museusValidos } },
-      { $set: { usuario: novoUsuario._id } }
+      { $addToSet: { usuario: novoUsuario._id } }
     )
 
     return novoUsuario

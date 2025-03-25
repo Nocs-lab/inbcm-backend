@@ -6,12 +6,9 @@ import Pulse from "@pulsecron/pulse"
 type Templates = {
   "forgot-password": { url: string }
   "solicitar-acesso": { name: string }
-  "novo-usuario-admin": {
-    nome: string
-    email: string
-    horario: string
-    url: string
-  }
+  "novo-usuario-admin": {nome: string, email: string, horario: string, url: string}
+  "reprovacao-cadastro-usuario": {nome:string}
+  "confirmacao-envio-declaracao" : {url:string, horario:string, response:object, museu:object, anoReferencia:number}
 }
 
 const pulse = new Pulse({
@@ -31,7 +28,9 @@ const subjects: Record<
   "forgot-password": () => "Recuperação de senha",
   "solicitar-acesso": () =>
     "[INBCM] Solicitação de acesso ao módulo declarante",
-  "novo-usuario-admin": () => "[INBCM] Novo usuário solicitou acesso ao INBCM"
+  "novo-usuario-admin": () => "[INBCM] Novo usuário solicitou acesso ao INBCM",
+  "reprovacao-cadastro-usuario": () => "[INBCM] Seu acesso ao INBCM foi reprovado.",
+  "confirmacao-envio-declaracao": () => "[INBCM] Sua declaração foi recebida com sucesso!",
 }
 
 const transporter = nodemailer.createTransport({

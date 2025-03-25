@@ -9,6 +9,8 @@ import { UpdateUserDto } from "../models/dto/UserDto"
 import { Status } from "../enums/Status"
 import HTTPError from "../utils/error"
 import argon2 from "@node-rs/argon2"
+import minioClient from "../db/minioClient"
+import { sendEmail } from "../emails"
 
 class UsuarioController {
   async registerUsuarioExterno(req: Request, res: Response) {
@@ -173,10 +175,10 @@ class UsuarioController {
       }: UpdateUserDto = req.body
 
       const usuario = await Usuario.findById(id)
-
       if (!usuario) {
         return res.status(404).json({ message: "Usuário não encontrado." })
       }
+
       if (situacao !== undefined && situacao === SituacaoUsuario.Inativo) {
         const declaracoesUsuario = await Declaracoes.find({
           responsavelEnvio: id,
@@ -190,41 +192,43 @@ class UsuarioController {
           )
         }
       }
+
       if (situacao !== undefined) {
         if (!Object.values(SituacaoUsuario).includes(situacao)) {
-          throw new HTTPError("Usuário não está ativo.", 400)
+          throw new HTTPError("Situação do usuário inválida.", 400)
         }
-        if (situacao == SituacaoUsuario.Ativo) {
-          const senhadefault = await argon2.hash("1234")
-          usuario.senha = senhadefault
+        if (situacao === SituacaoUsuario.Inativo) {
+          const declaracoesUsuario = await Declaracoes.find({
+            responsavelEnvio: id,
+            ultimaDeclaracao: true,
+            status: { $ne: "Excluída" }
+          })
+          if (declaracoesUsuario.length > 0) {
+            throw new HTTPError(
+              "Usuário vinculado a declarações não pode ser inativado.",
+              400
+            )
+          }
+        }
+        if (situacao === SituacaoUsuario.Ativo) {
+          usuario.senha = await argon2.hash("1234")
         }
         usuario.situacao = situacao
       }
 
-      if (nome) {
-        usuario.nome = nome
-      }
-
-      if (email) {
-        usuario.email = email
-      }
+      if (nome) usuario.nome = nome
+      if (email) usuario.email = email
 
       if (perfil) {
-        const perfilValido = await Profile.findOne({
-          name: { $eq: perfil }
-        }).exec()
-
+        const perfilValido = await Profile.findOne({ name: perfil }).exec()
         if (!perfilValido) {
-          return res
-            .status(400)
-            .json({ message: "O perfil informado é inválido." })
+          return res.status(400).json({ message: "Perfil inválido." })
         }
         usuario.profile = perfilValido._id as Types.ObjectId
       }
 
       if (cpf && cpf !== usuario.cpf) {
         const cpfFormatado = cpf.replace(/\D/g, "")
-
         if (!validarCPF(cpfFormatado)) {
           return res.status(400).json({ message: "CPF inválido." })
         }
@@ -232,68 +236,32 @@ class UsuarioController {
       }
 
       if (museus && Array.isArray(museus)) {
-        const resultadosVinculacao = []
         for (const museuId of museus) {
-          if (!museuId.match(/^[a-fA-F0-9]{24}$/)) {
-            resultadosVinculacao.push({
-              museuId,
-              message: "ID do museu inválido."
-            })
-            continue
-          }
+          if (!Types.ObjectId.isValid(museuId)) continue
 
           const museu = await Museu.findById(museuId)
+          if (!museu) continue
 
-          if (!museu) {
-            resultadosVinculacao.push({
-              museuId,
-              message: "Museu não encontrado."
-            })
-            continue
+          const objectId = new Types.ObjectId(id)
+          if (!museu.usuario.some((userId) => userId.equals(objectId))) {
+            museu.usuario.push(objectId)
+            await museu.save()
           }
 
-          museu.usuario = new Types.ObjectId(id)
-          await museu.save()
-
-          if (!usuario.museus.includes(museuId)) {
+          if (!usuario.museus.some((mId) => mId.equals(museuId))) {
             usuario.museus.push(museuId)
           }
-
-          resultadosVinculacao.push({
-            museuId,
-            message: "Usuário vinculado ao museu com sucesso."
-          })
         }
-
-        await usuario.save()
-        return res.status(200).json({
-          message: "Processo de vinculação concluído.",
-          resultadosVinculacao
-        })
       }
 
-      // Desvincula museus, se fornecido
       if (desvincularMuseus && Array.isArray(desvincularMuseus)) {
-        const resultadosDesvinculacao = []
-
         for (const museuId of desvincularMuseus) {
+          if (!Types.ObjectId.isValid(museuId)) continue
+
           const museu = await Museu.findById(museuId)
+          if (!museu) continue
 
-          if (!museu) {
-            resultadosDesvinculacao.push({
-              museuId,
-              message: "Museu não encontrado."
-            })
-            continue
-          }
-
-          if (museu.usuario && !museu.usuario.equals(new Types.ObjectId(id))) {
-            resultadosDesvinculacao.push({
-              museuId,
-              message: "Este museu não está vinculado a este usuário."
-            })
-            continue
-          }
+          if (!museu.usuario.some((userId) => userId.equals(id))) continue
 
           const declaracoesVinculadas = await Declaracoes.find({
             museu: museuId,
@@ -302,129 +270,66 @@ class UsuarioController {
 
           if (declaracoesVinculadas.length > 0) {
             throw new HTTPError(
-              "Não é possível desvincular o usuário deste museu porque há declarações para com status 'Recebida' ou 'Em análise'. Aguarde o fim da análise para proceder com a operação.",
+              "Não é possível desvincular o usuário devido a declarações pendentes.",
               400
             )
           }
 
-          museu.usuario = null
+          museu.usuario = museu.usuario.filter((userId) => !userId.equals(id))
           await museu.save()
 
-          // Remove o museu da lista de museus do usuário
-          usuario.museus = usuario.museus.filter(
-            (id) => id.toString() !== museuId.toString()
-          )
-
-          resultadosDesvinculacao.push({
-            museuId,
-            message: "Usuário desvinculado do museu com sucesso."
-          })
+          usuario.museus = usuario.museus.filter((mId) => !mId.equals(museuId))
         }
-
-        await usuario.save()
-        return res.status(200).json({
-          message: "Processo de desvinculação concluído.",
-          resultadosDesvinculacao
-        })
       }
 
-      // Atualiza as especialidades do analista
       if (especialidadeAnalista) {
         const perfilAtual = await Profile.findById(usuario.profile)
         if (perfilAtual?.name !== "analyst") {
-          return res.status(400).json({
-            message:
-              "Apenas usuários com o perfil 'analyst' podem ter especialidades."
-          })
+          return res
+            .status(400)
+            .json({ message: "Apenas analistas podem ter especialidades." })
         }
 
         if (!Array.isArray(especialidadeAnalista)) {
-          return res.status(400).json({
-            message: "O campo especialidadeAnalista deve ser um array."
-          })
+          return res
+            .status(400)
+            .json({ message: "Especialidades devem ser um array." })
         }
 
-        // Validação de especialidades permitidas (opcional)
         const especialidadesPermitidas = [
           "museologico",
           "bibliografico",
           "arquivistico"
         ]
-        const especialidadesInvalidas = especialidadeAnalista.filter(
-          (especialidade) => !especialidadesPermitidas.includes(especialidade)
-        )
-        if (especialidadesInvalidas.length > 0) {
-          return res.status(400).json({
-            message: `As seguintes especialidades são inválidas: ${especialidadesInvalidas.join(", ")}`
-          })
-        }
-
-        if (especialidadeAnalista.length === 0) {
-          return res.status(400).json({
-            message: "O analista deve ter pelo menos uma especialidade."
-          })
-        }
-
-        const especialidadesAtuais = usuario.especialidadeAnalista
-        const especialidadesAdicionadas = especialidadeAnalista.filter(
-          (especialidade) => !especialidadesAtuais.includes(especialidade)
-        )
-        const especialidadesRemovidas = especialidadesAtuais.filter(
-          (especialidade) => !especialidadeAnalista.includes(especialidade)
-        )
-
-        for (const especialidade of especialidadesRemovidas) {
-          const declaracoesEmAnalise = await Declaracoes.find({
-            status: Status.EmAnalise,
-            $or: [
-              {
-                "arquivistico.analistasResponsaveis": id,
-                "arquivistico.tipo": especialidade
-              },
-              {
-                "bibliografico.analistasResponsaveis": id,
-                "bibliografico.tipo": especialidade
-              },
-              {
-                "museologico.analistasResponsaveis": id,
-                "museologico.tipo": especialidade
-              }
-            ]
-          })
-
-          if (declaracoesEmAnalise.length > 0) {
-            return res.status(400).json({
-              message: `Não é possível remover a especialidade '${especialidade}' porque o analista está vinculado a declarações com status 'Em análise'.`
-            })
-          }
+        if (
+          especialidadeAnalista.some(
+            (e) => !especialidadesPermitidas.includes(e)
+          )
+        ) {
+          return res
+            .status(400)
+            .json({ message: "Especialidades inválidas fornecidas." })
         }
 
         usuario.especialidadeAnalista = especialidadeAnalista
-        await usuario.save()
-
-        return res.status(200).json({
-          message: "Especialidades atualizadas com sucesso.",
-          especialidadesAdicionadas,
-          especialidadesRemovidas
-        })
       }
 
       await usuario.save()
-
-      return res.status(200).json({
-        message: "Usuário atualizado com sucesso.",
-        usuario
-      })
+      if (usuario.situacao == 0 && situacao == 3){
+        await sendEmail("reprovacao-cadastro-usuario", usuario.email, {nome:usuario.nome})
+      }
+      return res
+        .status(200)
+        .json({ message: "Usuário atualizado com sucesso.", usuario })
     } catch (error) {
       logger.error("Erro ao atualizar usuário:", error)
-
       if (error instanceof HTTPError) {
         return res.status(error.status).json({ message: error.message })
       }
-
       return res.status(500).json({ message: "Erro ao atualizar usuário." })
     }
   }
+
   async deletarUsuario(req: Request, res: Response) {
     const { id } = req.params
 
@@ -514,6 +419,29 @@ class UsuarioController {
       return res
         .status(500)
         .json({ message: "Erro ao listar usuários por perfil." })
+    }
+  }
+
+  async getDocumento(req: Request, res: Response) {
+    const { id } = req.params
+
+    try {
+      const usuario = await Usuario.findById(id)
+
+      if (!usuario) {
+        return res.status(404).json({ message: "Usuário não encontrado." })
+      }
+
+      const url = await minioClient.presignedUrl(
+        "GET",
+        "inbcm",
+        usuario.documentoComprobatorio
+      )
+
+      return res.status(200).json({ url })
+    } catch (error) {
+      logger.error("Erro ao buscar documento:", error)
+      return res.status(500).json({ message: "Erro ao buscar documento." })
     }
   }
 }

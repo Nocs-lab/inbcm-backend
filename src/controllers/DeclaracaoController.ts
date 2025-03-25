@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { Declaracoes, Usuario } from "../models"
+import { Declaracoes, IMuseu, Usuario } from "../models"
 import { AnoDeclaracao } from "../models/AnoDeclaracao"
 import DeclaracaoService from "../service/DeclaracaoService"
 import { Museu } from "../models"
@@ -15,6 +15,10 @@ import { Status } from "../enums/Status"
 import logger from "../utils/logger"
 import { IProfile } from "../models/Profile"
 import HTTPError from "../utils/error"
+import { sendEmail } from "../emails"
+import config from "../config"
+import { DataUtils } from "../utils/dataUtils"
+import { MuseuHelper} from "../utils/museuHelper"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -256,18 +260,21 @@ export class DeclaracaoController {
   async getDeclaracoes(req: Request, res: Response) {
     try {
       const userId = req.user?.id
-      const user = await Usuario.findById(userId).populate("profile")
+      const user = await Usuario.findById(userId).populate("museus")
 
       if (!user) {
         return res.status(404).json({ message: "Usuário não encontrado." })
       }
+
+      // Obter os IDs dos museus vinculados ao usuário
+      const museusDoUsuario = user.museus.map((museu: IMuseu) => museu._id)
 
       const userProfile = (user.profile as IProfile).name
 
       let agregacao: PipelineStage[] = [
         {
           $match: {
-            responsavelEnvio: new mongoose.Types.ObjectId(userId),
+            museu_id: { $in: museusDoUsuario },
             status: { $ne: Status.Excluida },
             ultimaDeclaracao: true
           }
@@ -605,17 +612,32 @@ export class DeclaracaoController {
       }
 
       const user_id = req.user.id
-      const museu = req.params.museu
+      const museu_id = req.params.museu
       const files = req.files as { [fieldname: string]: Express.Multer.File[] }
-
       const response = await this.declaracaoService.criarDeclaracao(
-        museu,
+        museu_id,
         req.params.anoDeclaracao,
         user_id,
         files
       )
 
-      logger.info(response)
+      // Coletando dados para enviar e-mail de confirmação de envio de declaração
+      const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
+      if (!museu) {
+        return res.status(404).json({ success: false,
+          message: "Museu não encontrado ou usuário não autorizado."
+        })
+      }
+      const ano = await AnoDeclaracao.findOne({ _id: req.params.anoDeclaracao })
+      if (!ano) {
+        return res.status(404).json({success: false, message: "Ano Referência não encontrado."})
+      }
+      const anoReferencia = ano.ano
+      const url = `${config.PUBLIC_SITE_URL}`
+      const horario = DataUtils.gerarDataHoraExtenso(response.dataCriacao)
+      const emails = await MuseuHelper.getEmailsFromMuseuUsers(museu_id)
+
+      await sendEmail("confirmacao-envio-declaracao", emails, { url, horario, response, museu, anoReferencia })
 
       return res.status(201).json(response)
     } catch (error) {

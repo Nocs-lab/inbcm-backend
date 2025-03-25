@@ -394,7 +394,8 @@ class DeclaracaoService {
     tipo: "arquivistico" | "bibliografico" | "museologico",
     arquivoAnterior: Arquivo | null,
     novaVersao: number,
-    responsavelEnvioNome: string
+    responsavelEnvioNome: string,
+    userId: string
   ) {
     try {
       if (arquivos && arquivos.length > 0) {
@@ -459,6 +460,19 @@ class DeclaracaoService {
           errors: camposObrigatorios
         } = calcularPercentuais(arquivoData, requiredFields)
 
+        if (naoEncontradosArray.length > 0) {
+          const situacaoNaoLocalizado = naoEncontradosArray.some((item) =>
+            item.camposComErro.includes("Não localizado")
+          )
+
+          if (
+            situacaoNaoLocalizado &&
+            !camposObrigatorios.includes("situacao")
+          ) {
+            camposObrigatorios.push("situacao")
+          }
+        }
+
         // Prepara os dados alterados
         const dadosAlterados: Partial<Arquivo> = {
           nome: arquivos[0].filename,
@@ -469,7 +483,9 @@ class DeclaracaoService {
           versao: novaVersao,
           porcentagemGeral,
           porcentagemPorCampo,
-          detailedErrors: detailedErrorsFinal
+          detailedErrors: detailedErrorsFinal,
+          usuario: userId as unknown as mongoose.Types.ObjectId,
+          usuarioNome: responsavelEnvioNome
         }
 
         novaDeclaracao[tipo] = {
@@ -1275,10 +1291,14 @@ class DeclaracaoService {
     userId: string,
     tipoItem: string
   ) {
-    // Verificar se o museu pertence ao usuário específico
-    const museu = await Museu.findOne({ _id: museuId, usuario: userId })
+    // Verificar se o usuário está associado ao museu (campo "usuario" da coleção Museu)
+    const museu = await Museu.findOne({
+      _id: museuId,
+      usuario: { $in: [new mongoose.Types.ObjectId(userId)] }
+    }) // Alterado para $in
 
     if (!museu) {
+      console.error("Museu inválido ou você não tem permissão para acessá-lo")
       throw new Error("Museu inválido ou você não tem permissão para acessá-lo")
     }
 
@@ -1289,21 +1309,23 @@ class DeclaracaoService {
     switch (tipoItem) {
       case "arquivistico":
         Model = Arquivistico
-        retornoPorItem = "_id coddereferencia titulo nomedoprodutor" // Defina os campos específicos para arquivistico
+        retornoPorItem = "_id coddereferencia titulo nomedoprodutor"
         break
       case "bibliografico":
         Model = Bibliografico
-        retornoPorItem = "_id nderegistro situacao titulo localdeproducao" // Defina os campos específicos para bibliografico
+        retornoPorItem = "_id nderegistro situacao titulo localdeproducao"
         break
       case "museologico":
         Model = Museologico
-        retornoPorItem = "_id nderegistro autor situacao denominacao" // Defina os campos específicos para museologico
+        retornoPorItem = "_id nderegistro autor situacao denominacao"
         break
       default:
+        console.error("Tipo de item inválido:", tipoItem)
         throw new Error("Tipo de item inválido")
     }
 
     // Primeira agregação: encontrar a maior versão
+
     const maxVersaoResult = await Model.aggregate([
       {
         $lookup: {
@@ -1319,8 +1341,7 @@ class DeclaracaoService {
       {
         $match: {
           "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
-          "declaracoes.anoDeclaracao": new mongoose.Types.ObjectId(ano),
-          "declaracoes.responsavelEnvio": new mongoose.Types.ObjectId(userId)
+          "declaracoes.anoDeclaracao": new mongoose.Types.ObjectId(ano)
         }
       },
       {
@@ -1334,23 +1355,24 @@ class DeclaracaoService {
     const maxVersao = maxVersaoResult[0]?.maxVersao
 
     if (maxVersao === undefined) {
+      console.warn("Nenhuma versão encontrada para o item.")
       return [] // Se não houver versão encontrada, retornar array vazio
     }
 
-    // Segunda agregação: buscar os itens do tipo especificado da maior versão encontrada
+    // Segunda agregação: buscar os itens da maior versão
     const result = await Model.find({
       versao: maxVersao,
       declaracao_ref: {
         $in: await Declaracoes.find({
           museu_id: new mongoose.Types.ObjectId(museuId),
-          anoDeclaracao: new mongoose.Types.ObjectId(ano),
-          responsavelEnvio: new mongoose.Types.ObjectId(userId)
+          anoDeclaracao: new mongoose.Types.ObjectId(ano)
         }).select("_id")
       }
     }).select(retornoPorItem)
 
     return result
   }
+
   async adicionarEvento(
     declaracaoId: mongoose.Types.ObjectId,
     evento: TimeLine
@@ -1469,7 +1491,8 @@ class DeclaracaoService {
         "arquivistico",
         null,
         1,
-        responsavelEnvio.nome
+        responsavelEnvio.nome,
+        user_id
       )
       await this.updateDeclaracao(
         files["bibliografico"],
@@ -1477,7 +1500,8 @@ class DeclaracaoService {
         "bibliografico",
         null,
         1,
-        responsavelEnvio.nome
+        responsavelEnvio.nome,
+        user_id
       )
       await this.updateDeclaracao(
         files["museologico"],
@@ -1485,7 +1509,8 @@ class DeclaracaoService {
         "museologico",
         null,
         1,
-        responsavelEnvio.nome
+        responsavelEnvio.nome,
+        user_id
       )
 
       novaDeclaracao.ultimaDeclaracao = true
@@ -1584,7 +1609,8 @@ class DeclaracaoService {
       "arquivistico",
       declaracaoExistente?.arquivistico || null,
       novaVersao,
-      responsavelEnvio.nome
+      responsavelEnvio.nome,
+      user_id
     )
     await this.updateDeclaracao(
       files["bibliografico"],
@@ -1592,7 +1618,8 @@ class DeclaracaoService {
       "bibliografico",
       declaracaoExistente?.bibliografico || null,
       novaVersao,
-      responsavelEnvio.nome
+      responsavelEnvio.nome,
+      user_id
     )
     await this.updateDeclaracao(
       files["museologico"],
@@ -1600,7 +1627,8 @@ class DeclaracaoService {
       "museologico",
       declaracaoExistente?.museologico || null,
       novaVersao,
-      responsavelEnvio.nome
+      responsavelEnvio.nome,
+      user_id
     )
 
     novaDeclaracao.ultimaDeclaracao = true

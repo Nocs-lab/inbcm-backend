@@ -20,6 +20,8 @@ export interface Arquivo {
   porcentagemPorCampo?: { campo: string; percentual: number }[]
   detailedErrors?: { linha: number; camposComErro: string[] }[]
   naoEcontrados: []
+  usuario: mongoose.Types.ObjectId
+  usuarioNome: string
 }
 
 export interface TimeLine {
@@ -77,8 +79,18 @@ const ArquivoSchema = new Schema<Arquivo>(
         linha: { type: Number, required: true },
         camposComErro: [{ type: String, required: true }]
       }
-    ]
+    ],
+    usuarioNome: {
+      type: String,
+      required: true
+    },
+    usuario: {
+      type: Schema.Types.ObjectId,
+      ref: "usuarios",
+      required: true
+    }
   },
+
   { _id: false, versionKey: false }
 )
 

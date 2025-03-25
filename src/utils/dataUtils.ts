@@ -23,4 +23,18 @@ export class DataUtils {
     // Formatar a data e a hora juntas no formato ISO
     return formatInTimeZone(dataAjustada, timeZone, "yyyy-MM-dd'T'HH:mm:ss")
   }
+
+  static gerarDataHoraExtenso(data: Date = this.getCurrentData()): string {
+    return new Intl.DateTimeFormat("pt-BR", {
+      // weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric"
+    })
+      .format(data)
+      .replace(/^\w/, (c) => c.toUpperCase());
+  }
 }

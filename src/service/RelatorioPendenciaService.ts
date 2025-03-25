@@ -12,13 +12,20 @@ import {
 import { DeclaracaoModel, IMuseu, IUsuario } from "../models"
 import { AnoDeclaracaoModel } from "../models/AnoDeclaracao"
 
+const corrigirOrtografia: Record<string, string> = {
+  museologico: "museológico",
+  arquivistico: "arquivístico",
+  bibliografico: "bibliográfico"
+}
+
 const gerarTabelaPendencias = (
   tipo: "museologico" | "bibliografico" | "arquivistico",
   declaracao: DeclaracaoModel
 ) => {
   const campos = MapeadorCamposPercentual[tipo]
-
   const erros = declaracao[tipo]?.detailedErrors ?? []
+
+  const tipoCorrigido = corrigirOrtografia[tipo] || tipo
 
   if (erros.length === 0) {
     return {
@@ -27,7 +34,7 @@ const gerarTabelaPendencias = (
         body: [
           [
             {
-              text: `Não há pendências para o acervo ${tipo.charAt(0).toLowerCase() + tipo.slice(1)}`,
+              text: `Não há pendências para o acervo ${tipoCorrigido}`,
               style: "tableHeader",
               fillColor: "#D9D9D9",
               alignment: "center"
@@ -36,9 +43,8 @@ const gerarTabelaPendencias = (
         ]
       },
       layout: {
-        fillColor: function (rowIndex: number) {
-          return rowIndex % 2 === 0 ? "#F5F5F5" : null
-        },
+        fillColor: (rowIndex: number) =>
+          rowIndex % 2 === 0 ? "#F5F5F5" : null,
         paddingLeft: () => 10,
         paddingRight: () => 10,
         paddingTop: () => 5,
@@ -61,7 +67,7 @@ const gerarTabelaPendencias = (
       body: [
         [
           {
-            text: `Pendências do acervo ${tipo.charAt(0).toLowerCase() + tipo.slice(1)}`,
+            text: `Pendências do acervo ${tipoCorrigido}`,
             style: "tableHeader",
             fillColor: "#D9D9D9",
             colSpan: 3
@@ -74,8 +80,8 @@ const gerarTabelaPendencias = (
           { text: "Campo", style: "tableHeader", alignment: "center" },
           { text: "Descrição", style: "tableHeader", alignment: "center" }
         ],
-        ...errosOrdenados.flatMap((erro) => {
-          return (erro.camposComErro ?? []).map((campo) => {
+        ...errosOrdenados.flatMap((erro) =>
+          (erro.camposComErro ?? []).map((campo) => {
             if (campo === "Não localizado") {
               return [
                 {
@@ -90,18 +96,17 @@ const gerarTabelaPendencias = (
                   noWrap: true
                 },
                 {
-                  text: "Ítem não localizado",
+                  text: "Item não localizado",
                   style: "tableData",
-                  alignment: "center",
+                  alignment: "left",
                   noWrap: true
                 }
               ]
             } else {
               const campoKey = campo as keyof typeof campos
-
               return [
                 {
-                  text: `${erro.linha}`, // Usa o valor já incrementado
+                  text: `${erro.linha}`,
                   style: "tableData",
                   alignment: "center"
                 },
@@ -114,19 +119,17 @@ const gerarTabelaPendencias = (
                 {
                   text: "Campo vazio",
                   style: "tableData",
-                  alignment: "center",
+                  alignment: "left",
                   noWrap: true
                 }
               ]
             }
           })
-        })
+        )
       ]
     },
     layout: {
-      fillColor: function (rowIndex: number) {
-        return rowIndex % 2 === 0 ? "#F5F5F5" : null
-      },
+      fillColor: (rowIndex: number) => (rowIndex % 2 === 0 ? "#F5F5F5" : null),
       paddingLeft: () => 10,
       paddingRight: () => 10,
       paddingTop: () => 5,
@@ -199,6 +202,39 @@ export async function gerarPDFRelatorioPendenciais(
     const docDefinition: TDocumentDefinitions = {
       pageSize: "A4",
       pageMargins: [40, 60, 40, 60],
+      footer: function (currentPage, pageCount) {
+        const tipoDeclaracao = declaracao.retificacao
+          ? "retificadora"
+          : "original"
+
+        return {
+          columns: [
+            {
+              text:
+                declaracao.museu_id.nome +
+                "\nDeclaração " +
+                tipoDeclaracao +
+                " referente ao ano " +
+                declaracao.anoDeclaracao.ano +
+                "\nApresentada em " +
+                DataUtils.gerarDataFormatada(declaracao.dataRecebimento) +
+                ", às " +
+                DataUtils.gerarHoraFormatada(declaracao.dataRecebimento),
+              alignment: "left",
+              fontSize: 10,
+              width: "80%"
+            },
+            {
+              text: currentPage + " de " + pageCount,
+              alignment: "right",
+              fontSize: 10,
+              width: "20%",
+              margin: [0, 20, 0, 0]
+            }
+          ],
+          margin: [40, 10, 40, 20]
+        }
+      },
 
       content: [
         {
@@ -248,7 +284,8 @@ export async function gerarPDFRelatorioPendenciais(
                 },
                 {
                   text: dadosFormatados.statusDeclaracao,
-                  fillColor: "#F5F5F5",
+                  fillColor: "#FFFFFF",
+                  color: "#000000",
                   border: [true, true, true, true]
                 }
               ]
@@ -405,27 +442,18 @@ export async function gerarPDFRelatorioPendenciais(
               [
                 {
                   text: "TOTAL DE ITENS",
-                  colSpan: 1,
+                  colSpan: 3,
                   style: "tableHeader",
                   bold: true,
-                  alignment: "left"
+                  alignment: "right"
                 },
+                {},
+                {},
                 {
                   text: dadosFormatados.totalBensDeclarados || "0",
                   style: "tableData",
                   bold: true,
-                  alignment: "right"
-                },
-                {
-                  text: "",
-                  style: "tableData",
-                  border: [false, true, false, true],
-                  fillColor: "#BFBFBF"
-                },
-                {
-                  text: "",
-                  style: "tableData",
-                  border: [false, true, true, true],
+                  alignment: "right",
                   fillColor: "#BFBFBF"
                 }
               ]

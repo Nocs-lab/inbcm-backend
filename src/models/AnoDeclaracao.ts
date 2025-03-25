@@ -7,9 +7,12 @@ export interface AnoDeclaracaoModel extends Document {
   dataInicioRetificacao: Date
   dataFimRetificacao: Date
   metaDeclaracoesEnviadas: number
+  diasAlertaPrazo: number
+  quantidadeLembretesEmail: number
+  intervaloLembretesEmail: number
+  declaracaoVinculada: boolean
   createdAt?: Date
   updatedAt?: Date
-  declaracaoVinculada: boolean
 }
 
 const AnoDeclaracaoSchema = new Schema<AnoDeclaracaoModel>(
@@ -26,6 +29,9 @@ const AnoDeclaracaoSchema = new Schema<AnoDeclaracaoModel>(
     dataInicioRetificacao: { type: Date },
     dataFimRetificacao: { type: Date },
     metaDeclaracoesEnviadas: { type: Number, required: true },
+    diasAlertaPrazo: { type: Number, required: true },
+    quantidadeLembretesEmail: { type: Number, required: true },
+    intervaloLembretesEmail: { type: Number, required: true },
     declaracaoVinculada: { type: Boolean, default: false }
   },
   { timestamps: true, versionKey: false }

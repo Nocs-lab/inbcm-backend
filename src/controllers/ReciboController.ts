@@ -42,7 +42,10 @@ class ReciboController {
       const declaracaoId = new mongoose.Types.ObjectId(id)
       const pdfBuffer = await gerarPDFRelatorioPendenciais(declaracaoId)
 
-      res.setHeader("Content-Disposition", "attachment; filename=recibo.pdf")
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=relatorio-pendencias.pdf"
+      )
       res.setHeader("Content-Type", "application/pdf")
       res.send(pdfBuffer)
     } catch (error) {
