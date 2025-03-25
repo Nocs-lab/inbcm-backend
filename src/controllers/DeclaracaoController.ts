@@ -680,15 +680,39 @@ export class DeclaracaoController {
 
     const declaracao_id = idDeclaracao
     const user_id = req.user.id
-    const museu = req.params.museu
+    const museu_id = req.params.museu
     const files = req.files as { [fieldname: string]: Express.Multer.File[] }
     const response = await this.declaracaoService.retificarDeclaracao(
-      museu,
+      museu_id,
       req.params.anoDeclaracao,
       user_id,
       files,
       declaracao_id
     )
+
+    // Coletando dados para enviar e-mail de confirmação de envio de retificação
+    const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
+    if (!museu) {
+      return res.status(404).json({ success: false,
+        message: "Museu não encontrado ou usuário não autorizado."
+      })
+    }
+    const declaracaoOriginal = await Declaracoes.findOne({ museu_id: museu_id, versao: 1, anoDeclaracao: req.params.anoDeclaracao })
+    if (!declaracaoOriginal) {
+      return res.status(404).json({ error: "Declaração não encontrada." })
+    }
+    const hashOriginal = declaracaoOriginal.hashDeclaracao
+    const ano = await AnoDeclaracao.findOne({ _id: req.params.anoDeclaracao })
+    if (!ano) {
+      return res.status(404).json({success: false, message: "Ano Referência não encontrado."})
+    }
+    const anoReferencia = ano.ano
+    const url = `${config.PUBLIC_SITE_URL}`
+    const horario = DataUtils.gerarDataHoraExtenso(response.dataCriacao)
+    const emails = await MuseuHelper.getEmailsFromMuseuUsers(museu_id)
+
+    await sendEmail("confirmacao-retificacao-declaracao", emails, { url, horario, response, museu, anoReferencia, hashOriginal })
+
     return res.status(201).json(response)
   }
   /**
