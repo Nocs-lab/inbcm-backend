@@ -1,0 +1,83 @@
+{{#> layout title="[INBCM] Sua declaração retificadora foi recebida com sucesso!" }}
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  Olá prezado(a),</p>
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+ Confirmamos o recebimento da declaração retificadora referente ao ano {{anoReferencia}} do museu {{museu.nome}} na plataforma INBCM. A declaração retificadora foi enviado com sucesso e está disponível para consulta no sistema.</p>
+
+<h1
+  style="font-family: Helvetica, sans-serif; font-size: 20px; font-weight: normal; margin: 0; margin-bottom: 16px;text-align: center;font-weight: bold">
+  Dados da Declaração Retificadora</h1>
+
+<table style="font-family: Helvetica, sans-serif; font-size: 16px; border-collapse: collapse; width: 100%;">
+  <tr>
+    <td style="font-weight: bold; padding: 8px; border: 1px solid #ddd;">Horário de envio:</td>
+    <td style="padding: 8px; border: 1px solid #ddd;">{{horario}}</td>
+  </tr>
+  <tr>
+    <td style="font-weight: bold; padding: 8px; border: 1px solid #ddd;">Situação:</td>
+    <td style="padding: 8px; border: 1px solid #ddd;">{{response.status}}</td>
+  </tr>
+  <tr>
+    <td style="font-weight: bold; padding: 8px; border: 1px solid #ddd;">Responsável pelo envio:</td>
+    <td style="padding: 8px; border: 1px solid #ddd;">{{response.responsavelEnvioNome}}</td>
+  <tr>
+    <td style="font-weight: bold; padding: 8px; border: 1px solid #ddd;">Código da declaração original:</td>
+    <td style="padding: 8px; border: 1px solid #ddd; word-wrap: break-word; max-width: 200px;">
+      {{hashOriginal}}
+    </td>
+  </tr>
+    <tr>
+    <td style="font-weight: bold; padding: 8px; border: 1px solid #ddd;">Código da declaração retificadora:</td>
+    <td style="padding: 8px; border: 1px solid #ddd; word-wrap: break-word; max-width: 200px;">
+      {{response.hashDeclaracao}}
+    </td>
+  </tr>
+</table>
+
+<h1
+  style="font-family: Helvetica, sans-serif; font-size: 20px; font-weight: normal; margin: 0; margin-top: 16px;margin-bottom: 16px;text-align: center;font-weight: bold">
+  Dados do Museu</h1>
+
+<table style="font-family: Helvetica, sans-serif; font-size: 16px; border-collapse: collapse; width: 100%;">
+  <tr>
+    <td style="font-weight: bold; padding: 8px; border: 1px solid #ddd;">Nome:</td>
+    <td style="padding: 8px; border: 1px solid #ddd;">{{museu.nome}}</td>
+  </tr>
+  <tr>
+    <td style="font-weight: bold; padding: 8px; border: 1px solid #ddd;">Logradouro:</td>
+    <td style="padding: 8px; border: 1px solid #ddd;">{{museu.endereco.logradouro}}, {{museu.endereco.numero}}</td>
+  </tr>
+  <tr>
+    <td style="font-weight: bold; padding: 8px; border: 1px solid #ddd;">Bairro:</td>
+    <td style="padding: 8px; border: 1px solid #ddd;">{{museu.endereco.bairro}}</td>
+  </tr>
+  <tr>
+    <td style="font-weight: bold; padding: 8px; border: 1px solid #ddd;">Municipio:</td>
+    <td style="padding: 8px; border: 1px solid #ddd;">{{museu.endereco.municipio}} - {{museu.endereco.uf}}</td>
+  </tr>
+  <tr>
+    <td style="font-weight: bold; padding: 8px; border: 1px solid #ddd;">Esfera Administrativa:</td>
+    <td style="padding: 8px; border: 1px solid #ddd;">{{museu.esferaAdministraiva}}</td>
+  </tr>
+</table>
+
+<p
+  style="font-family: Helvetica, sans-serif; font-size: 16px;  font-weight: normal; margin: 0; margin-bottom: 16px; margin-top: 16px; margin-top: 16px;">
+  Nossa equipe analisará a nova versão da declaração e você será notificado sobre qualquer atualização ou necessidade de ajustes.
+</p>
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  Para acompanhar a situação da sua declaração, acesse o nosso portal:</p>
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  {{url}}</p>
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  Atenciosamente,</p>
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  Equipe INBCM</p>
+
+{{/layout}}
