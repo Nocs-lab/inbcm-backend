@@ -27,7 +27,9 @@ const addPermissionsToDeclarant = async () => {
     "gerarReciboDetalhamento",
     "downloadAnalise",
     "getPeriodoDeclaracaoVigente",
-    "getAnoDeclaracaoById"
+    "getAnoDeclaracaoById",
+    "viewDashboard",
+    "getPeriodos"
   ]
 
   try {
