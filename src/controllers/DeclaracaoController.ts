@@ -18,7 +18,7 @@ import HTTPError from "../utils/error"
 import { sendEmail } from "../emails"
 import config from "../config"
 import { DataUtils } from "../utils/dataUtils"
-import { MuseuHelper} from "../utils/museuHelper"
+import { MuseuHelper } from "../utils/museuHelper"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -260,38 +260,16 @@ export class DeclaracaoController {
   async getDeclaracoes(req: Request, res: Response) {
     try {
       const userId = req.user?.id
-      const user = await Usuario.findById(userId).populate("museus")
+
+      const user = await Usuario.findById(userId).populate("profile")
 
       if (!user) {
         return res.status(404).json({ message: "Usuário não encontrado." })
       }
 
-      // Obter os IDs dos museus vinculados ao usuário
-      const museusDoUsuario = user.museus.map((museu: IMuseu) => museu._id)
+      const userProfile = user.profile?.name
 
-      const userProfile = (user.profile as IProfile).name
-
-      let agregacao: PipelineStage[] = [
-        {
-          $match: {
-            museu_id: { $in: museusDoUsuario },
-            status: { $ne: Status.Excluida },
-            ultimaDeclaracao: true
-          }
-        },
-        {
-          $sort: { anoDeclaracao: 1, museu_nome: 1, createdAt: -1 }
-        },
-        {
-          $group: {
-            _id: { museu_id: "$museu_id", anoDeclaracao: "$anoDeclaracao" },
-            latestDeclaracao: { $first: "$$ROOT" }
-          }
-        },
-        {
-          $replaceRoot: { newRoot: "$latestDeclaracao" }
-        }
-      ]
+      let agregacao: PipelineStage[] = []
 
       if (userProfile === "analyst") {
         agregacao = [
@@ -328,6 +306,31 @@ export class DeclaracaoController {
             $replaceRoot: { newRoot: "$latestDeclaracao" }
           }
         ]
+      } else {
+        await user.populate("museus")
+        const museusDoUsuario = user.museus.map((museu: IMuseu) => museu._id)
+
+        agregacao = [
+          {
+            $match: {
+              museu_id: { $in: museusDoUsuario },
+              status: { $ne: Status.Excluida },
+              ultimaDeclaracao: true
+            }
+          },
+          {
+            $sort: { anoDeclaracao: 1, museu_nome: 1, createdAt: -1 }
+          },
+          {
+            $group: {
+              _id: { museu_id: "$museu_id", anoDeclaracao: "$anoDeclaracao" },
+              latestDeclaracao: { $first: "$$ROOT" }
+            }
+          },
+          {
+            $replaceRoot: { newRoot: "$latestDeclaracao" }
+          }
+        ]
       }
 
       const resultado = await Declaracoes.aggregate(agregacao)
@@ -337,12 +340,14 @@ export class DeclaracaoController {
           path: "museu_id",
           model: Museu
         },
-        { path: "anoDeclaracao", model: AnoDeclaracao }
+        {
+          path: "anoDeclaracao",
+          model: AnoDeclaracao
+        }
       ])
 
       return res.status(200).json(declaracoesPopuladas)
     } catch (error) {
-      console.error("Erro ao buscar declarações:", error)
       return res.status(500).json({ message: "Erro ao buscar declarações." })
     }
   }
@@ -624,20 +629,29 @@ export class DeclaracaoController {
       // Coletando dados para enviar e-mail de confirmação de envio de declaração
       const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
       if (!museu) {
-        return res.status(404).json({ success: false,
+        return res.status(404).json({
+          success: false,
           message: "Museu não encontrado ou usuário não autorizado."
         })
       }
       const ano = await AnoDeclaracao.findOne({ _id: req.params.anoDeclaracao })
       if (!ano) {
-        return res.status(404).json({success: false, message: "Ano Referência não encontrado."})
+        return res
+          .status(404)
+          .json({ success: false, message: "Ano Referência não encontrado." })
       }
       const anoReferencia = ano.ano
       const url = `${config.PUBLIC_SITE_URL}`
       const horario = DataUtils.gerarDataHoraExtenso(response.dataCriacao)
       const emails = await MuseuHelper.getEmailsFromMuseuUsers(museu_id)
 
-      await sendEmail("confirmacao-envio-declaracao", emails, { url, horario, response, museu, anoReferencia })
+      await sendEmail("confirmacao-envio-declaracao", emails, {
+        url,
+        horario,
+        response,
+        museu,
+        anoReferencia
+      })
 
       return res.status(201).json(response)
     } catch (error) {
@@ -693,25 +707,39 @@ export class DeclaracaoController {
     // Coletando dados para enviar e-mail de confirmação de envio de retificação
     const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
     if (!museu) {
-      return res.status(404).json({ success: false,
+      return res.status(404).json({
+        success: false,
         message: "Museu não encontrado ou usuário não autorizado."
       })
     }
-    const declaracaoOriginal = await Declaracoes.findOne({ museu_id: museu_id, versao: 1, anoDeclaracao: req.params.anoDeclaracao })
+    const declaracaoOriginal = await Declaracoes.findOne({
+      museu_id: museu_id,
+      versao: 1,
+      anoDeclaracao: req.params.anoDeclaracao
+    })
     if (!declaracaoOriginal) {
       return res.status(404).json({ error: "Declaração não encontrada." })
     }
     const hashOriginal = declaracaoOriginal.hashDeclaracao
     const ano = await AnoDeclaracao.findOne({ _id: req.params.anoDeclaracao })
     if (!ano) {
-      return res.status(404).json({success: false, message: "Ano Referência não encontrado."})
+      return res
+        .status(404)
+        .json({ success: false, message: "Ano Referência não encontrado." })
     }
     const anoReferencia = ano.ano
     const url = `${config.PUBLIC_SITE_URL}`
     const horario = DataUtils.gerarDataHoraExtenso(response.dataCriacao)
     const emails = await MuseuHelper.getEmailsFromMuseuUsers(museu_id)
 
-    await sendEmail("confirmacao-retificacao-declaracao", emails, { url, horario, response, museu, anoReferencia, hashOriginal })
+    await sendEmail("confirmacao-retificacao-declaracao", emails, {
+      url,
+      horario,
+      response,
+      museu,
+      anoReferencia,
+      hashOriginal
+    })
 
     return res.status(201).json(response)
   }
