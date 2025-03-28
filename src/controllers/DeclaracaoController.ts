@@ -390,7 +390,8 @@ export class DeclaracaoController {
   async excluirDeclaracao(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params
-      await this.declaracaoService.excluirDeclaracao(id)
+      const user_id = req.user.id
+      await this.declaracaoService.excluirDeclaracao(id,user_id)
       return res.status(204).send()
     } catch (error: unknown) {
       if (error instanceof Error) {
