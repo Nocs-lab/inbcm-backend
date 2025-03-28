@@ -20,9 +20,9 @@ import {
   validate_bibliografico
 } from "inbcm-xlsx-validator"
 import { createHash } from "../utils/hashUtils"
-import { Profile } from "../models/Profile"
+import { IProfile, Profile } from "../models/Profile"
 import { DataUtils } from "../utils/dataUtils"
-import { Eventos } from "../enums/Eventos"
+import { Eventos, getEnumKeyByValue } from "../enums/Eventos"
 import logger from "../utils/logger"
 import { IAnalista } from "../types/Inalistas"
 import { FilterQuery } from "mongoose"
@@ -789,14 +789,15 @@ class DeclaracaoService {
         nomeEvento: `${Eventos.EnvioParaAnalise}:`,
         dataEvento: DataUtils.getCurrentData(),
         autorEvento: responsavelNome,
-        analistaResponsavel: Object.values(analistasPorTipo).flatMap((ids) =>
-          ids.map((id) => {
-            const analistaIndex = analistasList.find(
-              (analista) => analista._id.toString() === id
-            )
-            return analistaIndex ? analistaIndex.nome : "Desconhecido"
-          })
-        )
+        analistaResponsavel: Object.values(analistasPorTipo).flatMap((ids) => ids.map((id) => {
+          const analistaIndex = analistasList.find(
+            (analista) => analista._id.toString() === id
+          )
+          return analistaIndex ? analistaIndex.nome : "Desconhecido"
+        })
+        ),
+        profileName: "",
+        enumName: ""
       }
 
       // Adiciona o evento à linha do tempo da declaração
@@ -962,10 +963,12 @@ class DeclaracaoService {
           }
 
           declaracao.timeLine.push({
-            nomeEvento: `Alteração de status do tipo ${tipo} para ${status}`,
+            nomeEvento: `${Eventos.MudancaStatus},Alteração de status do tipo ${tipo} para ${status}`,
             dataEvento: DataUtils.getCurrentData(),
             autorEvento: autor.nome,
-            analistaResponsavel: [autor.nome]
+            analistaResponsavel: [autor.nome],
+            profileName: perfilUsuario,
+            enumName: getEnumKeyByValue(Eventos, Eventos.ExclusaoDeclaracao) || ""
           })
         }
       }
@@ -1177,7 +1180,9 @@ class DeclaracaoService {
 
     const eventoTimeLine: TimeLine = {
       nomeEvento: `${Eventos.ConclusaoAnalise} : ${status === Status.EmConformidade ? "Em Conformidade" : "Não Conformidade"}`,
-      dataEvento: DataUtils.getCurrentData()
+      dataEvento: DataUtils.getCurrentData(),
+      profileName: "",
+      enumName: ""
     }
 
     await this.adicionarEvento(
@@ -1388,8 +1393,16 @@ class DeclaracaoService {
    * Processa e atualiza uma  declaração,fazendo a deleção lógica.
    * @param id - String  contendo um  id de da declaracao.
    */
-  async excluirDeclaracao(id: string): Promise<void> {
+  async excluirDeclaracao(id: string,user_id: string): Promise<void> {
     const declaracaoId = new mongoose.Types.ObjectId(id)
+
+    const user = await Usuario.findById(user_id).populate("profile");
+    if (!user) {
+        throw new HTTPError("Usuário não encontrado", 404);
+    }
+
+    const userProfile = (user.profile as IProfile).name;
+
     const resultado = await Declaracoes.updateOne(
       { _id: declaracaoId, status: Status.Recebida },
       { $set: { status: Status.Excluida } }
@@ -1409,7 +1422,9 @@ class DeclaracaoService {
     declaracao.timeLine.push({
       nomeEvento: Eventos.ExclusaoDeclaracao,
       dataEvento: DataUtils.getCurrentData(),
-      autorEvento: declaracao.responsavelEnvioNome
+      autorEvento: declaracao.responsavelEnvioNome,
+      profileName: userProfile,
+      enumName: getEnumKeyByValue(Eventos, Eventos.ExclusaoDeclaracao) || ""
     })
 
     logger.info(
@@ -1436,12 +1451,17 @@ class DeclaracaoService {
       if (!museu_id || !user_id) {
         throw new HTTPError("Dados obrigatórios ausentes", 404)
       }
-
+      const user = await Usuario.findById(user_id).populate("profile");
+      if (!user) {
+          throw new HTTPError("Usuário não encontrado", 404);
+      }
+  
+      const userProfile = (user.profile as IProfile).name;
       const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
       if (!museu) {
         throw new HTTPError("Museu inválido", 404)
       }
-
+     
       const files = arquivos as { [fieldname: string]: Express.Multer.File[] }
       const salt = generateSalt()
 
@@ -1482,7 +1502,9 @@ class DeclaracaoService {
       novaDeclaracao.timeLine.push({
         nomeEvento: Eventos.EnvioDeclaracao,
         dataEvento: DataUtils.getCurrentData(),
-        autorEvento: responsavelEnvio.nome
+        autorEvento: responsavelEnvio.nome,
+        profileName: userProfile,
+        enumName: getEnumKeyByValue(Eventos, Eventos.EnvioDeclaracao) || ""
       })
 
       await this.updateDeclaracao(
