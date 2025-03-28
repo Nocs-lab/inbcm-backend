@@ -796,7 +796,9 @@ class DeclaracaoService {
             )
             return analistaIndex ? analistaIndex.nome : "Desconhecido"
           })
-        )
+        ),
+        profileName: "",
+        nomeEnum: ""
       }
 
       // Adiciona o evento à linha do tempo da declaração
@@ -965,7 +967,9 @@ class DeclaracaoService {
             nomeEvento: `Alteração de status do tipo ${tipo} para ${status}`,
             dataEvento: DataUtils.getCurrentData(),
             autorEvento: autor.nome,
-            analistaResponsavel: [autor.nome]
+            analistaResponsavel: [autor.nome],
+            profileName: "",
+            nomeEnum: ""
           })
         }
       }
@@ -1177,7 +1181,9 @@ class DeclaracaoService {
 
     const eventoTimeLine: TimeLine = {
       nomeEvento: `${Eventos.ConclusaoAnalise} : ${status === Status.EmConformidade ? "Em Conformidade" : "Não Conformidade"}`,
-      dataEvento: DataUtils.getCurrentData()
+      dataEvento: DataUtils.getCurrentData(),
+      profileName: "",
+      nomeEnum: ""
     }
 
     await this.adicionarEvento(
@@ -1409,7 +1415,9 @@ class DeclaracaoService {
     declaracao.timeLine.push({
       nomeEvento: Eventos.ExclusaoDeclaracao,
       dataEvento: DataUtils.getCurrentData(),
-      autorEvento: declaracao.responsavelEnvioNome
+      autorEvento: declaracao.responsavelEnvioNome,
+      profileName: "",
+      nomeEnum: ""
     })
 
     logger.info(
@@ -1437,6 +1445,8 @@ class DeclaracaoService {
         throw new HTTPError("Dados obrigatórios ausentes", 404)
       }
 
+      const user = await Usuario.findById(userId).populate("profile")
+      const userProfile = (user.profile as IProfile).name
       const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
       if (!museu) {
         throw new HTTPError("Museu inválido", 404)
@@ -1482,7 +1492,9 @@ class DeclaracaoService {
       novaDeclaracao.timeLine.push({
         nomeEvento: Eventos.EnvioDeclaracao,
         dataEvento: DataUtils.getCurrentData(),
-        autorEvento: responsavelEnvio.nome
+        autorEvento: responsavelEnvio.nome,
+        profileName: userProfile,
+        nomeEnum: "EnvioDeclaracao"
       })
 
       await this.updateDeclaracao(

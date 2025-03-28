@@ -18,7 +18,7 @@ import HTTPError from "../utils/error"
 import { sendEmail } from "../emails"
 import config from "../config"
 import { DataUtils } from "../utils/dataUtils"
-import { MuseuHelper} from "../utils/museuHelper"
+import { MuseuHelper } from "../utils/museuHelper"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -624,20 +624,29 @@ export class DeclaracaoController {
       // Coletando dados para enviar e-mail de confirmação de envio de declaração
       const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
       if (!museu) {
-        return res.status(404).json({ success: false,
+        return res.status(404).json({
+          success: false,
           message: "Museu não encontrado ou usuário não autorizado."
         })
       }
       const ano = await AnoDeclaracao.findOne({ _id: req.params.anoDeclaracao })
       if (!ano) {
-        return res.status(404).json({success: false, message: "Ano Referência não encontrado."})
+        return res
+          .status(404)
+          .json({ success: false, message: "Ano Referência não encontrado." })
       }
       const anoReferencia = ano.ano
       const url = `${config.PUBLIC_SITE_URL}`
       const horario = DataUtils.gerarDataHoraExtenso(response.dataCriacao)
       const emails = await MuseuHelper.getEmailsFromMuseuUsers(museu_id)
 
-      await sendEmail("confirmacao-envio-declaracao", emails, { url, horario, response, museu, anoReferencia })
+      await sendEmail("confirmacao-envio-declaracao", emails, {
+        url,
+        horario,
+        response,
+        museu,
+        anoReferencia
+      })
 
       return res.status(201).json(response)
     } catch (error) {
@@ -693,25 +702,39 @@ export class DeclaracaoController {
     // Coletando dados para enviar e-mail de confirmação de envio de retificação
     const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
     if (!museu) {
-      return res.status(404).json({ success: false,
+      return res.status(404).json({
+        success: false,
         message: "Museu não encontrado ou usuário não autorizado."
       })
     }
-    const declaracaoOriginal = await Declaracoes.findOne({ museu_id: museu_id, versao: 1, anoDeclaracao: req.params.anoDeclaracao })
+    const declaracaoOriginal = await Declaracoes.findOne({
+      museu_id: museu_id,
+      versao: 1,
+      anoDeclaracao: req.params.anoDeclaracao
+    })
     if (!declaracaoOriginal) {
       return res.status(404).json({ error: "Declaração não encontrada." })
     }
     const hashOriginal = declaracaoOriginal.hashDeclaracao
     const ano = await AnoDeclaracao.findOne({ _id: req.params.anoDeclaracao })
     if (!ano) {
-      return res.status(404).json({success: false, message: "Ano Referência não encontrado."})
+      return res
+        .status(404)
+        .json({ success: false, message: "Ano Referência não encontrado." })
     }
     const anoReferencia = ano.ano
     const url = `${config.PUBLIC_SITE_URL}`
     const horario = DataUtils.gerarDataHoraExtenso(response.dataCriacao)
     const emails = await MuseuHelper.getEmailsFromMuseuUsers(museu_id)
 
-    await sendEmail("confirmacao-retificacao-declaracao", emails, { url, horario, response, museu, anoReferencia, hashOriginal })
+    await sendEmail("confirmacao-retificacao-declaracao", emails, {
+      url,
+      horario,
+      response,
+      museu,
+      anoReferencia,
+      hashOriginal
+    })
 
     return res.status(201).json(response)
   }
