@@ -26,7 +26,7 @@ routes.get(
 )
 routes.get(
   "/documento/:id",
-  userPermissionMiddleware("UsuarioController"),
+  userPermissionMiddleware("getDocumento"),
   UsuarioController.getDocumento
 )
 routes.put(
