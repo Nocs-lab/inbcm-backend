@@ -15,8 +15,7 @@ const setPermissions = async () => {
     {
       name: "getPeriodoDeclaracaoVigente",
       label: "Pegar período da declaração vigente",
-      description:
-        "Obter o anos com o período atual para o envio declaração."
+      description: "Obter o anos com o período atual para o envio declaração."
     },
     {
       name: "getUsuario",
@@ -116,6 +115,21 @@ const setPermissions = async () => {
       name: "uploadAnalise",
       label: "Realiza upload de analise para o perfil analyst ou admin",
       description: "Permite upload de analise para o perfil analyst ou admin"
+    },
+    {
+      name: "viewDashboard",
+      label: "Visualizar a dashboard",
+      description:
+        "Permite obter o token de autenticação do metabase para visualizar a dashboard do admin"
+    },
+    {
+      name: "getPeriodos",
+      label: "Pegar os peridos de submissão",
+      description: "Apresentar os dados dos peridos de submissão."
+    },
+    {name:"getDocumento",
+    label: "Permite download do documento compobratório",
+    description:"Permite donwload de documento comprobatório"
     }
   ]
 

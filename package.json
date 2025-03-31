@@ -19,6 +19,7 @@
     "lint:fix": "eslint --cache --fix src",
     "add:permissions-declarant": "sucrase-node src/scripts/addPermissionsToDeclarant.ts",
     "add:permissions-analyst": "sucrase-node src/scripts/addPermissionsToAnalyst.ts",
+    "schema:museus": "sucrase-node src/scripts/corrigirMuseus.ts",
     "compile-emails": "handlebars -c \"handlebars\" src/emails/*.hbs -f src/emails/templates.ts --esm handlebars && node src/emails/conversor.mjs && prettier src/emails/templates.ts --write"
   },
   "keywords": [],
