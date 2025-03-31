@@ -126,6 +126,10 @@ const setPermissions = async () => {
       name: "getPeriodos",
       label: "Pegar os peridos de submissão",
       description: "Apresentar os dados dos peridos de submissão."
+    },
+    {name:"getDocumento",
+    label: "Permite download do documento compobratório",
+    description:"Permite donwload de documento comprobatório"
     }
   ]
 
