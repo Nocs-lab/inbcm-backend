@@ -428,10 +428,10 @@ class UsuarioController {
         const { id } = req.params;
 
         const usuario = await Usuario.findById(id);
-        logger.info("Encontrando usuário " + id);
+       
 
         if (!usuario) {
-          new HTTPError("Arquivo não encontrado",404)
+          throw new HTTPError("Arquivo não encontrado",404)
         }
 
       
@@ -439,7 +439,7 @@ class UsuarioController {
         const filePath = usuario.documentoComprobatorio;
 
         if (!filePath) {
-            new HTTPError("Arquivo não encontrado",404)
+          throw new HTTPError("Arquivo não encontrado",404)
         }
 
        
