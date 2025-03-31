@@ -11,6 +11,7 @@ import HTTPError from "../utils/error"
 import argon2 from "@node-rs/argon2"
 import minioClient from "../db/minioClient"
 import { sendEmail } from "../emails"
+import path from "path"
 
 class UsuarioController {
   async registerUsuarioExterno(req: Request, res: Response) {
@@ -423,27 +424,41 @@ class UsuarioController {
   }
 
   async getDocumento(req: Request, res: Response) {
-    const { id } = req.params
-
     try {
-      const usuario = await Usuario.findById(id)
+        const { id } = req.params;
 
-      if (!usuario) {
-        return res.status(404).json({ message: "Usuário não encontrado." })
-      }
+        const usuario = await Usuario.findById(id);
+        logger.info("Encontrando usuário " + id);
 
-      const url = await minioClient.presignedUrl(
-        "GET",
-        "inbcm",
-        usuario.documentoComprobatorio
-      )
+        if (!usuario) {
+          new HTTPError("Arquivo não encontrado",404)
+        }
 
-      return res.status(200).json({ url })
+      
+        const bucketName = "inbcm";
+        const filePath = usuario.documentoComprobatorio;
+
+        if (!filePath) {
+            new HTTPError("Arquivo não encontrado",404)
+        }
+
+       
+        const fileStream = await minioClient.getObject(bucketName, filePath);
+
+      
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename=${path.basename(filePath)}`
+        );
+        res.setHeader("Content-Type", "application/octet-stream");
+
+        fileStream.pipe(res);
     } catch (error) {
-      logger.error("Erro ao buscar documento:", error)
-      return res.status(500).json({ message: "Erro ao buscar documento." })
+        logger.error("Erro ao baixar documento:", error);
+        return res.status(500).json({ message: "Erro ao baixar documento." });
     }
-  }
+}
+
 }
 
 export default new UsuarioController()
