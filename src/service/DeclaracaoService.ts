@@ -20,7 +20,7 @@ import {
   validate_bibliografico
 } from "inbcm-xlsx-validator"
 import { createHash } from "../utils/hashUtils"
-import { Profile } from "../models/Profile"
+import { IProfile, Profile } from "../models/Profile"
 import { DataUtils } from "../utils/dataUtils"
 import { Eventos } from "../enums/Eventos"
 import logger from "../utils/logger"
@@ -638,11 +638,19 @@ class DeclaracaoService {
     arquivo.analistasResponsaveis = [new mongoose.Types.ObjectId(analistaId)]
     arquivo.analistasResponsaveisNome = [analista.nome]
 
+    const tipoComAcento: Record<string, string> = {
+      arquivistico: "arquivístico",
+      museologico: "museológico",
+      bibliografico: "bibliográfico"
+    };
+
     const evento = {
-      nomeEvento: "Mudança de analista",
+      nomeEvento: Eventos.MudancaDeAnalista + ` do acervo ${tipoComAcento[arquivoTipo] || arquivoTipo} de ${analistaAnterior} para ${autor.nome}`,
       dataEvento: DataUtils.getCurrentData(),
       autorEvento: autor.nome,
-      analistaResponsavel: [analista.nome]
+      analistaResponsavel: [analista.nome],
+      profileName: 'admin',
+      enumName: "MudancaDeAnalista"
     }
 
     const declaracaoAtualizada = await this.adicionarEvento(objectId, evento)
@@ -786,17 +794,18 @@ class DeclaracaoService {
         .lean()
 
       const responsavelReporte: TimeLine = {
-        nomeEvento: `${Eventos.EnvioParaAnalise}:`,
+        nomeEvento: `${Eventos.EnvioParaAnalise}`,
         dataEvento: DataUtils.getCurrentData(),
         autorEvento: responsavelNome,
-        analistaResponsavel: Object.values(analistasPorTipo).flatMap((ids) =>
-          ids.map((id) => {
-            const analistaIndex = analistasList.find(
-              (analista) => analista._id.toString() === id
-            )
-            return analistaIndex ? analistaIndex.nome : "Desconhecido"
-          })
-        )
+        analistaResponsavel: Object.entries(analistasPorTipo)
+          .flatMap(([tipo, ids]) =>
+            ids.map(id => {
+              const analista = analistasList.find(a => a._id.toString() === id);
+              return analista ? `${tipo}: ${analista.nome}` : `${tipo}: Desconhecido`;
+            })
+          ),
+        profileName: "admin",
+        enumName: "EnvioParaAnalise"
       }
 
       // Adiciona o evento à linha do tempo da declaração
@@ -961,11 +970,19 @@ class DeclaracaoService {
             })
           }
 
+          const tipoFormatado: { [key: string]: string } = {
+            arquivistico: "Arquivístico",
+            bibliografico: "Bibliográfico",
+            museologico: "Museológico",
+          };
+
           declaracao.timeLine.push({
-            nomeEvento: `Alteração de status do tipo ${tipo} para ${status}`,
+            nomeEvento: `${Eventos.MudancaStatus} do tipo ${tipoFormatado[tipo] || tipo} para: "${status}"`,
             dataEvento: DataUtils.getCurrentData(),
             autorEvento: autor.nome,
-            analistaResponsavel: [autor.nome]
+            analistaResponsavel: [autor.nome],
+            profileName: perfilUsuario,
+            enumName: "MudancaStatus"
           })
         }
       }
@@ -982,6 +999,8 @@ class DeclaracaoService {
         (status) =>
           status === Status.EmConformidade || status === Status.NaoConformidade
       )
+      const timeLineAnterior = declaracao?.timeLine || []
+      let novoEvento: { nomeEvento: string; dataEvento: Date; autorEvento: string; profileName: string; enumName: string } | null = null;
 
       // Atualizar o status da declaração
       if (todosFinalizados) {
@@ -989,15 +1008,32 @@ class DeclaracaoService {
         if (todosStatus.every((status) => status === Status.EmConformidade)) {
           declaracao.status = Status.EmConformidade
           declaracao.dataFimAnalise = DataUtils.getCurrentData()
+
+          novoEvento = {
+            nomeEvento: Eventos.FinalizacaoAnalise + ` para "Em conformidade"`,
+            dataEvento: DataUtils.getCurrentData(),
+            autorEvento: 'Sistema INBCM',
+            profileName: 'analyst',
+            enumName: "FinalizacaoAnalise"
+          }
         } else {
           // Caso contrário, a declaração deve ser "Não Conformidade" se houver algum bem "Não Conformidade"
           declaracao.status = Status.NaoConformidade
           declaracao.dataFimAnalise = DataUtils.getCurrentData()
+
+          novoEvento = {
+            nomeEvento: Eventos.FinalizacaoAnalise + ` para "Não conformidade"`,
+            dataEvento: DataUtils.getCurrentData(),
+            autorEvento: 'Sistema INBCM',
+            profileName: 'analyst',
+            enumName: "FinalizacaoAnalise"
+          }
         }
-      } else {
-        // Se ainda houver bens pendentes, manter a declaração "Em Análise"
-        declaracao.status = Status.EmAnalise
       }
+
+      declaracao.timeLine = [...timeLineAnterior, ...(novoEvento ? [novoEvento] : [])].sort(
+        (a, b) => new Date(a.dataEvento).getTime() - new Date(b.dataEvento).getTime()
+      );
 
       await declaracao.save()
 
@@ -1020,7 +1056,7 @@ class DeclaracaoService {
    * @returns Um objeto com a mensagem de sucesso ou erro
    * @throws Error caso a declaração não possa ser restaurada
    */
-  async restauraDeclaracao(declaracaoId: string) {
+  async restauraDeclaracao(declaracaoId: string, user_id:string) {
     const objectId = new mongoose.Types.ObjectId(declaracaoId)
     const declaracao = await Declaracoes.findById(objectId)
 
@@ -1034,6 +1070,26 @@ class DeclaracaoService {
         "Somente declarações com status 'Excluída' podem ser restauradas para 'Recebida'."
       )
     }
+
+    const user = await Usuario.findById(user_id).populate("profile");
+    if (!user) {
+        throw new HTTPError("Usuário não encontrado", 404);
+    }
+    const userProfile = (user.profile as IProfile).name;
+
+    const novoEvento = {
+      nomeEvento: Eventos.DeclaracaoRestaurada,
+      dataEvento: DataUtils.getCurrentData(),
+      autorEvento: user.nome,
+      profileName: userProfile,
+      enumName: "DeclaracaoRestaurada"
+    }
+    const timeLineAnterior = declaracao?.timeLine || []
+
+    declaracao.timeLine = [...timeLineAnterior, novoEvento].sort(
+      (a, b) =>
+        new Date(a.dataEvento).getTime() - new Date(b.dataEvento).getTime()
+    )
 
     const declaracoesMaisNovas = await Declaracoes.find({
       museu_id: declaracao.museu_id,
@@ -1177,7 +1233,9 @@ class DeclaracaoService {
 
     const eventoTimeLine: TimeLine = {
       nomeEvento: `${Eventos.ConclusaoAnalise} : ${status === Status.EmConformidade ? "Em Conformidade" : "Não Conformidade"}`,
-      dataEvento: DataUtils.getCurrentData()
+      dataEvento: DataUtils.getCurrentData(),
+      profileName: "",
+      enumName: ""
     }
 
     await this.adicionarEvento(
@@ -1195,6 +1253,7 @@ class DeclaracaoService {
 
     return declaracaoAtualizada
   }
+
   async buscarItensPorTipoAdmin(
     museuId: string,
     ano: string,
@@ -1388,8 +1447,16 @@ class DeclaracaoService {
    * Processa e atualiza uma  declaração,fazendo a deleção lógica.
    * @param id - String  contendo um  id de da declaracao.
    */
-  async excluirDeclaracao(id: string): Promise<void> {
+  async excluirDeclaracao(id: string,user_id: string): Promise<void> {
     const declaracaoId = new mongoose.Types.ObjectId(id)
+
+    const user = await Usuario.findById(user_id).populate("profile");
+    if (!user) {
+        throw new HTTPError("Usuário não encontrado", 404);
+    }
+
+    const userProfile = (user.profile as IProfile).name;
+
     const resultado = await Declaracoes.updateOne(
       { _id: declaracaoId, status: Status.Recebida },
       { $set: { status: Status.Excluida } }
@@ -1409,7 +1476,9 @@ class DeclaracaoService {
     declaracao.timeLine.push({
       nomeEvento: Eventos.ExclusaoDeclaracao,
       dataEvento: DataUtils.getCurrentData(),
-      autorEvento: declaracao.responsavelEnvioNome
+      autorEvento: declaracao.responsavelEnvioNome,
+      profileName: userProfile,
+      enumName: "ExclusaoDeclaracao"
     })
 
     logger.info(
@@ -1436,7 +1505,12 @@ class DeclaracaoService {
       if (!museu_id || !user_id) {
         throw new HTTPError("Dados obrigatórios ausentes", 404)
       }
+      const user = await Usuario.findById(user_id).populate("profile");
+      if (!user) {
+          throw new HTTPError("Usuário não encontrado", 404);
+      }
 
+      const userProfile = (user.profile as IProfile).name;
       const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
       if (!museu) {
         throw new HTTPError("Museu inválido", 404)
@@ -1482,7 +1556,9 @@ class DeclaracaoService {
       novaDeclaracao.timeLine.push({
         nomeEvento: Eventos.EnvioDeclaracao,
         dataEvento: DataUtils.getCurrentData(),
-        autorEvento: responsavelEnvio.nome
+        autorEvento: responsavelEnvio.nome,
+        profileName: userProfile,
+        enumName: "EnvioDeclaracao"
       })
 
       await this.updateDeclaracao(
@@ -1544,6 +1620,12 @@ class DeclaracaoService {
     if (!museu) {
       throw new HTTPError("Museu inválido", 404)
     }
+    const user = await Usuario.findById(user_id).populate("profile");
+    if (!user) {
+        throw new HTTPError("Usuário não encontrado", 404);
+    }
+
+    const userProfile = (user.profile as IProfile).name;
 
     const files = arquivos as { [fieldname: string]: Express.Multer.File[] }
     const salt = generateSalt()
@@ -1592,11 +1674,15 @@ class DeclaracaoService {
     if (idDeclaracao && declaracaoExistente) {
       novaDeclaracao.status = Status.Recebida
       const timeLineAnterior = declaracaoExistente?.timeLine || []
+
       const novoEvento = {
         nomeEvento: Eventos.RetificacaoDeclaracao,
         dataEvento: DataUtils.getCurrentData(),
-        autorEvento: responsavelEnvio.nome
+        autorEvento: responsavelEnvio.nome,
+        profileName: userProfile,
+        enumName: "RetificacaoDeclaracao"
       }
+
       novaDeclaracao.timeLine = [...timeLineAnterior, novoEvento].sort(
         (a, b) =>
           new Date(a.dataEvento).getTime() - new Date(b.dataEvento).getTime()

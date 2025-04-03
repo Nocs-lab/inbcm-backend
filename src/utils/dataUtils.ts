@@ -37,4 +37,9 @@ export class DataUtils {
       .format(data)
       .replace(/^\w/, (c) => c.toUpperCase());
   }
+
+  static formatarDataHoraSP(data: Date = this.getCurrentData()): string {
+    const timeZone = "America/Sao_Paulo";
+    return formatInTimeZone(data, timeZone, "dd/MM/yyyy 'às' HH:mm");
+  }
 }
