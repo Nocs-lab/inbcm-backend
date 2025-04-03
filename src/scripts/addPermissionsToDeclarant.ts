@@ -21,7 +21,6 @@ const addPermissionsToDeclarant = async () => {
     "excluirDeclaracao",
     "userMuseus",
     "gerarRecibo",
-    "getTimeLine",
     "getUsuario",
     "atualizarUsuario",
     "gerarReciboDetalhamento",
@@ -29,7 +28,8 @@ const addPermissionsToDeclarant = async () => {
     "getPeriodoDeclaracaoVigente",
     "getAnoDeclaracaoById",
     "viewDashboard",
-    "getPeriodos"
+    "getPeriodos",
+    "getTimeLineDeclarant"
   ]
 
   try {

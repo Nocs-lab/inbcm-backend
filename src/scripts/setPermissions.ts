@@ -126,7 +126,13 @@ const setPermissions = async () => {
       name: "getPeriodos",
       label: "Pegar os peridos de submissão",
       description: "Apresentar os dados dos peridos de submissão."
-    }
+    },
+    {
+      name: "getTimeLineDeclarant",
+      label: "Visualizar Linha do Tempo do declarante",
+      description: "Permite visualizar a linha do tempo das declarações ou eventos."
+    },
+
   ]
 
   try {

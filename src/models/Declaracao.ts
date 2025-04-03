@@ -28,7 +28,9 @@ export interface TimeLine {
   nomeEvento: string
   dataEvento: Date
   autorEvento?: string
-  analistaResponsavel?: string[]
+  analistaResponsavel?: string[],
+  profileName:string,
+  enumName:string,
 }
 
 const TimeLineSchema = new Schema<TimeLine>(
@@ -36,7 +38,9 @@ const TimeLineSchema = new Schema<TimeLine>(
     nomeEvento: String,
     dataEvento: { type: Date, default: Date.now() },
     autorEvento: String,
-    analistaResponsavel: [String]
+    analistaResponsavel: [String],
+    profileName:String,
+    enumName: String
   },
   { _id: false, versionKey: false }
 )
