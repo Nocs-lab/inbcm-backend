@@ -37,6 +37,7 @@ export class DeclaracaoController {
     this.getItensPorAnoETipo = this.getItensPorAnoETipo.bind(this)
     this.excluirDeclaracao = this.excluirDeclaracao.bind(this)
     this.getTimeLine = this.getTimeLine.bind(this)
+    this.getTimeLineDeclarant = this.getTimeLineDeclarant.bind(this)
     this.restaurarDeclaracao = this.restaurarDeclaracao.bind(this)
     this.alterarAnalistaArquivo = this.alterarAnalistaArquivo.bind(this)
     this.uploadAnalise = this.uploadAnalise.bind(this)
@@ -261,7 +262,7 @@ export class DeclaracaoController {
     try {
       const userId = req.user?.id
 
-      const user = await Usuario.findById(userId).populate("profile")
+      const user = await Usuario.findById(userId).populate<{ profile: IProfile }>("profile")
 
       if (!user) {
         return res.status(404).json({ message: "Usuário não encontrado." })
@@ -390,7 +391,8 @@ export class DeclaracaoController {
   async excluirDeclaracao(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params
-      await this.declaracaoService.excluirDeclaracao(id)
+      const user_id = req.user.id
+      await this.declaracaoService.excluirDeclaracao(id,user_id)
       return res.status(204).send()
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -553,6 +555,38 @@ export class DeclaracaoController {
     }
   }
 
+  async getTimeLineDeclarant(req: Request, res: Response) {
+    try {
+      const { id } = req.params
+
+      const declaracaoId = new mongoose.Types.ObjectId(id)
+
+      const declaracao = await Declaracoes.findById(declaracaoId, {
+        timeLine: 1
+      }).exec()
+
+      if (!declaracao) {
+        return res.status(404).json({ error: "Declaração não encontrada." })
+      }
+
+      const processedTimeline = declaracao.timeLine
+        .filter(evento => evento.enumName !== "MudancaDeAnalista") // Remove os eventos indesejados
+        .map((evento) => ({
+          label: evento.nomeEvento,
+          dataEvento: `${DataUtils.formatarDataHoraSP(evento.dataEvento)}${
+            evento.profileName === "declarant" ? `, por ${evento.autorEvento}` : ""
+          }`,
+          enumName: evento.enumName,
+          analistaResponsavel: evento.analistaResponsavel
+      }));
+
+      return res.json(processedTimeline)
+    } catch (error) {
+      logger.error(error)
+      return res.status(500).json({ error: "Erro ao obter a timeline." })
+    }
+  }
+
   async getTimeLine(req: Request, res: Response) {
     try {
       const { id } = req.params
@@ -567,22 +601,12 @@ export class DeclaracaoController {
         return res.status(404).json({ error: "Declaração não encontrada." })
       }
 
-      const isAdmin = req.user?.admin
-
-      const processedTimeline = declaracao.timeLine.map((evento) => {
-        if (
-          !isAdmin &&
-          (evento.nomeEvento === "Envio para análise" ||
-            evento.nomeEvento === "Declaração enviada para o analista")
-        ) {
-          return {
-            nomeEvento: evento.nomeEvento,
-            dataEvento: evento.dataEvento
-          }
-        }
-
-        return evento
-      })
+      const processedTimeline = declaracao.timeLine.map((evento) => ({
+        label: evento.nomeEvento,
+        dataEvento: `${DataUtils.formatarDataHoraSP(evento.dataEvento)}, por ${evento.autorEvento}`,
+        enumName: evento.enumName,
+        analistaResponsavel: evento.analistaResponsavel
+      }));
 
       return res.json(processedTimeline)
     } catch (error) {
@@ -753,10 +777,10 @@ export class DeclaracaoController {
    */
   async restaurarDeclaracao(req: Request, res: Response) {
     try {
+      const user_id = req.user.id.toString()
       const { declaracaoId } = req.params
 
-      const resultado =
-        await this.declaracaoService.restauraDeclaracao(declaracaoId)
+      const resultado = await this.declaracaoService.restauraDeclaracao(declaracaoId, user_id)
 
       return res.status(200).json(resultado)
     } catch (error) {
