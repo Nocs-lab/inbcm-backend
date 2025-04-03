@@ -30,7 +30,7 @@ const declaracaoController = new DeclaracaoController()
  */
 routes.get(
   "/:id",
-  userPermissionMiddleware('getTimeLine'),
-  declaracaoController.getTimeLine.bind(declaracaoController)
+  userPermissionMiddleware('getTimeLineDeclarant'),
+  declaracaoController.getTimeLineDeclarant.bind(declaracaoController)
 )
 export default routes
