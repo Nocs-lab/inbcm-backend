@@ -1000,70 +1000,65 @@ export class DeclaracaoController {
     }
   }
 
+
+
   async getItensPorAnoETipo(req: Request, res: Response): Promise<Response> {
     try {
-      const { museuId, anoInicio, anoFim } = req.params
-      const user_id = req.user.id
-
+      const { museuId, anoInicio, anoFim } = req.params;
+      const user_id = req.user.id;
+  
       if (!museuId || !anoInicio || !anoFim) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Parâmetros insuficientes. Forneça id do museu, ano inicio  e ano fim."
-        })
+        throw new HTTPError("Parâmetros insuficientes", 400);
       }
-
-      const anoInicioNum = parseInt(anoInicio, 10)
-      const anoFimNum = parseInt(anoFim, 10)
-
+  
+      const anoInicioNum = parseInt(anoInicio, 10);
+      const anoFimNum = parseInt(anoFim, 10);
+  
       if (isNaN(anoInicioNum) || isNaN(anoFimNum)) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Anos inválidos fornecidos. Certifique-se de enviar valores numéricos."
-        })
+        throw new HTTPError("Anos devem ser valores numéricos", 400);
       }
-
+  
       if (anoInicioNum > anoFimNum) {
-        return res.status(400).json({
-          success: false,
-          message: "Ano de início deve ser menor ou igual ao ano de fim."
-        })
+        throw new HTTPError("Ano início não pode ser maior que ano fim", 400);
       }
-
-      const museu = await Museu.findOne({ _id: museuId, usuario: user_id })
+  
+     
+      const museu = await Museu.findOne({ 
+        _id: museuId, 
+        usuario: { $in: [user_id] }
+      });
       if (!museu) {
-        return res.status(404).json({
-          success: false,
-          message: "Museu não encontrado ou usuário não autorizado."
-        })
+        throw new HTTPError("Museu não encontrado ou não autorizado", 404);
       }
-
+  
       const agregacao = await this.declaracaoService.getItensPorAnoETipo(
         museuId,
         anoInicioNum,
         anoFimNum
-      )
-
-      if (!agregacao || agregacao.length === 0) {
-        return res.status(204).json({
-          message:
-            "Nenhuma declaração encontrada para os parâmetros fornecidos."
-        })
-      }
+      );
+  
       return res.status(200).json({
         success: true,
-        message: "Dados encontrados com sucesso.",
+        message: agregacao.length > 0 
+          ? "Dados encontrados com sucesso" 
+          : "Nenhuma declaração encontrada",
         data: agregacao
-      })
+      });
+  
     } catch (error) {
-      logger.error("Erro ao processar a requisição: ", error)
-
+      logger.error("Erro na controller getItensPorAnoETipo:", error);
+  
+      if (error instanceof HTTPError) {
+        return res.status(error.status).json({
+          success: false,
+          message: error.message
+        });
+      }
+  
       return res.status(500).json({
         success: false,
-        message: "Erro ao processar a requisição.",
-        error: error instanceof Error ? error.message : "Erro desconhecido"
-      })
+        message: "Erro interno ao processar a requisição"
+      });
     }
   }
 
