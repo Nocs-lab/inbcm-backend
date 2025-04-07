@@ -1135,88 +1135,92 @@ class DeclaracaoService {
     anoInicio: number,
     anoFim: number
   ) {
-    const declaracoesExistentes = await Declaracoes.find({
-      museu_id: new mongoose.Types.ObjectId(museuId),
-      ultimaDeclaracao: true,
-      status: { $ne: Status.Excluida }
-    })
-      .populate({
-        path: "anoDeclaracao",
-        match: { ano: { $gte: anoInicio, $lte: anoFim } },
-        model: AnoDeclaracao,
-        select: ["_id", "ano"]
+    try {
+      const declaracoesExistentes = await Declaracoes.find({
+        museu_id: new mongoose.Types.ObjectId(museuId),
+        ultimaDeclaracao: true,
+        status: { $ne: Status.Excluida }
       })
-      .exec()
-
-    const declaracoesFiltradas = declaracoesExistentes.filter(
-      (declaracao) => declaracao.anoDeclaracao !== null
-    )
-
-    if (declaracoesFiltradas.length === 0) {
-      throw new Error(
-        `Nenhuma declaração encontrada para o museu ${museuId} entre ${anoInicio} e ${anoFim}`
-      )
-    }
-
-    const anos = declaracoesFiltradas.map(
-      (declaracao) => declaracao.anoDeclaracao
-    ) as unknown as { _id: mongoose.Types.ObjectId; ano: number }[]
-
-    const anoDeclaracaoIds = declaracoesFiltradas.map(
-      (declaracao) => declaracao.anoDeclaracao._id
-    )
-
-    const agregacao = await Declaracoes.aggregate([
-      {
-        $match: {
-          museu_id: new mongoose.Types.ObjectId(museuId),
-          anoDeclaracao: { $in: anoDeclaracaoIds },
-          ultimaDeclaracao: true,
-          status: { $ne: Status.Excluida }
-        }
-      },
-      {
-        $group: {
-          _id: "$anoDeclaracao",
-          totalArquivistico: {
-            $sum: { $ifNull: ["$arquivistico.quantidadeItens", 0] }
-          },
-          totalBibliografico: {
-            $sum: { $ifNull: ["$bibliografico.quantidadeItens", 0] }
-          },
-          totalMuseologico: {
-            $sum: { $ifNull: ["$museologico.quantidadeItens", 0] }
-          }
-        }
-      },
-      {
-        $project: {
-          _id: 0,
-          anoDeclaracao: "$_id",
-          totalArquivistico: 1,
-          totalBibliografico: 1,
-          totalMuseologico: 1,
-          totalDeItensDeclaracao: {
-            $add: [
-              "$totalArquivistico",
-              "$totalBibliografico",
-              "$totalMuseologico"
-            ]
-          }
-        }
-      },
-      { $sort: { anoDeclaracao: 1 } }
-    ])
-
-    const result = agregacao.map((item) => {
-      const ano = anos.find((ano) => ano._id.equals(item.anoDeclaracao))
-      return {
-        ...item,
-        ano: ano?.ano
+        .populate({
+          path: "anoDeclaracao",
+          match: { ano: { $gte: anoInicio, $lte: anoFim } },
+          model: AnoDeclaracao,
+          select: ["_id", "ano"]
+        })
+        .exec();
+  
+      const declaracoesFiltradas = declaracoesExistentes.filter(
+        (declaracao) => declaracao.anoDeclaracao !== null
+      );
+  
+      // Se não houver declarações, retorna array vazio em vez de lançar erro
+      if (declaracoesFiltradas.length === 0) {
+        return [];
       }
-    })
-
-    return result
+  
+      const anos = declaracoesFiltradas.map(
+        (declaracao) => declaracao.anoDeclaracao
+      ) as unknown as { _id: mongoose.Types.ObjectId; ano: number }[];
+  
+      const anoDeclaracaoIds = declaracoesFiltradas.map(
+        (declaracao) => declaracao.anoDeclaracao._id
+      );
+  
+      const agregacao = await Declaracoes.aggregate([
+        {
+          $match: {
+            museu_id: new mongoose.Types.ObjectId(museuId),
+            anoDeclaracao: { $in: anoDeclaracaoIds },
+            ultimaDeclaracao: true,
+            status: { $ne: Status.Excluida }
+          }
+        },
+        {
+          $group: {
+            _id: "$anoDeclaracao",
+            totalArquivistico: {
+              $sum: { $ifNull: ["$arquivistico.quantidadeItens", 0] }
+            },
+            totalBibliografico: {
+              $sum: { $ifNull: ["$bibliografico.quantidadeItens", 0] }
+            },
+            totalMuseologico: {
+              $sum: { $ifNull: ["$museologico.quantidadeItens", 0] }
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            anoDeclaracao: "$_id",
+            totalArquivistico: 1,
+            totalBibliografico: 1,
+            totalMuseologico: 1,
+            totalDeItensDeclaracao: {
+              $add: [
+                "$totalArquivistico",
+                "$totalBibliografico",
+                "$totalMuseologico"
+              ]
+            }
+          }
+        },
+        { $sort: { anoDeclaracao: 1 } }
+      ]);
+  
+      const result = agregacao.map((item) => {
+        const ano = anos.find((ano) => ano._id.equals(item.anoDeclaracao));
+        return {
+          ...item,
+          ano: ano?.ano
+        };
+      });
+  
+      return result;
+    } catch (error) {
+      logger.error("Erro no getItensPorAnoETipo:", error);
+      throw new Error("Erro ao processar a busca de declarações");
+    }
   }
 
   async concluirAnalise(id: string, status: Status): Promise<DeclaracaoModel> {
