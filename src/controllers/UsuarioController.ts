@@ -14,10 +14,10 @@ import { sendEmail } from "../emails"
 
 class UsuarioController {
   async registerUsuarioExternoDeclarant(req: Request, res: Response) {
-    const { nome, email, profile, cpf, museus, senha } = req.body
+    const { nome, email, cpf, museus, senha } = req.body
 
     try {
-      await UsuarioService.validarUsuarioExterno({
+      await UsuarioService.validarUsuarioExternoDeclarant({
         nome,
         email,
         profile: "declarant",
@@ -25,7 +25,7 @@ class UsuarioController {
         senha
       })
 
-      const novoUsuario = await UsuarioService.criarUsuarioExterno({
+      const novoUsuario = await UsuarioService.criarUsuarioExternoDeclarant({
         nome,
         email,
         profile: "declarant",
@@ -41,12 +41,51 @@ class UsuarioController {
         usuario: novoUsuario
       })
     } catch (error: unknown) {
-      logger.error("Erro ao criar usuário externo:", error)
+      logger.error("Erro ao criar usuário declarante externo:", error)
       if (error instanceof HTTPError) {
         return res.status(400).json({ message: error.message })
       }
       return res.status(500).json({
-        message: "Erro desconhecido ao criar usuário externo."
+        message: "Erro desconhecido ao criar usuário declarante externo."
+      })
+    }
+  }
+
+  async registerUsuarioExternoAnalyst(req: Request, res: Response) {
+    const { nome, email, cpf, senha, especialidadeAnalista } = req.body
+
+    try {
+      await UsuarioService.validarUsuarioExternoAnalyst({
+        nome,
+        email,
+        profile: "analyst",
+        cpf,
+        senha,
+        especialidadeAnalista
+      })
+
+      const novoUsuario = await UsuarioService.criarUsuarioExternoAnalyst({
+        nome,
+        email,
+        profile: "analyst",
+        cpf,
+        arquivo: req.file!,
+        senha,
+        especialidadeAnalista
+      })
+
+      return res.status(201).json({
+        message:
+          "Pedido de acesso ao sistema INBCM feito com sucesso. Aguarde análise.",
+        usuario: novoUsuario
+      })
+    } catch (error: unknown) {
+      logger.error("Erro ao criar usuário analista externo:", error)
+      if (error instanceof HTTPError) {
+        return res.status(400).json({ message: error.message })
+      }
+      return res.status(500).json({
+        message: "Erro desconhecido ao criar usuário analista externo."
       })
     }
   }

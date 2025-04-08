@@ -21,7 +21,7 @@ const usuarioExternoSchema = z.object({
 
 export class UsuarioService {
 
-  static async criarUsuarioExterno({
+  static async criarUsuarioExternoDeclarant({
     nome,
     email,
     profile,
@@ -121,7 +121,7 @@ export class UsuarioService {
     return novoUsuario
   }
 
-  static async validarUsuarioExterno({
+  static async validarUsuarioExternoDeclarant({
     nome,
     email,
     profile,
@@ -179,12 +179,139 @@ export class UsuarioService {
       )
     }
   }
-  /**
-   * Valida as informações do usuário antes de criar.
-   * @param email Email do usuário.
-   * @param profile ID do perfil do usuário.
-   * @param especialidadeAnalista Tipo de analista (opcional).
-   */
+
+  static async criarUsuarioExternoAnalyst({
+    nome,
+    email,
+    profile,
+    cpf,
+    senha,
+    arquivo,
+    especialidadeAnalista,
+  }: {
+    nome: string
+    email: string
+    profile: string
+    cpf: string
+    senha: string
+    arquivo: Express.Multer.File
+    especialidadeAnalista?: string[]
+  }) {
+
+    const perfil = await Profile.findOne({ name: profile })
+    if (!perfil) {
+      throw new HTTPError("Tipo de perfil de usuário não encontrado.", 404)
+    }
+
+    const documentoComprobatorio = `documentos/${email}/${randomUUID()}/${arquivo.originalname}`
+    await minioClient.putObject(
+      "inbcm",
+      documentoComprobatorio,
+      arquivo.buffer,
+      arquivo.size,
+      {
+        "Content-Type": arquivo.mimetype
+      }
+    )
+
+    const senhaHash = await argon2.hash(senha)
+    const novoUsuario = new Usuario({
+      nome,
+      email,
+      cpf,
+      senha: senhaHash,
+      profile: perfil._id,
+      situacao: SituacaoUsuario.ParaAprovar,
+      especialidadeAnalista
+    })
+
+    await novoUsuario.save()
+
+    // Envio e-mail para o usuário solicitante
+    await sendEmail("solicitar-acesso", email, { name: nome })
+
+    // Envio de e-mail para os administradores informando novo usuário solicitando acesso
+    const usuarios = await Usuario.find({ ativo: true }).populate<{
+      profile: IProfile
+    }>("profile")
+    const emails = usuarios
+      .filter((usuario) => usuario.profile?.name === "admin")
+      .map((usuario) => usuario.email)
+    const urlGestaoUsuario = `${config.ADMIN_SITE_URL}/usuarios`
+    const horario = `${DataUtils.gerarDataFormatada()} às ${DataUtils.gerarHoraFormatada()}`
+    await sendEmail("novo-usuario-admin", emails, {
+      nome,
+      email,
+      horario,
+      url: urlGestaoUsuario
+    })
+
+    return novoUsuario
+  }
+
+  static async validarUsuarioExternoAnalyst({
+    nome,
+    email,
+    profile,
+    cpf,
+    senha,
+    especialidadeAnalista
+  }: {
+    nome: string
+    email: string
+    profile: string
+    cpf: string
+    senha: string
+    especialidadeAnalista: string[]
+  }) {
+    const resultadoValidacao = usuarioExternoSchema.safeParse({
+      nome,
+      email,
+      profile,
+      cpf,
+      senha
+    })
+    if (!resultadoValidacao.success) {
+      throw new HTTPError(resultadoValidacao.error.errors[0].message, 422)
+    }
+    let usuarioExistente = await Usuario.findOne({ email })
+    if (usuarioExistente) {
+      if (usuarioExistente.situacao === SituacaoUsuario.ParaAprovar) {
+        throw new HTTPError(
+          "Uma solicitação de acesso para o email informado já foi registrada e está em análise.",
+          422
+        )
+      }
+      throw new HTTPError("E-mail já cadastrado no sistema.", 400)
+    }
+
+    usuarioExistente = await Usuario.findOne({ cpf })
+    if (usuarioExistente) {
+      if (usuarioExistente.situacao === SituacaoUsuario.ParaAprovar) {
+        throw new HTTPError(
+          "Uma solicitação de acesso para o CPF informado já foi registrada e está em análise.",
+          422
+        )
+      }
+      throw new HTTPError("CPF já cadastrado no sistema.", 400)
+    }
+    // Verifica se o perfil existe pelo nome
+    const perfilExistente = await Profile.findOne({ name: profile })
+    if (!perfilExistente) {
+      throw new HTTPError("Perfil não encontrado.", 404)
+    }
+
+    // Verifica se o perfil é do tipo "declarant"
+    if (perfilExistente.name !== "analyst") {
+      throw new HTTPError(
+        "Cadastro externo apenas para perfil analista.",
+        422
+      )
+    }
+  }
+
+
+
   static async validarUsuario({
     email,
     profile,

@@ -20,4 +20,13 @@ routes.post(
   UsuarioController.registerUsuarioExternoDeclarant
 )
 
+routes.post(
+  "/registroAnalista",
+  multer({
+    limits: { fileSize: 1024 * 1024 * 1024 * 3 },
+    storage: memoryStorage()
+  }).single("arquivo"),
+  UsuarioController.registerUsuarioExternoAnalyst
+)
+
 export default routes
