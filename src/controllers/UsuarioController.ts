@@ -13,23 +13,26 @@ import minioClient from "../db/minioClient"
 import { sendEmail } from "../emails"
 
 class UsuarioController {
-  async registerUsuarioExterno(req: Request, res: Response) {
-    const { nome, email, cpf, museus } = req.body
+  async registerUsuarioExternoDeclarant(req: Request, res: Response) {
+    const { nome, email, profile, cpf, museus, senha } = req.body
 
     try {
       await UsuarioService.validarUsuarioExterno({
         nome,
         email,
         profile: "declarant",
-        cpf
+        cpf,
+        senha
       })
 
       const novoUsuario = await UsuarioService.criarUsuarioExterno({
         nome,
         email,
+        profile: "declarant",
         cpf,
         museus: Array.isArray(museus) ? museus : [museus],
-        arquivo: req.file!
+        arquivo: req.file!,
+        senha
       })
 
       return res.status(201).json({
@@ -95,7 +98,7 @@ class UsuarioController {
 
       logger.error("Erro inesperado:", error)
       return res.status(500).json({
-        message: "Erro desconhecido ao criar usuário."
+        message: "Erro desconhecido ao criar usuário, ", error
       })
     }
   }
@@ -210,9 +213,9 @@ class UsuarioController {
             )
           }
         }
-        if (situacao === SituacaoUsuario.Ativo) {
-          usuario.senha = await argon2.hash("1234")
-        }
+        // if (situacao === SituacaoUsuario.Ativo) {
+        //   usuario.senha = await argon2.hash("1234")
+        // }
         usuario.situacao = situacao
       }
 
