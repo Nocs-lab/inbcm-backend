@@ -17,7 +17,7 @@ routes.post(
     limits: { fileSize: 1024 * 1024 * 1024 * 3 },
     storage: memoryStorage()
   }).single("arquivo"),
-  UsuarioController.registerUsuarioExterno
+  UsuarioController.registerUsuarioExternoDeclarant
 )
 
 export default routes

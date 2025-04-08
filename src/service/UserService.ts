@@ -15,22 +15,27 @@ const usuarioExternoSchema = z.object({
   nome: z.string().min(1, "O nome é obrigatório."),
   email: z.string().email("E-mail inválido."),
   profile: z.string().min(1, "O perfil é obrigatório."),
-  cpf: z.string().min(11, "CPF inválido.")
+  cpf: z.string().min(11, "CPF inválido."),
+  senha: z.string().min(4, "Senha obrigatória.")
 })
 
 export class UsuarioService {
+
   static async criarUsuarioExterno({
     nome,
     email,
+    profile,
     cpf,
     museus,
+    senha,
     arquivo
   }: {
     nome: string
     email: string
+    profile: string
     cpf: string
     museus: string[]
-    senha?: string
+    senha: string
     arquivo: Express.Multer.File
   }) {
     // Valida museus
@@ -59,9 +64,9 @@ export class UsuarioService {
         500
       )
     }
-    const perfilDeclarant = await Profile.findOne({ name: "declarant" })
-    if (!perfilDeclarant) {
-      throw new HTTPError("Perfil 'declarant' não encontrado.", 500)
+    const perfil = await Profile.findOne({ name: profile })
+    if (!perfil) {
+      throw new HTTPError("Tipo de perfil de usuário não encontrado.", 404)
     }
 
     const documentoComprobatorio = `documentos/${email}/${randomUUID()}/${arquivo.originalname}`
@@ -75,11 +80,13 @@ export class UsuarioService {
       }
     )
 
+    const senhaHash = await argon2.hash(senha)
     const novoUsuario = new Usuario({
       nome,
       email,
       cpf,
-      profile: perfilDeclarant._id,
+      senha: senhaHash,
+      profile: perfil._id,
       situacao: SituacaoUsuario.ParaAprovar,
       museus: museusValidos,
       documentoComprobatorio
@@ -118,18 +125,21 @@ export class UsuarioService {
     nome,
     email,
     profile,
-    cpf
+    cpf,
+    senha
   }: {
     nome: string
     email: string
     profile: string
     cpf: string
+    senha: string
   }) {
     const resultadoValidacao = usuarioExternoSchema.safeParse({
       nome,
       email,
       profile,
-      cpf
+      cpf,
+      senha
     })
     if (!resultadoValidacao.success) {
       throw new HTTPError(resultadoValidacao.error.errors[0].message, 422)
@@ -138,7 +148,7 @@ export class UsuarioService {
     if (usuarioExistente) {
       if (usuarioExistente.situacao === SituacaoUsuario.ParaAprovar) {
         throw new HTTPError(
-          "Solicitação de acesso à plataforma está em análise.",
+          "Uma solicitação de acesso para o email informado já foi registrada e está em análise.",
           422
         )
       }
@@ -149,7 +159,7 @@ export class UsuarioService {
     if (usuarioExistente) {
       if (usuarioExistente.situacao === SituacaoUsuario.ParaAprovar) {
         throw new HTTPError(
-          "Solicitação de acesso à plataforma está em análise.",
+          "Uma solicitação de acesso para o CPF informado já foi registrada e está em análise.",
           422
         )
       }
@@ -164,7 +174,7 @@ export class UsuarioService {
     // Verifica se o perfil é do tipo "declarant"
     if (perfilExistente.name !== "declarant") {
       throw new HTTPError(
-        "Cadastro externo apenas para perfis declarantes.",
+        "Cadastro externo apenas para perfil declarante.",
         422
       )
     }
