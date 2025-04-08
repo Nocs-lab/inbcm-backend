@@ -69,6 +69,7 @@ class UsuarioController {
         email,
         profile: "analyst",
         cpf,
+        arquivo: req.file!,
         senha,
         especialidadeAnalista
       })

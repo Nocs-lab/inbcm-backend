@@ -186,6 +186,7 @@ export class UsuarioService {
     profile,
     cpf,
     senha,
+    arquivo,
     especialidadeAnalista,
   }: {
     nome: string
@@ -193,6 +194,7 @@ export class UsuarioService {
     profile: string
     cpf: string
     senha: string
+    arquivo: Express.Multer.File
     especialidadeAnalista?: string[]
   }) {
 
@@ -200,6 +202,17 @@ export class UsuarioService {
     if (!perfil) {
       throw new HTTPError("Tipo de perfil de usuário não encontrado.", 404)
     }
+
+    const documentoComprobatorio = `documentos/${email}/${randomUUID()}/${arquivo.originalname}`
+    await minioClient.putObject(
+      "inbcm",
+      documentoComprobatorio,
+      arquivo.buffer,
+      arquivo.size,
+      {
+        "Content-Type": arquivo.mimetype
+      }
+    )
 
     const senhaHash = await argon2.hash(senha)
     const novoUsuario = new Usuario({
