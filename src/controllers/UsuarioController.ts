@@ -474,6 +474,10 @@ class UsuarioController {
         return res.status(404).json({ message: "Usuário não encontrado." })
       }
 
+      if (!usuario.documentoComprobatorio || usuario.documentoComprobatorio == null) {
+        return res.status(404).json({ message: "Erro ao buscar documento" })
+      }
+
       const url = await minioClient.presignedUrl(
         "GET",
         "inbcm",
