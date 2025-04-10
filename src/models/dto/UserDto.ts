@@ -9,4 +9,5 @@ export class UpdateUserDto {
   desvincularMuseus?: string[]
   cpf?: string
   situacao?: SituacaoUsuario
+  senha?: string
 }
