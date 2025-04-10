@@ -213,7 +213,8 @@ class UsuarioController {
         museus,
         desvincularMuseus,
         cpf,
-        situacao
+        situacao,
+        senha
       }: UpdateUserDto = req.body
 
       const usuario = await Usuario.findById(id)
@@ -260,6 +261,7 @@ class UsuarioController {
 
       if (nome) usuario.nome = nome
       if (email) usuario.email = email
+      if (senha) usuario.senha = await argon2.hash(senha)
 
       if (perfil) {
         const perfilValido = await Profile.findOne({ name: perfil }).exec()
