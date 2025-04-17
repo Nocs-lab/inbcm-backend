@@ -2,7 +2,7 @@ import argon2 from "@node-rs/argon2"
 import { SituacaoUsuario, Usuario } from "../models/Usuario"
 import { IProfile, Profile } from "../models/Profile"
 import mongoose, { Types } from "mongoose"
-import { IMuseu, Museu } from "../models"
+import { Declaracoes, IMuseu, Museu } from "../models"
 import HTTPError from "../utils/error"
 import { z } from "zod"
 import { sendEmail } from "../emails"
@@ -10,6 +10,7 @@ import minioClient from "../db/minioClient"
 import { randomUUID } from "crypto"
 import { DataUtils } from "../utils/dataUtils"
 import config from "../config"
+import { Status } from "../enums/Status"
 
 const usuarioExternoSchema = z.object({
   nome: z.string().min(1, "O nome é obrigatório."),
@@ -38,37 +39,13 @@ export class UsuarioService {
     senha: string
     arquivo: Express.Multer.File
   }) {
-    // Valida museus
-    const museusValidos: string[] = []
-    const erros: { museuId: string; message: string }[] = []
-
-    for (const id of museus) {
-      if (!id.match(/^[a-fA-F0-9]{24}$/)) {
-        erros.push({ museuId: id, message: "ID do museu inválido." })
-        continue
-      }
-
-      const museu = await Museu.findById(id)
-
-      if (!museu) {
-        erros.push({ museuId: id, message: "Museu não encontrado." })
-        continue
-      }
-
-      museusValidos.push(id)
-    }
-
-    if (erros.length > 0) {
-      throw new HTTPError(
-        `Falha ao associar museus: ${JSON.stringify(erros)}`,
-        500
-      )
-    }
+    // Valida perfil
     const perfil = await Profile.findOne({ name: profile })
     if (!perfil) {
       throw new HTTPError("Tipo de perfil de usuário não encontrado.", 404)
     }
-
+  
+    // Upload do arquivo para o Minio
     const documentoComprobatorio = `documentos/${email}/${randomUUID()}/${arquivo.originalname}`
     await minioClient.putObject(
       "inbcm",
@@ -79,7 +56,8 @@ export class UsuarioService {
         "Content-Type": arquivo.mimetype
       }
     )
-
+  
+    // Criação do usuário
     const senhaHash = await argon2.hash(senha)
     const novoUsuario = new Usuario({
       nome,
@@ -88,20 +66,17 @@ export class UsuarioService {
       senha: senhaHash,
       profile: perfil._id,
       situacao: SituacaoUsuario.ParaAprovar,
-      museus: museusValidos,
       documentoComprobatorio
     })
-
+  
     await novoUsuario.save()
-
-    await Museu.updateMany(
-      { _id: { $in: museusValidos } },
-      { $addToSet: { usuario: novoUsuario._id } }
-    )
-
-    // Envio e-mail para o usuário solicitante
+  
+    const usuarioId = (novoUsuario._id as Types.ObjectId).toString()
+    await this.vincularMuseusAoUsuario(usuarioId, museus)
+  
+    // Envio de e-mail para o usuário solicitante
     await sendEmail("solicitar-acesso", email, { name: nome })
-
+  
     // Envio de e-mail para os administradores informando novo usuário solicitando acesso
     const usuarios = await Usuario.find({ ativo: true }).populate<{
       profile: IProfile
@@ -109,6 +84,7 @@ export class UsuarioService {
     const emails = usuarios
       .filter((usuario) => usuario.profile?.name === "admin")
       .map((usuario) => usuario.email)
+  
     const urlGestaoUsuario = `${config.ADMIN_SITE_URL}/usuarios`
     const horario = `${DataUtils.gerarDataFormatada()} às ${DataUtils.gerarHoraFormatada()}`
     await sendEmail("novo-usuario-admin", emails, {
@@ -117,9 +93,10 @@ export class UsuarioService {
       horario,
       url: urlGestaoUsuario
     })
-
+  
     return novoUsuario
   }
+  
 
   static async validarUsuarioExternoDeclarant({
     nome,
@@ -365,15 +342,7 @@ export class UsuarioService {
    * @param profile ID do perfil do usuário.
    * @param especialidadeAnalista Tipo de analista (opcional).
    */
-  static async criarUsuario({
-    nome,
-    email,
-    senha,
-    cpf,
-    profile,
-    especialidadeAnalista,
-    museus
-  }: {
+  static async criarUsuario({ nome, email, senha, cpf, profile, especialidadeAnalista, museus }: {
     nome: string
     email: string
     senha: string
@@ -382,35 +351,9 @@ export class UsuarioService {
     especialidadeAnalista?: string[]
     museus: string[]
   }) {
-    const session = await mongoose.startSession()
-    session.startTransaction()
-
     try {
       const senhaHash = await argon2.hash(senha)
-
-      // Valida museus
-      const museusValidos: string[] = []
-      const erros: { museuId: string; message: string }[] = []
-
-      for (const id of museus) {
-        if (!id.match(/^[a-fA-F0-9]{24}$/)) {
-          erros.push({ museuId: id, message: "ID do museu inválido." })
-          continue
-        }
-
-        const museu = await Museu.findById(id).session(session)
-        if (!museu) {
-          erros.push({ museuId: id, message: "Museu não encontrado." })
-          continue
-        }
-
-        museusValidos.push(id)
-      }
-
-      if (erros.length > 0) {
-        throw new Error(`Falha ao associar museus: ${JSON.stringify(erros)}`)
-      }
-
+  
       const novoUsuario = new Usuario({
         nome,
         email,
@@ -419,27 +362,21 @@ export class UsuarioService {
         cpf,
         situacao: SituacaoUsuario.Ativo,
         especialidadeAnalista,
-        museus: museusValidos
+        museus: []
       })
-
-      await novoUsuario.save({ session })
-
-      await Museu.updateMany(
-        { _id: { $in: museusValidos } },
-        { $addToSet: { usuario: novoUsuario._id } },
-        { session }
-      )
-
-      await session.commitTransaction()
-      session.endSession()
-
+  
+      await novoUsuario.save()
+  
+      const usuarioId = (novoUsuario._id as Types.ObjectId).toString()
+      await UsuarioService.vincularMuseusAoUsuario(usuarioId, museus)
+      
+  
       return novoUsuario
     } catch (error) {
-      await session.abortTransaction()
-      session.endSession()
       throw error
     }
   }
+  
 
   /**
    * Função para paginar resultados de consultas.
@@ -489,4 +426,84 @@ export class UsuarioService {
 
     return usuarios
   }
+
+  static async vincularMuseusAoUsuario(usuarioId: string, museuIds: string[]) {
+    const usuario = await Usuario.findById(usuarioId)
+    if (!usuario) {
+      throw new HTTPError("Usuário não encontrado.", 404)
+    }
+
+    for (const museuId of museuIds) {
+      if (!Types.ObjectId.isValid(museuId)) continue
+
+      const museu = await Museu.findById(museuId)
+      if (!museu) continue
+
+      const userObjectId = new Types.ObjectId(usuarioId)
+
+      if (!museu.usuario.some((u) => u.equals(userObjectId))) {
+        museu.usuario.push(userObjectId)
+        await museu.save()
+      }
+
+      if (!usuario.museus.some((m) => m.equals(museuId))) {
+        usuario.museus.push(museuId)
+      }
+    }
+
+    await usuario.save()
+    return usuario
+  }
+
+  static async desvincularMuseusDoUsuario(usuarioId: string, museuIds: string[]) {
+    const usuario = await Usuario.findById(usuarioId)
+    if (!usuario) {
+      throw new HTTPError("Usuário não encontrado.", 404)
+    }
+  
+    const userObjectId = new Types.ObjectId(usuarioId)
+  
+    for (const museuId of museuIds) {
+      if (!Types.ObjectId.isValid(museuId)) continue
+  
+      const museu = await Museu.findById(museuId)
+      if (!museu) continue
+  
+    
+      const declaracoesComUsuario = await Declaracoes.find({
+        museu_id: museu._id,
+        status: { $in: [Status.Recebida, Status.EmAnalise] },
+        $or: [
+          { responsavelEnvio: userObjectId },
+          { "museologico.usuario": userObjectId },
+          { "arquivistico.usuario": userObjectId },
+          { "bibliografico.usuario": userObjectId }
+        ]
+      })
+  
+      if (declaracoesComUsuario.length > 0) {
+        throw new HTTPError(
+          `Não é possível desvincular o usuário do museu ${museu.nome} pois há declarações em análise associadas a ele.`,
+          400
+        )
+      }
+  
+    
+      if (Array.isArray(museu.usuario)) {
+        museu.usuario = museu.usuario.filter((id) => !id.equals(userObjectId))
+        await museu.save()
+      }
+  
+    
+      const museuObjectId = new Types.ObjectId(museuId)
+      usuario.museus = usuario.museus.filter(
+        (id) => id.toString() !== museuObjectId.toString()
+      )
+    }
+  
+    await usuario.save()
+    return usuario
+  }
+  
+  
 }
