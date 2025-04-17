@@ -222,43 +222,47 @@ class UsuarioController {
         return res.status(404).json({ message: "Usuário não encontrado." })
       }
 
-      if (situacao !== undefined && situacao === SituacaoUsuario.Inativo) {
-        const declaracoesUsuario = await Declaracoes.find({
-          responsavelEnvio: id,
-          ultimaDeclaracao: true,
-          status: { $ne: "Excluída" }
-        })
-        if (declaracoesUsuario.length > 0) {
-          throw new HTTPError(
-            "Não é possível inativar o usuário porque ele está vinculado a declarações.",
-            400
-          )
-        }
-      }
-
       if (situacao !== undefined) {
         if (!Object.values(SituacaoUsuario).includes(situacao)) {
           throw new HTTPError("Situação do usuário inválida.", 400)
         }
+      
         if (situacao === SituacaoUsuario.Inativo) {
           const declaracoesUsuario = await Declaracoes.find({
-            responsavelEnvio: id,
-            ultimaDeclaracao: true,
-            status: { $ne: "Excluída" }
+            ultimaDeclaracao: true,              
+            status: { $ne: "Excluída" },           
+            $or: [
+              { responsavelEnvio: id },           
+              { "museologico.usuario": id },      
+              { "arquivistico.usuario": id },     
+              { "bibliografico.usuario": id }     
+            ]
           })
-          if (declaracoesUsuario.length > 0) {
+        
+        
+          const declaracaoEmAnalise = declaracoesUsuario.some(declaracao => declaracao.status === Status.EmAnalise)
+        
+          if (declaracaoEmAnalise) {
             throw new HTTPError(
-              "Usuário vinculado a declarações não pode ser inativado.",
+              "Usuário vinculado a declarações em análise não pode ser inativado.",
               400
             )
           }
+        
+
+          await UsuarioService.desvincularMuseusDoUsuario(id, usuario.museus.map(m => m.toString()))
         }
-        // if (situacao === SituacaoUsuario.Ativo) {
-        //   usuario.senha = await argon2.hash("1234")
-        // }
+        
+      
+        if (situacao === SituacaoUsuario.NaoAprovado) {
+          if (desvincularMuseus && Array.isArray(desvincularMuseus)) {
+            await UsuarioService.desvincularMuseusDoUsuario(id, desvincularMuseus)
+          }
+        }
+      
         usuario.situacao = situacao
       }
-
+      
       if (nome) usuario.nome = nome
       if (email) usuario.email = email
       if (senha) usuario.senha = await argon2.hash(senha)
@@ -280,51 +284,13 @@ class UsuarioController {
       }
 
       if (museus && Array.isArray(museus)) {
-        for (const museuId of museus) {
-          if (!Types.ObjectId.isValid(museuId)) continue
-
-          const museu = await Museu.findById(museuId)
-          if (!museu) continue
-
-          const objectId = new Types.ObjectId(id)
-          if (!museu.usuario.some((userId) => userId.equals(objectId))) {
-            museu.usuario.push(objectId)
-            await museu.save()
-          }
-
-          if (!usuario.museus.some((mId) => mId.equals(museuId))) {
-            usuario.museus.push(museuId)
-          }
-        }
+        await UsuarioService.vincularMuseusAoUsuario(id, museus)
       }
-
+      
       if (desvincularMuseus && Array.isArray(desvincularMuseus)) {
-        for (const museuId of desvincularMuseus) {
-          if (!Types.ObjectId.isValid(museuId)) continue
-
-          const museu = await Museu.findById(museuId)
-          if (!museu) continue
-
-          if (!museu.usuario.some((userId) => userId.equals(id))) continue
-
-          const declaracoesVinculadas = await Declaracoes.find({
-            museu: museuId,
-            status: { $in: [Status.Recebida, Status.EmAnalise] }
-          })
-
-          if (declaracoesVinculadas.length > 0) {
-            throw new HTTPError(
-              "Não é possível desvincular o usuário devido a declarações pendentes.",
-              400
-            )
-          }
-
-          museu.usuario = museu.usuario.filter((userId) => !userId.equals(id))
-          await museu.save()
-
-          usuario.museus = usuario.museus.filter((mId) => !mId.equals(museuId))
-        }
+        await UsuarioService.desvincularMuseusDoUsuario(id, desvincularMuseus)
       }
+      
 
       if (especialidadeAnalista) {
         const perfilAtual = await Profile.findById(usuario.profile)
