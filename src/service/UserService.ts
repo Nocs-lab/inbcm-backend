@@ -222,7 +222,8 @@ export class UsuarioService {
       senha: senhaHash,
       profile: perfil._id,
       situacao: SituacaoUsuario.ParaAprovar,
-      especialidadeAnalista
+      especialidadeAnalista,
+      documentoComprobatorio
     })
 
     await novoUsuario.save()
