@@ -33,8 +33,6 @@ class AnoDeclaracaoController {
         dataFimRetificacao,
         metaDeclaracoesEnviadas,
         diasAlertaPrazo,
-        quantidadeLembretesEmail,
-        intervaloLembretesEmail
       } = req.body
 
       // Usando o helper DataUtils para formatar as datas
@@ -66,8 +64,6 @@ class AnoDeclaracaoController {
         dataFimRetificacao: dataFimRetificacaoFormatada,
         metaDeclaracoesEnviadas,
         diasAlertaPrazo,
-        quantidadeLembretesEmail,
-        intervaloLembretesEmail
       })
 
       await anoDeclaracao.save()
@@ -214,8 +210,6 @@ class AnoDeclaracaoController {
         dataFimRetificacao,
         metaDeclaracoesEnviadas,
         diasAlertaPrazo,
-        quantidadeLembretesEmail,
-        intervaloLembretesEmail
       } = req.body
 
       // Validação para não ser possível alterar o ano de um modelo com declaração vinculada
@@ -257,8 +251,6 @@ class AnoDeclaracaoController {
           dataFimRetificacao: dataFimRetificacaoFormatada,
           metaDeclaracoesEnviadas,
           diasAlertaPrazo,
-          quantidadeLembretesEmail,
-          intervaloLembretesEmail
         },
         { new: true }
       )
