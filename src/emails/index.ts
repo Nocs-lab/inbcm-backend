@@ -4,12 +4,14 @@ import nodemailer from "nodemailer"
 import Pulse from "@pulsecron/pulse"
 
 type Templates = {
-  "forgot-password": { url: string }
-  "solicitar-acesso": { name: string }
-  "novo-usuario-admin": {nome: string, email: string, horario: string, url: string}
+  "forgot-password": { url:string }
+  "solicitar-acesso": { name:string }
+  "novo-usuario-admin": {nome:string, email:string, horario:string, url:string}
   "reprovacao-cadastro-usuario": {nome:string}
   "confirmacao-envio-declaracao" : {url:string, horario:string, response:object, museu:object, anoReferencia:number}
   "confirmacao-retificacao-declaracao" : {url:string, horario:string, response:object, museu:object, anoReferencia:number, hashOriginal:string}
+  "declaracao-em-conformidade": { dataAtual:string, hash:string, url:string,museu:string}
+  "declaracao-nao-conformidade": { dataAtual:string, hash:string, url:string,museu:string}
 }
 
 const pulse = new Pulse({
@@ -33,6 +35,8 @@ const subjects: Record<
   "reprovacao-cadastro-usuario": () => "[INBCM] Seu acesso ao INBCM foi reprovado.",
   "confirmacao-envio-declaracao": () => "[INBCM] Sua declaração foi recebida com sucesso!",
   "confirmacao-retificacao-declaracao": () => "[INBCM] Sua declaração retificadora foi recebida com sucesso!",
+  "declaracao-em-conformidade": () => "[INBCM] Atualização na situação de declaração para conforme!",
+  "declaracao-nao-conformidade": () => "[INBCM] Atualização na situação de declaração para não conforme",
 }
 
 const transporter = nodemailer.createTransport({
