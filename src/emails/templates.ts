@@ -704,6 +704,238 @@ templates["confirmacao-retificacao-declaracao"] = template({
   usePartial: true,
   useData: true
 })
+templates["declaracao-em-conformidade"] = template({
+  "1": function (container, depth0, helpers, partials, data) {
+    var helper,
+      alias1 = depth0 != null ? depth0 : container.nullContext || {},
+      alias2 = container.hooks.helperMissing,
+      alias3 = "function",
+      alias4 = container.escapeExpression,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (
+      '\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Olá prezado(a),</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Sua declaração passou por uma nova análise e a situação foi atualizada para <strong>Em Conformidade</strong></p>\n\n<table style="font-family: Helvetica, sans-serif; font-size: 16px; border-collapse: collapse; width: 100%;">\n  <tr>\n    <td style=" padding: 8px; border: 1px solid #ddd;">Código da declaração:</td>\n    <td style="padding: 8px; border: 1px solid #ddd; word-wrap: break-word; max-width: 200px;">\n      ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "hash") ||
+            (depth0 != null ? lookupProperty(depth0, "hash") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "hash",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 13, column: 6 },
+                end: { line: 13, column: 14 }
+              }
+            })
+          : helper)
+      ) +
+      '\n    </td>\n  </tr>\n  <tr>\n    <td style=" padding: 8px; border: 1px solid #ddd;">Data da atualização:</td>\n    <td style="padding: 8px; border: 1px solid #ddd;">' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "dataAtual") ||
+            (depth0 != null ? lookupProperty(depth0, "dataAtual") : depth0)) !=
+          null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "dataAtual",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 18, column: 54 },
+                end: { line: 18, column: 67 }
+              }
+            })
+          : helper)
+      ) +
+      '</td>\n  </tr>\n</table>\n\n<br><p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Para acompanhar a situação da sua declaração, acesse o nosso portal:</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "url") ||
+            (depth0 != null ? lookupProperty(depth0, "url") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "url",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 26, column: 2 },
+                end: { line: 26, column: 9 }
+              }
+            })
+          : helper)
+      ) +
+      '</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Atenciosamente,</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Equipe INBCM</p>\n\n'
+    )
+  },
+  compiler: [8, ">= 4.3.0"],
+  main: function (container, depth0, helpers, partials, data) {
+    var stack1,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (stack1 = container.invokePartial(
+      lookupProperty(partials, "layout"),
+      depth0,
+      {
+        name: "layout",
+        hash: {
+          title:
+            "[INBCM] Atualização na situação de declaração para em conforme."
+        },
+        fn: container.program(1, data, 0),
+        inverse: container.noop,
+        data: data,
+        helpers: helpers,
+        partials: partials,
+        decorators: container.decorators
+      }
+    )) != null
+      ? stack1
+      : ""
+  },
+  usePartial: true,
+  useData: true
+})
+templates["declaracao-nao-conformidade"] = template({
+  "1": function (container, depth0, helpers, partials, data) {
+    var helper,
+      alias1 = depth0 != null ? depth0 : container.nullContext || {},
+      alias2 = container.hooks.helperMissing,
+      alias3 = "function",
+      alias4 = container.escapeExpression,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (
+      '\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Olá prezado(a),</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Sua declaração passou por uma nova análise e a situação foi atualizada para <strong>Não conformidade</strong></p>\n\n<table style="font-family: Helvetica, sans-serif; font-size: 16px; border-collapse: collapse; width: 100%;">\n  <tr>\n    <td style=" padding: 8px; border: 1px solid #ddd;">Código da declaração:</td>\n    <td style="padding: 8px; border: 1px solid #ddd; word-wrap: break-word; max-width: 200px;">\n      ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "hash") ||
+            (depth0 != null ? lookupProperty(depth0, "hash") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "hash",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 13, column: 6 },
+                end: { line: 13, column: 14 }
+              }
+            })
+          : helper)
+      ) +
+      '\n    </td>\n  </tr>\n  <tr>\n    <td style=" padding: 8px; border: 1px solid #ddd;">Data da atualização:</td>\n    <td style="padding: 8px; border: 1px solid #ddd;">' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "dataAtual") ||
+            (depth0 != null ? lookupProperty(depth0, "dataAtual") : depth0)) !=
+          null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "dataAtual",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 18, column: 54 },
+                end: { line: 18, column: 67 }
+              }
+            })
+          : helper)
+      ) +
+      '</td>\n  </tr>\n</table></br>\n\n<br><p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Para acompanhar a situação da sua declaração, acesse o nosso portal:</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "url") ||
+            (depth0 != null ? lookupProperty(depth0, "url") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "url",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 26, column: 2 },
+                end: { line: 26, column: 9 }
+              }
+            })
+          : helper)
+      ) +
+      '</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Atenciosamente,</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Equipe INBCM</p>\n\n'
+    )
+  },
+  compiler: [8, ">= 4.3.0"],
+  main: function (container, depth0, helpers, partials, data) {
+    var stack1,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (stack1 = container.invokePartial(
+      lookupProperty(partials, "layout"),
+      depth0,
+      {
+        name: "layout",
+        hash: {
+          title:
+            "[INBCM] Atualização na situação de declaração para não conforme."
+        },
+        fn: container.program(1, data, 0),
+        inverse: container.noop,
+        data: data,
+        helpers: helpers,
+        partials: partials,
+        decorators: container.decorators
+      }
+    )) != null
+      ? stack1
+      : ""
+  },
+  usePartial: true,
+  useData: true
+})
 templates["forgot-password"] = template({
   "1": function (container, depth0, helpers, partials, data) {
     var stack1,
