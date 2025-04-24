@@ -89,7 +89,6 @@ export async function buscaDeclaracao(declaracaoId: mongoose.Types.ObjectId) {
     )
   }
 
-  console.log("Museu populado:", JSON.stringify(declaracao.museu_id, null, 2))
 
   return declaracao
 }
