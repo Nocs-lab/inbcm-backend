@@ -35,6 +35,8 @@ import {
 import HTTPError from "../utils/error"
 
 import { AnoDeclaracao, AnoDeclaracaoModel } from "../models/AnoDeclaracao"
+import { sendEmail } from "../emails"
+import config from "../config"
 
 class DeclaracaoService {
   async showCards(declaracoes: DeclaracaoModel[]) {
@@ -1001,6 +1003,17 @@ class DeclaracaoService {
       )
       const timeLineAnterior = declaracao?.timeLine || []
       let novoEvento: { nomeEvento: string; dataEvento: Date; autorEvento: string; profileName: string; enumName: string } | null = null;
+      // Setup e-mail
+      const dataAtual = DataUtils.gerarDataHoraExtenso()
+      const urlAprovada = `${config.PUBLIC_SITE_URL}`
+      const museuEmail = await Museu.findById(declaracao.museu_id)
+      if (!museuEmail) {
+        throw new HTTPError("Museu não encontrado", 404)
+      }
+      const emailsDeclarantsIds = museuEmail.usuario
+      const usuarios = await Usuario.find({ _id: { $in: emailsDeclarantsIds } })
+      const emailDeclarants = usuarios.map(usuario => usuario.email)
+
 
       // Atualizar o status da declaração
       if (todosFinalizados) {
@@ -1008,7 +1021,7 @@ class DeclaracaoService {
         if (todosStatus.every((status) => status === Status.EmConformidade)) {
           declaracao.status = Status.EmConformidade
           declaracao.dataFimAnalise = DataUtils.getCurrentData()
-
+          // Evento para timeline
           novoEvento = {
             nomeEvento: Eventos.FinalizacaoAnalise + ` para "Em conformidade"`,
             dataEvento: DataUtils.getCurrentData(),
@@ -1016,11 +1029,19 @@ class DeclaracaoService {
             profileName: 'analyst',
             enumName: "FinalizacaoAnalise"
           }
+          // Envio de e-mail para situação em conformidade
+          await sendEmail("declaracao-em-conformidade", emailDeclarants, {
+              dataAtual: dataAtual,
+              hash: declaracao.hashDeclaracao,
+              url: urlAprovada,
+              museu: declaracao.museu_nome
+          })
+
         } else {
           // Caso contrário, a declaração deve ser "Não Conformidade" se houver algum bem "Não Conformidade"
           declaracao.status = Status.NaoConformidade
           declaracao.dataFimAnalise = DataUtils.getCurrentData()
-
+          // Evento para timeline
           novoEvento = {
             nomeEvento: Eventos.FinalizacaoAnalise + ` para "Não conformidade"`,
             dataEvento: DataUtils.getCurrentData(),
@@ -1028,6 +1049,14 @@ class DeclaracaoService {
             profileName: 'analyst',
             enumName: "FinalizacaoAnalise"
           }
+
+          // Envio de email para não conformidade
+          await sendEmail("declaracao-nao-conformidade", emailDeclarants, {
+            dataAtual: dataAtual,
+            hash: declaracao.hashDeclaracao,
+            url: urlAprovada,
+            museu: declaracao.museu_nome
+          })
         }
       }
 
@@ -1148,24 +1177,24 @@ class DeclaracaoService {
           select: ["_id", "ano"]
         })
         .exec();
-  
+
       const declaracoesFiltradas = declaracoesExistentes.filter(
         (declaracao) => declaracao.anoDeclaracao !== null
       );
-  
+
       // Se não houver declarações, retorna array vazio em vez de lançar erro
       if (declaracoesFiltradas.length === 0) {
         return [];
       }
-  
+
       const anos = declaracoesFiltradas.map(
         (declaracao) => declaracao.anoDeclaracao
       ) as unknown as { _id: mongoose.Types.ObjectId; ano: number }[];
-  
+
       const anoDeclaracaoIds = declaracoesFiltradas.map(
         (declaracao) => declaracao.anoDeclaracao._id
       );
-  
+
       const agregacao = await Declaracoes.aggregate([
         {
           $match: {
@@ -1207,7 +1236,7 @@ class DeclaracaoService {
         },
         { $sort: { anoDeclaracao: 1 } }
       ]);
-  
+
       const result = agregacao.map((item) => {
         const ano = anos.find((ano) => ano._id.equals(item.anoDeclaracao));
         return {
@@ -1215,7 +1244,7 @@ class DeclaracaoService {
           ano: ano?.ano
         };
       });
-  
+
       return result;
     } catch (error) {
       logger.error("Erro no getItensPorAnoETipo:", error);
