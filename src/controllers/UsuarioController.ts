@@ -91,6 +91,7 @@ class UsuarioController {
   }
 
   async registerUsuario(req: Request, res: Response) {
+  
     const { nome, email, senha, cpf, profile, especialidadeAnalista, museus } =
       req.body
 
@@ -143,6 +144,7 @@ class UsuarioController {
   }
 
   async getUsuarios(req: Request, res: Response) {
+
     try {
       const { perfil } = req.query
 
@@ -170,7 +172,7 @@ class UsuarioController {
 
   async getUsuarioPorId(req: Request, res: Response) {
     const { id } = req.params
-
+    
     try {
       const usuario = await Usuario.findById(id)
         .populate("museus")
@@ -187,6 +189,7 @@ class UsuarioController {
 
   async getUsuario(req: Request, res: Response) {
     const userId = req.user?.id
+  
 
     try {
       const usuario = await Usuario.findById(userId)
@@ -203,6 +206,7 @@ class UsuarioController {
   }
 
   async atualizarUsuario(req: Request, res: Response) {
+  
     try {
       const { id } = req.params
       const {
@@ -250,13 +254,13 @@ class UsuarioController {
           }
         
 
-          await UsuarioService.desvincularMuseusDoUsuario(id, usuario.museus.map(m => m.toString()))
+          await UsuarioService.desvincularMuseusDoUsuario(usuario, usuario.museus.map((m: any) => m.toString()))
         }
         
       
         if (situacao === SituacaoUsuario.NaoAprovado) {
           if (desvincularMuseus && Array.isArray(desvincularMuseus)) {
-            await UsuarioService.desvincularMuseusDoUsuario(id, desvincularMuseus)
+            await UsuarioService.desvincularMuseusDoUsuario(usuario, desvincularMuseus)
           }
         }
       
@@ -284,11 +288,11 @@ class UsuarioController {
       }
 
       if (museus && Array.isArray(museus)) {
-        await UsuarioService.vincularMuseusAoUsuario(id, museus)
+        await UsuarioService.vincularMuseusAoUsuario(usuario, museus)
       }
       
       if (desvincularMuseus && Array.isArray(desvincularMuseus)) {
-        await UsuarioService.desvincularMuseusDoUsuario(id, desvincularMuseus)
+        await UsuarioService.desvincularMuseusDoUsuario(usuario, desvincularMuseus)
       }
       
 
@@ -411,6 +415,7 @@ class UsuarioController {
   }
 
   async getUsersByProfile(req: Request, res: Response) {
+  
     const { profileId } = req.params
 
     try {

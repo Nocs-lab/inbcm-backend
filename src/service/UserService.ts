@@ -427,41 +427,29 @@ export class UsuarioService {
     return usuarios
   }
 
-  static async vincularMuseusAoUsuario(usuarioId: string, museuIds: string[]) {
-    const usuario = await Usuario.findById(usuarioId)
-    if (!usuario) {
-      throw new HTTPError("Usuário não encontrado.", 404)
-    }
-
+  static async vincularMuseusAoUsuario(usuario: any, museuIds: string[]) {
     for (const museuId of museuIds) {
       if (!Types.ObjectId.isValid(museuId)) continue
-
+  
       const museu = await Museu.findById(museuId)
       if (!museu) continue
-
-      const userObjectId = new Types.ObjectId(usuarioId)
-
+  
+      const userObjectId = usuario._id
+  
       if (!museu.usuario.some((u) => u.equals(userObjectId))) {
         museu.usuario.push(userObjectId)
         await museu.save()
       }
-
-      if (!usuario.museus.some((m) => m.equals(museuId))) {
-        usuario.museus.push(museuId)
+  
+      const museuObjectId = new Types.ObjectId(museuId)
+      if (!usuario.museus.some((m: { equals: (arg0: Types.ObjectId) => any }) => m.equals(museuObjectId))) {
+        usuario.museus.push(museuObjectId)
       }
     }
-
-    await usuario.save()
-    return usuario
   }
-
-  static async desvincularMuseusDoUsuario(usuarioId: string, museuIds: string[]) {
-    const usuario = await Usuario.findById(usuarioId)
-    if (!usuario) {
-      throw new HTTPError("Usuário não encontrado.", 404)
-    }
   
-    const userObjectId = new Types.ObjectId(usuarioId)
+  static async desvincularMuseusDoUsuario(usuario: any, museuIds: string[]) {
+    const userObjectId = usuario._id
   
     for (const museuId of museuIds) {
       if (!Types.ObjectId.isValid(museuId)) continue
@@ -469,7 +457,6 @@ export class UsuarioService {
       const museu = await Museu.findById(museuId)
       if (!museu) continue
   
-    
       const declaracoesComUsuario = await Declaracoes.find({
         museu_id: museu._id,
         status: { $in: [Status.Recebida, Status.EmAnalise] },
@@ -488,22 +475,21 @@ export class UsuarioService {
         )
       }
   
-    
       if (Array.isArray(museu.usuario)) {
         museu.usuario = museu.usuario.filter((id) => !id.equals(userObjectId))
         await museu.save()
       }
   
-    
       const museuObjectId = new Types.ObjectId(museuId)
       usuario.museus = usuario.museus.filter(
-        (id) => id.toString() !== museuObjectId.toString()
+        (id: { equals: (arg0: Types.ObjectId) => any }) => !id.equals(museuObjectId)
       )
     }
   
-    await usuario.save()
+    
     return usuario
   }
+  
   
   
 }
