@@ -2,16 +2,19 @@ import config from "../config"
 import templates from "./templates"
 import nodemailer from "nodemailer"
 import Pulse from "@pulsecron/pulse"
+import { UsuarioService } from "../service/UserService"
 
 type Templates = {
-  "forgot-password": { url:string }
-  "solicitar-acesso": { name:string }
-  "novo-usuario-admin": {nome:string, email:string, horario:string, url:string}
+  "forgot-password": { url: string }
+  "solicitar-acesso": { name: string }
+  "novo-usuario-admin": {nome: string, email: string, horario: string, url: string}
   "reprovacao-cadastro-usuario": {nome:string}
   "confirmacao-envio-declaracao" : {url:string, horario:string, response:object, museu:object, anoReferencia:number}
   "confirmacao-retificacao-declaracao" : {url:string, horario:string, response:object, museu:object, anoReferencia:number, hashOriginal:string}
   "declaracao-em-conformidade": { dataAtual:string, hash:string, url:string,museu:string}
   "declaracao-nao-conformidade": { dataAtual:string, hash:string, url:string,museu:string}
+  "prazo-declaracao" : {dataFim: string, diasFim: number, anoReferencia: number}
+  "prazo-retificacao" : {dataFim: string, diasFim: number, anoReferencia: number}
 }
 
 const pulse = new Pulse({
@@ -37,6 +40,8 @@ const subjects: Record<
   "confirmacao-retificacao-declaracao": () => "[INBCM] Sua declaração retificadora foi recebida com sucesso!",
   "declaracao-em-conformidade": () => "[INBCM] Atualização na situação de declaração para conforme!",
   "declaracao-nao-conformidade": () => "[INBCM] Atualização na situação de declaração para não conforme",
+  "prazo-declaracao": () => "[INBCM] Prazo para envio de declaração",
+  "prazo-retificacao": () => "[INBCM] Prazo para retificação de declaração"
 }
 
 const transporter = nodemailer.createTransport({
@@ -72,10 +77,46 @@ pulse.define<{
   )
 })
 
+pulse.define<{
+  template: keyof Templates
+  data: Templates[keyof Templates]
+}>("send-email-to-all", async (job) => {
+  const { template, data } = job.attrs.data
+
+  const users = await UsuarioService.buscarUsuarios()
+
+  await transporter.sendMail({
+    from: config.EMAIL_FROM,
+    to: users.map((user) => user.email),
+    subject: subjects[template](data),
+    html: templates[template]({
+      ...data,
+      logoUrl: `${config.PUBLIC_SITE_URL}/logo-ibram.png`
+    })
+  })
+})
+
 export function sendEmail(
   template: keyof Templates,
   to: string | string[], // Aceita string ou array de strings
   data: Templates[typeof template]
 ) {
   return pulse.now("send-email", { template, to, data })
+}
+
+export function sheduleEmail(
+  template: keyof Templates,
+  to: string | string[], // Aceita string ou array de strings
+  data: Templates[typeof template],
+  date: Date
+) {
+  return pulse.schedule(date, "send-email", { template, to, data })
+}
+
+export function sheduleEmailToAll(
+  template: keyof Templates,
+  data: Templates[typeof template],
+  date: Date
+) {
+  return pulse.schedule(date, "send-email-to-all", { template, data })
 }
