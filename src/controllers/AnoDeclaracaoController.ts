@@ -2,6 +2,7 @@ import { Request, Response } from "express"
 import { AnoDeclaracao } from "../models/AnoDeclaracao"
 import logger from "../utils/logger"
 import { DataUtils } from "../utils/dataUtils"
+import { sheduleEmailToAll } from "../emails"
 
 class AnoDeclaracaoController {
   /**
@@ -66,7 +67,50 @@ class AnoDeclaracaoController {
         diasAlertaPrazo,
       })
 
-      await anoDeclaracao.save()
+      await Promise.all([
+        sheduleEmailToAll(
+          "prazo-declaracao",
+          { anoReferencia: ano, dataFim: dataFimSubmissaoFormatada, diasFim: 30 },
+          new Date(new Date(dataInicioSubmissaoFormatada).getTime() - 30 * 24 * 60 * 60 * 1000)
+        ),
+        sheduleEmailToAll(
+          "prazo-retificacao",
+          { anoReferencia: ano, dataFim: dataFimRetificacaoFormatada, diasFim: 30 },
+          new Date(new Date(dataInicioRetificacaoFormatada).getTime() - 30 * 24 * 60 * 60 * 1000)
+        ),
+        sheduleEmailToAll(
+          "prazo-declaracao",
+          { anoReferencia: ano, dataFim: dataFimSubmissaoFormatada, diasFim: 15 },
+          new Date(new Date(dataInicioSubmissaoFormatada).getTime() - 15 * 24 * 60 * 60 * 1000)
+        ),
+        sheduleEmailToAll(
+          "prazo-retificacao",
+          { anoReferencia: ano, dataFim: dataFimRetificacaoFormatada, diasFim: 15 },
+          new Date(new Date(dataInicioRetificacaoFormatada).getTime() - 15 * 24 * 60 * 60 * 1000)
+        ),
+        sheduleEmailToAll(
+          "prazo-declaracao",
+          { anoReferencia: ano, dataFim: dataFimSubmissaoFormatada, diasFim: 7 },
+          new Date(new Date(dataInicioSubmissaoFormatada).getTime() - 7 * 24 * 60 * 60 * 1000)
+        ),
+        sheduleEmailToAll(
+          "prazo-retificacao",
+          { anoReferencia: ano, dataFim: dataFimRetificacaoFormatada, diasFim: 7 },
+          new Date(new Date(dataInicioRetificacaoFormatada).getTime() - 7 * 24 * 60 * 60 * 1000)
+        ),
+        sheduleEmailToAll(
+          "prazo-declaracao",
+          { anoReferencia: ano, dataFim: dataFimSubmissaoFormatada, diasFim: 1 },
+          new Date(new Date(dataInicioSubmissaoFormatada).getTime() - 1 * 24 * 60 * 60 * 1000)
+        ),
+        sheduleEmailToAll(
+          "prazo-retificacao",
+          { anoReferencia: ano, dataFim: dataFimRetificacaoFormatada, diasFim: 1 },
+          new Date(new Date(dataInicioRetificacaoFormatada).getTime() - 1 * 24 * 60 * 60 * 1000)
+        ),
+        anoDeclaracao.save()
+      ])
+
       return res.status(201).json(anoDeclaracao)
     } catch (error) {
       logger.error("Erro ao criar o ano de declaração:", error)
