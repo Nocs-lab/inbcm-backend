@@ -39,7 +39,32 @@ export class UsuarioService {
     senha: string
     arquivo: Express.Multer.File
   }) {
-    // Valida perfil
+    // Valida museus
+    const museusValidos: string[] = []
+    const erros: { museuId: string; message: string }[] = []
+
+    for (const id of museus) {
+      if (!id.match(/^[a-fA-F0-9]{24}$/)) {
+        erros.push({ museuId: id, message: "ID do museu inválido." })
+        continue
+      }
+
+      const museu = await Museu.findById(id)
+
+      if (!museu) {
+        erros.push({ museuId: id, message: "Museu não encontrado." })
+        continue
+      }
+
+      museusValidos.push(id)
+    }
+
+    if (erros.length > 0) {
+      throw new HTTPError(
+        `Falha ao associar museus: ${JSON.stringify(erros)}`,
+        500
+      )
+    }
     const perfil = await Profile.findOne({ name: profile })
     if (!perfil) {
       throw new HTTPError("Tipo de perfil de usuário não encontrado.", 404)
@@ -66,15 +91,18 @@ export class UsuarioService {
       senha: senhaHash,
       profile: perfil._id,
       situacao: SituacaoUsuario.ParaAprovar,
+      museus: museusValidos,
       documentoComprobatorio
     })
   
     await novoUsuario.save()
-  
-    const usuarioId = (novoUsuario._id as Types.ObjectId).toString()
-    await this.vincularMuseusAoUsuario(usuarioId, museus)
-  
-    // Envio de e-mail para o usuário solicitante
+
+    await Museu.updateMany(
+      { _id: { $in: museusValidos } },
+      { $addToSet: { usuario: novoUsuario._id } }
+    )
+
+    // Envio e-mail para o usuário solicitante
     await sendEmail("solicitar-acesso", email, { name: nome })
   
     // Envio de e-mail para os administradores informando novo usuário solicitando acesso
@@ -435,7 +463,7 @@ export class UsuarioService {
       if (!museu) continue
   
       const userObjectId = usuario._id
-  
+
       if (!museu.usuario.some((u) => u.equals(userObjectId))) {
         museu.usuario.push(userObjectId)
         await museu.save()
