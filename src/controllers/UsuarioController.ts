@@ -219,8 +219,8 @@ class UsuarioController {
         desvincularMuseus,
         cpf,
         situacao,
-        senha,
-        senhaAtual
+        senha
+        // senhaAtual
       }: UpdateUserDto = req.body
 
       const usuario = await Usuario.findById(id)
@@ -228,14 +228,14 @@ class UsuarioController {
         return res.status(404).json({ message: "Usuário não encontrado." })
       }
 
-      if (!senhaAtual) {
-        return res.status(400).json({ message: "A senha atual é obrigatória." })
-      }
+      // if (!senhaAtual) {
+      //   return res.status(400).json({ message: "A senha atual é obrigatória." })
+      // }
 
-      if (!(await argon.verify(usuario.senha, senhaAtual))) {
-        console.log(123123)
-        return res.status(401).json({ message: "Senha atual incorreta." })
-      }
+      // if (!(await argon.verify(usuario.senha, senhaAtual))) {
+      //   console.log(123123)
+      //   return res.status(401).json({ message: "Senha atual incorreta." })
+      // }
 
       if (situacao !== undefined) {
         if (!Object.values(SituacaoUsuario).includes(situacao)) {
