@@ -3,6 +3,10 @@ import { AnoDeclaracao } from "../models/AnoDeclaracao"
 import logger from "../utils/logger"
 import { DataUtils } from "../utils/dataUtils"
 import { sheduleEmailToAll } from "../emails"
+import { ObjectId } from "mongoose"
+import { registrarAuditoria } from "../utils/auditoriaUtils"
+
+
 
 class AnoDeclaracaoController {
   /**
@@ -35,7 +39,7 @@ class AnoDeclaracaoController {
         metaDeclaracoesEnviadas,
         diasAlertaPrazo,
       } = req.body
-
+  
       // Usando o helper DataUtils para formatar as datas
       const dataInicioSubmissaoFormatada = DataUtils.gerarDataHoraFormatada(
         new Date(dataInicioSubmissao)
@@ -49,14 +53,14 @@ class AnoDeclaracaoController {
       const dataFimRetificacaoFormatada = DataUtils.gerarDataHoraFormatada(
         new Date(dataFimRetificacao)
       )
-
+  
       const anoExistente = await AnoDeclaracao.findOne({ ano })
       if (anoExistente) {
         return res.status(400).json({
           message: `Já existe um ano de declaração para o ano ${ano}.`
         })
       }
-
+  
       const anoDeclaracao = new AnoDeclaracao({
         ano,
         dataInicioSubmissao: dataInicioSubmissaoFormatada,
@@ -111,6 +115,16 @@ class AnoDeclaracaoController {
         anoDeclaracao.save()
       ])
 
+      await anoDeclaracao.save()
+  
+      await registrarAuditoria({
+        usuario: req.user.id,
+        acao: 'CREATE',
+        documento: 'AnoDeclaracao',
+        documentoId:(anoDeclaracao._id as ObjectId).toString(),
+        valorNovo: anoDeclaracao.toObject(),
+      })
+
       return res.status(201).json(anoDeclaracao)
     } catch (error) {
       logger.error("Erro ao criar o ano de declaração:", error)
@@ -119,6 +133,7 @@ class AnoDeclaracaoController {
         .json({ message: "Erro ao criar o ano de declaração" })
     }
   }
+  
 
 
   /**
@@ -240,10 +255,7 @@ class AnoDeclaracaoController {
    * @throws {404} - Se o ano de declaração não for encontrado.
    * @throws {500} - Em caso de erro interno ao atualizar o ano.
    */
-  public async updateAnoDeclaracao(
-    req: Request,
-    res: Response
-  ): Promise<Response> {
+  public async updateAnoDeclaracao(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params
       const {
@@ -255,64 +267,77 @@ class AnoDeclaracaoController {
         metaDeclaracoesEnviadas,
         diasAlertaPrazo,
       } = req.body
-
-      // Validação para não ser possível alterar o ano de um modelo com declaração vinculada
+  
       const anoDeclaracao = await AnoDeclaracao.findById(id)
       if (!anoDeclaracao) {
-        return res
-          .status(404)
-          .json({ message: "Ano de declaração não encontrado" })
+        return res.status(404).json({ message: "Ano de declaração não encontrado" })
       }
-
+  
       if (anoDeclaracao.declaracaoVinculada && ano !== anoDeclaracao.ano) {
         return res.status(403).json({
-          message:
-            "Não é permitido alterar o ano quando há declarações vinculadas."
+          message: "Não é permitido alterar o ano quando há declarações vinculadas.",
         })
       }
-
-      // Convertendo as strings para objetos Date, se necessário
-      const dataInicioSubmissaoFormatada = DataUtils.gerarDataHoraFormatada(
-        new Date(dataInicioSubmissao)
-      )
-      const dataFimSubmissaoFormatada = DataUtils.gerarDataHoraFormatada(
-        new Date(dataFimSubmissao)
-      )
-      const dataInicioRetificacaoFormatada = DataUtils.gerarDataHoraFormatada(
-        new Date(dataInicioRetificacao)
-      )
-      const dataFimRetificacaoFormatada = DataUtils.gerarDataHoraFormatada(
-        new Date(dataFimRetificacao)
-      )
-
-      const updatedAnoDeclaracao = await AnoDeclaracao.findByIdAndUpdate(
-        id,
-        {
-          ano,
-          dataInicioSubmissao: dataInicioSubmissaoFormatada,
-          dataFimSubmissao: dataFimSubmissaoFormatada,
-          dataInicioRetificacao: dataInicioRetificacaoFormatada,
-          dataFimRetificacao: dataFimRetificacaoFormatada,
-          metaDeclaracoesEnviadas,
-          diasAlertaPrazo,
-        },
-        { new: true }
-      )
-
+  
+      const valorAnteriorCompleto = anoDeclaracao.toObject()
+  
+      const dadosAtualizados: any = {}
+      if (dataInicioSubmissao) dadosAtualizados.dataInicioSubmissao = DataUtils.gerarDataHoraFormatada(new Date(dataInicioSubmissao))
+      if (dataFimSubmissao) dadosAtualizados.dataFimSubmissao = DataUtils.gerarDataHoraFormatada(new Date(dataFimSubmissao))
+      if (dataInicioRetificacao) dadosAtualizados.dataInicioRetificacao = DataUtils.gerarDataHoraFormatada(new Date(dataInicioRetificacao))
+      if (dataFimRetificacao) dadosAtualizados.dataFimRetificacao = DataUtils.gerarDataHoraFormatada(new Date(dataFimRetificacao))
+      if (typeof metaDeclaracoesEnviadas !== "undefined") dadosAtualizados.metaDeclaracoesEnviadas = metaDeclaracoesEnviadas
+      if (typeof diasAlertaPrazo !== "undefined") dadosAtualizados.diasAlertaPrazo = diasAlertaPrazo
+      if (typeof ano !== "undefined") dadosAtualizados.ano = ano
+  
+      const updatedAnoDeclaracao = await AnoDeclaracao.findByIdAndUpdate(id, dadosAtualizados, { new: true })
+  
       if (!updatedAnoDeclaracao) {
-        return res
-          .status(404)
-          .json({ message: "Ano de declaração não encontrado" })
+        return res.status(404).json({ message: "Ano de declaração não encontrado" })
       }
-
+  
+      const compararCamposAlterados = (anterior: any, novo: any) => {
+        const camposIgnorados = ['createdAt', 'updatedAt', '_id', '__v']
+        const valorAnterior: any = {}
+        const valorNovo: any = {}
+  
+        for (const chave of Object.keys(novo)) {
+          if (camposIgnorados.includes(chave)) continue
+  
+          if (JSON.stringify(anterior[chave]) !== JSON.stringify(novo[chave])) {
+            valorAnterior[chave] = anterior[chave]
+            valorNovo[chave] = novo[chave]
+          }
+        }
+  
+        return { valorAnterior, valorNovo }
+      }
+  
+      const { valorAnterior, valorNovo } = compararCamposAlterados(
+        valorAnteriorCompleto,
+        updatedAnoDeclaracao.toObject()
+      )
+  
+      if (Object.keys(valorNovo).length > 0) {
+        await registrarAuditoria({
+          usuario: req.user.id,
+          acao: 'UPDATE',
+          documento: 'AnoDeclaracao',
+          documentoId: (updatedAnoDeclaracao._id as ObjectId).toString(),
+          valorAnterior,
+          valorNovo,
+        })
+      }
+  
       return res.status(200).json(updatedAnoDeclaracao)
     } catch (error) {
       logger.error("Erro ao atualizar o ano de declaração:", error)
-      return res
-        .status(500)
-        .json({ message: "Erro ao atualizar o ano de declaração" })
+      return res.status(500).json({ message: "Erro ao atualizar o ano de declaração" })
     }
   }
+  
+  
+  
 
 
   /**
@@ -345,6 +370,12 @@ class AnoDeclaracaoController {
             "Não é possível excluir este modelo, pois há uma declaração vinculada."
         })
       }
+      await registrarAuditoria({
+        usuario: req.user.id,
+        acao: 'DELETE',
+        documento: 'AnoDeclaracao',
+        documentoId:(anoDeclaracao._id as ObjectId).toString()
+      })
 
       return res
         .status(200)
