@@ -11,6 +11,7 @@ import HTTPError from "../utils/error"
 import argon2 from "@node-rs/argon2"
 import minioClient from "../db/minioClient"
 import { sendEmail } from "../emails"
+import argon from "@node-rs/argon2"
 
 class UsuarioController {
   async registerUsuarioExternoDeclarant(req: Request, res: Response) {
@@ -218,12 +219,22 @@ class UsuarioController {
         desvincularMuseus,
         cpf,
         situacao,
-        senha
+        senha,
+        senhaAtual
       }: UpdateUserDto = req.body
 
       const usuario = await Usuario.findById(id)
       if (!usuario) {
         return res.status(404).json({ message: "Usuário não encontrado." })
+      }
+
+      if (!senhaAtual) {
+        return res.status(400).json({ message: "A senha atual é obrigatória." })
+      }
+
+      if (!(await argon.verify(usuario.senha, senhaAtual))) {
+        console.log(123123)
+        return res.status(401).json({ message: "Senha atual incorreta." })
       }
 
       if (situacao !== undefined) {
