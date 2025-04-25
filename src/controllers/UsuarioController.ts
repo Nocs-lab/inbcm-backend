@@ -91,7 +91,7 @@ class UsuarioController {
   }
 
   async registerUsuario(req: Request, res: Response) {
-  
+
     const { nome, email, senha, cpf, profile, especialidadeAnalista, museus } =
       req.body
 
@@ -172,7 +172,7 @@ class UsuarioController {
 
   async getUsuarioPorId(req: Request, res: Response) {
     const { id } = req.params
-    
+
     try {
       const usuario = await Usuario.findById(id)
         .populate("museus")
@@ -189,7 +189,7 @@ class UsuarioController {
 
   async getUsuario(req: Request, res: Response) {
     const userId = req.user?.id
-  
+
 
     try {
       const usuario = await Usuario.findById(userId)
@@ -206,7 +206,7 @@ class UsuarioController {
   }
 
   async atualizarUsuario(req: Request, res: Response) {
-  
+
     try {
       const { id } = req.params
       const {
@@ -230,43 +230,43 @@ class UsuarioController {
         if (!Object.values(SituacaoUsuario).includes(situacao)) {
           throw new HTTPError("Situação do usuário inválida.", 400)
         }
-      
+
         if (situacao === SituacaoUsuario.Inativo) {
           const declaracoesUsuario = await Declaracoes.find({
-            ultimaDeclaracao: true,              
-            status: { $ne: "Excluída" },           
+            ultimaDeclaracao: true,
+            status: { $ne: "Excluída" },
             $or: [
-              { responsavelEnvio: id },           
-              { "museologico.usuario": id },      
-              { "arquivistico.usuario": id },     
-              { "bibliografico.usuario": id }     
+              { responsavelEnvio: id },
+              { "museologico.usuario": id },
+              { "arquivistico.usuario": id },
+              { "bibliografico.usuario": id }
             ]
           })
-        
-        
+
+
           const declaracaoEmAnalise = declaracoesUsuario.some(declaracao => declaracao.status === Status.EmAnalise)
-        
+
           if (declaracaoEmAnalise) {
             throw new HTTPError(
               "Usuário vinculado a declarações em análise não pode ser inativado.",
               400
             )
           }
-        
+
 
           await UsuarioService.desvincularMuseusDoUsuario(usuario, usuario.museus.map((m: any) => m.toString()))
         }
-        
-      
+
+
         if (situacao === SituacaoUsuario.NaoAprovado) {
           if (desvincularMuseus && Array.isArray(desvincularMuseus)) {
             await UsuarioService.desvincularMuseusDoUsuario(usuario, desvincularMuseus)
           }
         }
-      
+
         usuario.situacao = situacao
       }
-      
+
       if (nome) usuario.nome = nome
       if (email) usuario.email = email
       if (senha) usuario.senha = await argon2.hash(senha)
@@ -290,11 +290,11 @@ class UsuarioController {
       if (museus && Array.isArray(museus)) {
         await UsuarioService.vincularMuseusAoUsuario(usuario, museus)
       }
-      
+
       if (desvincularMuseus && Array.isArray(desvincularMuseus)) {
         await UsuarioService.desvincularMuseusDoUsuario(usuario, desvincularMuseus)
       }
-      
+
 
       if (especialidadeAnalista) {
         const perfilAtual = await Profile.findById(usuario.profile)
@@ -415,7 +415,7 @@ class UsuarioController {
   }
 
   async getUsersByProfile(req: Request, res: Response) {
-  
+
     const { profileId } = req.params
 
     try {
@@ -451,13 +451,23 @@ class UsuarioController {
         return res.status(404).json({ message: "Erro ao buscar documento" })
       }
 
-      const url = await minioClient.presignedUrl(
-        "GET",
+      const documento = await minioClient.getObject(
         "inbcm",
         usuario.documentoComprobatorio
       )
 
-      return res.status(200).json({ url })
+      if (!documento) {
+        return res.status(404).json({ message: "Documento não encontrado." })
+      }
+
+      const fileName = usuario.documentoComprobatorio.split("/").pop() || "documento.pdf"
+
+      res.setHeader("Content-Type", "application/pdf")
+      res.setHeader("Content-Disposition", `attachment; filename=${fileName}`)
+
+      res.status(200)
+
+      documento.pipe(res)
     } catch (error) {
       logger.error("Erro ao buscar documento:", error)
       return res.status(500).json({ message: "Erro ao buscar documento." })
