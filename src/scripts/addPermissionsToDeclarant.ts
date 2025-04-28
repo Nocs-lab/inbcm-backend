@@ -29,7 +29,8 @@ const addPermissionsToDeclarant = async () => {
     "getAnoDeclaracaoById",
     "viewDashboard",
     "getPeriodos",
-    "getTimeLineDeclarant"
+    "getTimeLineDeclarant",
+    "atualizarPerfilUsuario"
   ]
 
   try {

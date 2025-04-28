@@ -355,6 +355,82 @@ class UsuarioController {
     }
   }
 
+  async atualizarPerfilUsuario(req: Request, res: Response) {
+    try {
+      const { id } = req.params
+      const {
+        nome,
+        email,
+        especialidadeAnalista,
+        senha,
+        senhaAtual
+      }: UpdateUserDto = req.body
+
+      const usuario = await Usuario.findById(id)
+      if (!usuario) {
+        return res.status(404).json({ message: "Usuário não encontrado." })
+      }
+
+      if (!senhaAtual) {
+        return res.status(400).json({ message: "A senha atual é obrigatória." })
+      }
+
+      if (!(await argon.verify(usuario.senha, senhaAtual))) {
+        console.log(123123)
+        return res.status(401).json({ message: "Senha atual incorreta." })
+      }
+
+      if (nome) usuario.nome = nome
+      if (email) usuario.email = email
+      if (senha) usuario.senha = await argon2.hash(senha)
+
+
+      if (especialidadeAnalista) {
+        const perfilAtual = await Profile.findById(usuario.profile)
+        if (perfilAtual?.name !== "analyst") {
+          return res
+            .status(400)
+            .json({ message: "Apenas analistas podem ter especialidades." })
+        }
+
+        if (!Array.isArray(especialidadeAnalista)) {
+          return res
+            .status(400)
+            .json({ message: "Especialidades devem ser um array." })
+        }
+
+        const especialidadesPermitidas = [
+          "museologico",
+          "bibliografico",
+          "arquivistico"
+        ]
+        if (
+          especialidadeAnalista.some(
+            (e) => !especialidadesPermitidas.includes(e)
+          )
+        ) {
+          return res
+            .status(400)
+            .json({ message: "Especialidades inválidas fornecidas." })
+        }
+
+        usuario.especialidadeAnalista = especialidadeAnalista
+      }
+
+      await usuario.save()
+
+      return res
+        .status(200)
+        .json({ message: "Usuário atualizado com sucesso.", usuario })
+    } catch (error) {
+      logger.error("Erro ao atualizar usuário:", error)
+      if (error instanceof HTTPError) {
+        return res.status(error.status).json({ message: error.message })
+      }
+      return res.status(500).json({ message: "Erro ao atualizar usuário." })
+    }
+  }
+
   async deletarUsuario(req: Request, res: Response) {
     const { id } = req.params
 

@@ -11,6 +11,12 @@ routes.get(
   UsuarioController.getUsuario
 )
 
+routes.put(
+  "/:id",
+  userPermissionMiddleware("atualizarPerfilUsuario"),
+  UsuarioController.atualizarPerfilUsuario
+)
+
 routes.post(
   "/registro",
   multer({
