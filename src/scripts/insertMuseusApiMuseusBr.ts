@@ -70,7 +70,7 @@ async function fetchMuseus() {
               municipio: metadata["municipio"]?.value_as_string || "Não Informado",
               uf: metadata["uf"]?.value?.name || "Não Informado"
             },
-            usuario: null
+            usuario: []
           }
 
          

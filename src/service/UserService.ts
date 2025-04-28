@@ -396,10 +396,13 @@ export class UsuarioService {
       await novoUsuario.save()
   
       const usuarioId = (novoUsuario._id as Types.ObjectId).toString()
-      await UsuarioService.vincularMuseusAoUsuario(usuarioId, museus)
-      
-  
-      return novoUsuario
+      await this.vincularMuseusAoUsuario({
+        usuarioId: novoUsuario._id!.toString(),
+        museuIds: museus
+      })
+      const usuarioAtualizado = await Usuario.findById(novoUsuario._id)
+
+     return usuarioAtualizado
     } catch (error) {
       throw error
     }
@@ -455,36 +458,72 @@ export class UsuarioService {
     return usuarios
   }
 
-  static async vincularMuseusAoUsuario(usuario: any, museuIds: string[]) {
-    for (const museuId of museuIds) {
-      if (!Types.ObjectId.isValid(museuId)) continue
+  static async vincularMuseusAoUsuario({
+    usuarioId,
+    museuIds
+  }: {
+    usuarioId: string
+    museuIds: string[]
+  }) {
+    const museusValidos: string[] = []
+    const erros: { museuId: string; message: string }[] = []
   
-      const museu = await Museu.findById(museuId)
-      if (!museu) continue
-  
-      const userObjectId = usuario._id
-
-      if (!museu.usuario.some((u) => u.equals(userObjectId))) {
-        museu.usuario.push(userObjectId)
-        await museu.save()
+    for (const id of museuIds) {
+      if (!id.match(/^[a-fA-F0-9]{24}$/)) {
+        erros.push({ museuId: id, message: "ID do museu inválido." })
+        continue
       }
   
-      const museuObjectId = new Types.ObjectId(museuId)
-      if (!usuario.museus.some((m: { equals: (arg0: Types.ObjectId) => any }) => m.equals(museuObjectId))) {
-        usuario.museus.push(museuObjectId)
+      const museu = await Museu.findById(id)
+      if (!museu) {
+        erros.push({ museuId: id, message: "Museu não encontrado." })
+        continue
       }
+  
+      museusValidos.push(id)
     }
+  
+    if (erros.length > 0) {
+      throw new Error(`Falha ao associar museus: ${JSON.stringify(erros)}`)
+    }
+  
+    
+    await Museu.updateMany(
+      { _id: { $in: museusValidos } },
+      { $addToSet: { usuario: usuarioId } }
+    )
+  
+  
+    await Usuario.findByIdAndUpdate(
+      usuarioId,
+      { $addToSet: { museus: { $each: museusValidos } } }
+    )
+  
+    return museusValidos
   }
   
   static async desvincularMuseusDoUsuario(usuario: any, museuIds: string[]) {
-    const userObjectId = usuario._id
+    const userObjectId = usuario._id;
+   
   
+   
     for (const museuId of museuIds) {
-      if (!Types.ObjectId.isValid(museuId)) continue
+      console.log(`Verificando o museu com ID: ${museuId}`);
   
-      const museu = await Museu.findById(museuId)
-      if (!museu) continue
+     
+      if (!Types.ObjectId.isValid(museuId)) {
+        console.log(`Museu com ID ${museuId} não é um ObjectId válido. Pulando.`);
+        continue;
+      }
   
+      
+      const museu = await Museu.findById(museuId);
+      if (!museu) {
+        console.log(`Museu com ID ${museuId} não encontrado. Pulando.`);
+        continue;
+      }
+  
+     
       const declaracoesComUsuario = await Declaracoes.find({
         museu_id: museu._id,
         status: { $in: [Status.Recebida, Status.EmAnalise] },
@@ -494,30 +533,36 @@ export class UsuarioService {
           { "arquivistico.usuario": userObjectId },
           { "bibliografico.usuario": userObjectId }
         ]
-      })
+      });
   
       if (declaracoesComUsuario.length > 0) {
+        console.log(`Não é possível desvincular o usuário do museu ${museu.nome} devido a declarações em análise.`);
         throw new HTTPError(
           `Não é possível desvincular o usuário do museu ${museu.nome} pois há declarações em análise associadas a ele.`,
           400
-        )
+        );
       }
-  
-      if (Array.isArray(museu.usuario)) {
-        museu.usuario = museu.usuario.filter((id) => !id.equals(userObjectId))
-        await museu.save()
-      }
-  
-      const museuObjectId = new Types.ObjectId(museuId)
-      usuario.museus = usuario.museus.filter(
-        (id: { equals: (arg0: Types.ObjectId) => any }) => !id.equals(museuObjectId)
-      )
-    }
   
     
-    return usuario
-  }
+      if (Array.isArray(museu.usuario)) {
+        console.log(`Desvinculando o usuário ${userObjectId} do museu ${museu.nome}.`);
+        museu.usuario = museu.usuario.filter((id) => id && id.equals && !id.equals(userObjectId));
+        await museu.save();  
+      }
   
+     
+      usuario.museus = usuario.museus.filter(
+        (id: any) => id && id.equals && !id.equals(museu._id)  
+      );
+    
+    }
+  
+  
+    await usuario.save();
+  
+  
+    return usuario;
+  }
   
   
 }

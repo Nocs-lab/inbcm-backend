@@ -2,10 +2,10 @@ import express from "express"
 import rateLimit from "express-rate-limit"
 import AuthService from "../../service/AuthService"
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 30
-})
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   limit: 30
+// })
 
 const routes = express.Router()
 const authService = new AuthService()
@@ -40,7 +40,7 @@ const authService = new AuthService()
  *       '401':
  *         description: Credenciais inválidas.
  */
-routes.post("/login", limiter, async (req, res) => {
+routes.post("/login", async (req, res) => {
   const { email, password } = req.body
   const { token, refreshToken, user } = await authService.login({
     email,

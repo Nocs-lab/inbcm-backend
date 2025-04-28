@@ -264,8 +264,8 @@ class UsuarioController {
             )
           }
 
-
-          await UsuarioService.desvincularMuseusDoUsuario(usuario, usuario.museus.map((m: any) => m.toString()))
+          
+         
         }
 
 
@@ -299,8 +299,12 @@ class UsuarioController {
       }
 
       if (museus && Array.isArray(museus)) {
-        await UsuarioService.vincularMuseusAoUsuario(usuario, museus)
+        await UsuarioService.vincularMuseusAoUsuario({
+          usuarioId: usuario._id!.toString(),
+          museuIds: museus
+        })
       }
+      
 
       if (desvincularMuseus && Array.isArray(desvincularMuseus)) {
         await UsuarioService.desvincularMuseusDoUsuario(usuario, desvincularMuseus)
@@ -376,7 +380,6 @@ class UsuarioController {
       }
 
       if (!(await argon.verify(usuario.senha, senhaAtual))) {
-        console.log(123123)
         return res.status(401).json({ message: "Senha atual incorreta." })
       }
 
