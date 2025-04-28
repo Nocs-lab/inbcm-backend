@@ -34,6 +34,11 @@ routes.put(
   userPermissionMiddleware("atualizarUsuario"),
   UsuarioController.atualizarUsuario
 )
+routes.put(
+  "/:id",
+  userPermissionMiddleware("atualizarPerfilUsuario"),
+  UsuarioController.atualizarPerfilUsuario
+)
 routes.delete(
   "/:id",
   userPermissionMiddleware("deletarUsuario"),

@@ -10,5 +10,5 @@ export class UpdateUserDto {
   cpf?: string
   situacao?: SituacaoUsuario
   senha?: string
-  // senhaAtual?: string
+  senhaAtual?: string
 }

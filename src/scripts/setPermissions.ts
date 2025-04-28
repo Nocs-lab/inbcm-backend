@@ -132,6 +132,12 @@ const setPermissions = async () => {
       label: "Visualizar Linha do Tempo do declarante",
       description: "Permite visualizar a linha do tempo das declarações ou eventos."
     },
+    {
+      name: "atualizarPerfilUsuario",
+      label: "Atualizar perfil do usuário",
+      description: "Permite atualizar nome, email e senha do usuário."
+    },
+
 
   ]
 
