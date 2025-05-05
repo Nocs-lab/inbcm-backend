@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose, { Types } from "mongoose"
 import path from "path"
 import { DataUtils } from "../utils/dataUtils"
 import { Content, TDocumentDefinitions } from "pdfmake/interfaces"
@@ -11,14 +11,53 @@ import {
 import { DeclaracaoModel, IMuseu, IUsuario } from "../models"
 import PdfPrinter from "pdfmake"
 import { AnoDeclaracaoModel } from "../models/AnoDeclaracao"
+import { ArquivoDetalhes } from "../models/ArquivosDetalhes"
+import minioClient from "../db/minioClient"
 
+
+import { Readable } from 'stream';
+
+const getPorcentagemPorCampo = async (
+  declaracaoId: string,
+  tipo: "museologico" | "bibliografico" | "arquivistico"
+) => {
+  // Busca a coleção ArquivoDetalhes para o caminho do arquivo no MinIO
+  const arquivoDetalhes = await ArquivoDetalhes.findOne({ declaracaoId, tipo }).exec();
+
+  console.log("Encontrando a declaração:", arquivoDetalhes);
+  
+  if (!arquivoDetalhes || !arquivoDetalhes.detalhesPath) {
+    throw new Error(`Detalhes não encontrados para a declaração ${declaracaoId}`);
+  }
+
+  // Baixa o arquivo do MinIO como um stream
+  const objectPath = arquivoDetalhes.detalhesPath;
+  const stream = await minioClient.getObject("inbcm", objectPath);
+
+  // Converte o stream em Buffer
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(chunk);
+  }
+  const fileBuffer = Buffer.concat(chunks);
+
+  // Converte para string e faz o parse do JSON
+  const conteudoString = fileBuffer.toString('utf-8');
+  console.log("Conteúdo do arquivo:", conteudoString);
+  
+  const detalhes = JSON.parse(conteudoString);
+
+  // Retorna o campo porcentagemPorCampo
+  console.log("Detalhes da declaração:", detalhes);
+  return detalhes.porcentagemPorCampo || [];
+};
 const corrigirOrtografia: Record<string, string> = {
   museologico: "museológico",
   arquivistico: "arquivístico",
   bibliografico: "bibliográfico"
 }
 
-const gerarTabela = (
+const gerarTabela =  async(
   tipo: "museologico" | "bibliografico" | "arquivistico",
   declaracao: DeclaracaoModel & {
     museu_id: IMuseu & { usuario: IUsuario }
@@ -26,7 +65,7 @@ const gerarTabela = (
   }
 ) => {
   const campos = MapeadorCamposPercentual[tipo]
-  const porcentagemPorCampo = declaracao[tipo]?.porcentagemPorCampo || []
+   const porcentagemPorCampo = await getPorcentagemPorCampo((declaracao._id as Types.ObjectId).toString(), tipo);
 
   // Aplica a correção ortográfica
   const tipoCorrigido = corrigirOrtografia[tipo] || tipo
@@ -99,15 +138,16 @@ async function gerarPDFRecibo(
 
     const dadosFormatados = formatarDadosRecibo(declaracao)
     const tabelaMuseologico = declaracao.museologico
-      ? gerarTabela("museologico", declaracao)
+      ? await gerarTabela("museologico", declaracao)
+      
       : undefined
 
     const tabelaBibliografico = declaracao.bibliografico
-      ? gerarTabela("bibliografico", declaracao)
+      ? await gerarTabela("bibliografico", declaracao)
       : undefined
 
     const tabelaArquivistico = declaracao.arquivistico
-      ? gerarTabela("arquivistico", declaracao)
+      ? await gerarTabela("arquivistico", declaracao)
       : undefined
 
     const conteudo: Content[] = []

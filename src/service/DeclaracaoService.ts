@@ -13,7 +13,7 @@ import {
   TimeLine
 } from "../models"
 import { IUsuario, SituacaoUsuario } from "../models/Usuario"
-import mongoose from "mongoose"
+import mongoose, { Types } from "mongoose"
 import {
   validate_museologico,
   validate_arquivistico,
@@ -37,6 +37,8 @@ import HTTPError from "../utils/error"
 import { AnoDeclaracao, AnoDeclaracaoModel } from "../models/AnoDeclaracao"
 import { sendEmail } from "../emails"
 import config from "../config"
+import { ArquivoDetalhes } from "../models/ArquivosDetalhes"
+import { uploadDetalhesDeclaracaoToMinio } from "../utils/minioUtil"
 
 class DeclaracaoService {
   async showCards(declaracoes: DeclaracaoModel[]) {
@@ -484,8 +486,6 @@ class DeclaracaoService {
           quantidadeItens: arquivoData.length,
           versao: novaVersao,
           porcentagemGeral,
-          porcentagemPorCampo,
-          detailedErrors: detailedErrorsFinal,
           usuario: userId as unknown as mongoose.Types.ObjectId,
           usuarioNome: responsavelEnvioNome
         }
@@ -494,6 +494,25 @@ class DeclaracaoService {
           ...arquivoAnterior,
           ...dadosAlterados
         } as Arquivo
+
+        const detalhesPath = await uploadDetalhesDeclaracaoToMinio(
+          (novaDeclaracao._id as Types.ObjectId).toString(),
+          tipo,
+          {
+            detailedErrors: detailedErrorsFinal,
+            porcentagemPorCampo,
+            naoEncontrados: naoEncontradosArray
+          }
+        )
+        
+        
+  
+
+        await ArquivoDetalhes.create({
+          declaracaoId: novaDeclaracao._id,
+          tipo,
+          detalhesPath 
+        });
 
         arquivoData.forEach((item: { [key: string]: unknown }) => {
           item.declaracao_ref = novaDeclaracao._id
@@ -514,8 +533,21 @@ class DeclaracaoService {
           default:
             throw new Error("Tipo de declaração inválido")
         }
+        const BATCH_SIZE = 5000;
 
-        await Modelo.insertMany(arquivoData)
+        for (let i = 0; i < arquivoData.length; i += BATCH_SIZE) {
+          const batch = arquivoData.slice(i, i + BATCH_SIZE);
+        
+          try {
+            await Modelo.insertMany(batch);
+            logger.info(`Lote ${i / BATCH_SIZE + 1} inserido com sucesso`);
+          } catch (batchError) {
+            logger.error(`Erro ao inserir lote ${i / BATCH_SIZE + 1}:`, batchError);
+      
+            throw new Error(`Erro ao inserir lote ${i / BATCH_SIZE + 1}: ${batchError}`);
+          }
+        }
+        
       } else if (arquivoAnterior) {
         novaDeclaracao[tipo] = { ...arquivoAnterior } as Arquivo
       }
@@ -1290,37 +1322,49 @@ class DeclaracaoService {
   async buscarItensPorTipoAdmin(
     museuId: string,
     ano: string,
-    tipoItem: string
+    tipoItem: string,
+    page = 1,
+    limit = 10
   ) {
+    // Marcar o início da execução
+    const startTime = Date.now();
+  
     // Verificar se o museu pertence ao usuário específico
-    const museu = await Museu.findOne({ _id: museuId })
-
+    const museuStartTime = Date.now();
+    const museu = await Museu.findOne({ _id: museuId });
+  
     if (!museu) {
-      throw new Error("Museu inválido ou você não tem permissão para acessá-lo")
+      throw new Error("Museu inválido ou você não tem permissão para acessá-lo");
     }
-
+    const museuEndTime = Date.now();
+    console.log(`Tempo para verificar o museu: ${museuEndTime - museuStartTime}ms`);
+  
     // Definir o modelo e os campos de projeção com base no tipo de item
-    let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico
-    let retornoPorItem: string
-
+    let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico;
+    let retornoPorItem: string;
+  
+    const tipoItemStartTime = Date.now();
     switch (tipoItem) {
       case "arquivistico":
-        Model = Arquivistico
-        retornoPorItem = "_id coddereferencia titulo nomedoprodutor"
-        break
+        Model = Arquivistico;
+        retornoPorItem = "_id coddereferencia titulo nomedoprodutor";
+        break;
       case "bibliografico":
-        Model = Bibliografico
-        retornoPorItem = "_id nderegistro situacao titulo localdeproducao" // Defina os campos específicos para bibliografico
-        break
+        Model = Bibliografico;
+        retornoPorItem = "_id nderegistro situacao titulo localdeproducao";
+        break;
       case "museologico":
-        Model = Museologico
-        retornoPorItem = "_id nderegistro autor situacao denominacao" // Defina os campos específicos para museologico
-        break
+        Model = Museologico;
+        retornoPorItem = "_id nderegistro autor situacao denominacao";
+        break;
       default:
-        throw new Error("Tipo de item inválido")
+        throw new Error("Tipo de item inválido");
     }
-
+    const tipoItemEndTime = Date.now();
+    console.log(`Tempo para definir o tipo de item: ${tipoItemEndTime - tipoItemStartTime}ms`);
+  
     // Primeira agregação: encontrar a maior versão
+    const agregacaoStartTime = Date.now();
     const maxVersaoResult = await Model.aggregate([
       {
         $lookup: {
@@ -1330,9 +1374,7 @@ class DeclaracaoService {
           as: "declaracoes"
         }
       },
-      {
-        $unwind: "$declaracoes"
-      },
+      { $unwind: "$declaracoes" },
       {
         $match: {
           "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
@@ -1345,27 +1387,72 @@ class DeclaracaoService {
           maxVersao: { $max: "$versao" }
         }
       }
-    ])
-
-    const maxVersao = maxVersaoResult[0]?.maxVersao
-
-    if (maxVersao === undefined) {
-      return [] // Se não houver versão encontrada, retornar array vazio
-    }
-
-    // Segunda agregação: buscar os itens do tipo especificado da maior versão encontrada
+    ]);
+    const agregacaoEndTime = Date.now();
+    console.log(`Tempo para agregação de maxVersao: ${agregacaoEndTime - agregacaoStartTime}ms`);
+  
+    const maxVersao = maxVersaoResult[0]?.maxVersao;
+    if (maxVersao === undefined) return [];
+  
+    const declaracaoIdsStartTime = Date.now();
+    const declaracaoIds = await Declaracoes.find({
+      museu_id: new mongoose.Types.ObjectId(museuId),
+      anoDeclaracao: new mongoose.Types.ObjectId(ano)
+    }).select("_id");
+    const declaracaoIdList = declaracaoIds.map((d) => d._id);
+    const declaracaoIdsEndTime = Date.now();
+    console.log(`Tempo para buscar os IDs das declarações: ${declaracaoIdsEndTime - declaracaoIdsStartTime}ms`);
+  
+    // Contagem total
+    const countStartTime = Date.now();
+    const total = await Model.countDocuments({
+      versao: maxVersao,
+      declaracao_ref: { $in: declaracaoIdList }
+    });
+    const countEndTime = Date.now();
+    console.log(`Tempo para contar documentos: ${countEndTime - countStartTime}ms`);
+  
+    const totalPages = Math.ceil(total / limit);
+  
+    // Paginação e busca
+    const paginationStartTime = Date.now();
     const result = await Model.find({
       versao: maxVersao,
-      declaracao_ref: {
-        $in: await Declaracoes.find({
-          museu_id: new mongoose.Types.ObjectId(museuId),
-          anoDeclaracao: new mongoose.Types.ObjectId(ano)
-        }).select("_id")
-      }
-    }).select(retornoPorItem)
-
-    return result
+      declaracao_ref: { $in: declaracaoIdList }
+    })
+      .select(retornoPorItem)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(); // Usando lean para otimizar a consulta
+    const paginationEndTime = Date.now();
+    console.log(`Tempo para buscar os itens com paginação: ${paginationEndTime - paginationStartTime}ms`);
+  
+    // Links de navegação
+    const baseUrl = `/api/admin/declaracoes/listar-itens/${museuId}/${ano}/${tipoItem}`;
+    const links = {
+      first: `${baseUrl}?page=1&limit=${limit}`,
+      prev: page > 1 ? `${baseUrl}?page=${page - 1}&limit=${limit}` : null,
+      next: page < totalPages ? `${baseUrl}?page=${page + 1}&limit=${limit}` : null,
+      last: `${baseUrl}?page=${totalPages}&limit=${limit}`
+    };
+  
+    // Finalizando o tempo total
+    const endTime = Date.now();
+    console.log(`Tempo total para a execução do método: ${endTime - startTime}ms`);
+  
+    return {
+      total,
+      page,
+      limit,
+      totalPages,
+      itens: result,
+      links
+    };
   }
+  
+  
+  
+  
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *
@@ -1381,23 +1468,22 @@ class DeclaracaoService {
     museuId: string,
     ano: string,
     userId: string,
-    tipoItem: string
+    tipoItem: string,
+    page: number,
+    limit: number
   ) {
-    // Verificar se o usuário está associado ao museu (campo "usuario" da coleção Museu)
     const museu = await Museu.findOne({
       _id: museuId,
       usuario: { $in: [new mongoose.Types.ObjectId(userId)] }
-    }) // Alterado para $in
-
+    })
+  
     if (!museu) {
-      console.error("Museu inválido ou você não tem permissão para acessá-lo")
       throw new Error("Museu inválido ou você não tem permissão para acessá-lo")
     }
-
-    // Definir o modelo e os campos de projeção com base no tipo de item
+  
     let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico
     let retornoPorItem: string
-
+  
     switch (tipoItem) {
       case "arquivistico":
         Model = Arquivistico
@@ -1412,58 +1498,81 @@ class DeclaracaoService {
         retornoPorItem = "_id nderegistro autor situacao denominacao"
         break
       default:
-        console.error("Tipo de item inválido:", tipoItem)
         throw new Error("Tipo de item inválido")
     }
-
-    // Primeira agregação: encontrar a maior versão
-
-    const maxVersaoResult = await Model.aggregate([
-      {
-        $lookup: {
-          from: "declaracoes",
-          localField: "declaracao_ref",
-          foreignField: "_id",
-          as: "declaracoes"
-        }
-      },
-      {
-        $unwind: "$declaracoes"
-      },
-      {
-        $match: {
-          "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
-          "declaracoes.anoDeclaracao": new mongoose.Types.ObjectId(ano)
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          maxVersao: { $max: "$versao" }
-        }
+  
+    const declaracao = await Declaracoes.findOne({
+      museu_id: new mongoose.Types.ObjectId(museuId),
+      anoDeclaracao: new mongoose.Types.ObjectId(ano)
+    })
+  
+    if (!declaracao) {
+      return {
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+        itens: [],
+        links: {}
       }
-    ])
-
-    const maxVersao = maxVersaoResult[0]?.maxVersao
-
-    if (maxVersao === undefined) {
-      console.warn("Nenhuma versão encontrada para o item.")
-      return [] // Se não houver versão encontrada, retornar array vazio
     }
-
-    // Segunda agregação: buscar os itens da maior versão
-    const result = await Model.find({
-      versao: maxVersao,
-      declaracao_ref: {
-        $in: await Declaracoes.find({
-          museu_id: new mongoose.Types.ObjectId(museuId),
-          anoDeclaracao: new mongoose.Types.ObjectId(ano)
-        }).select("_id")
+  
+    const maxVersaoResult = await Model.aggregate([
+      { $match: { declaracao_ref: declaracao._id } },
+      { $group: { _id: null, maxVersao: { $max: "$versao" } } }
+    ])
+  
+    const maxVersao = maxVersaoResult[0]?.maxVersao
+  
+    if (maxVersao === undefined) {
+      return {
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+        itens: [],
+        links: {}
       }
-    }).select(retornoPorItem)
-
-    return result
+    }
+  
+    const skip = (page - 1) * limit
+  
+    const [result, total] = await Promise.all([
+      Model.find({
+        versao: maxVersao,
+        declaracao_ref: declaracao._id
+      })
+        .select(retornoPorItem)
+        .skip(skip)
+        .limit(limit),
+      
+      Model.countDocuments({
+        versao: maxVersao,
+        declaracao_ref: declaracao._id
+      })
+    ])
+  
+    const totalPages = Math.ceil(total / limit)
+  
+    const baseUrl = `/api/public/declaracoes/listar-itens/${museuId}/${ano}/${tipoItem}`
+  
+    const links = {
+      first: `${baseUrl}?page=1&limit=${limit}`,
+      prev: page > 1 ? `${baseUrl}?page=${page - 1}&limit=${limit}` : null,
+      next: page < totalPages ? `${baseUrl}?page=${page + 1}&limit=${limit}` : null,
+      last: `${baseUrl}?page=${totalPages}&limit=${limit}`
+    }
+  
+    return {
+      total,
+      page,
+      limit,
+      totalPages,
+      itens: result,
+      links
+    }
   }
+  
 
   async adicionarEvento(
     declaracaoId: mongoose.Types.ObjectId,

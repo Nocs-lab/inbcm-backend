@@ -11,6 +11,68 @@ import {
 } from "./utilsDocuments"
 import { DeclaracaoModel, IMuseu, IUsuario } from "../models"
 import { AnoDeclaracaoModel } from "../models/AnoDeclaracao"
+import minioClient from "../db/minioClient"
+import {uploadRelatorioPendenciasToMinio, verificarRelatorioExistente } from "../utils/minioUtil"
+import { chain } from 'stream-chain';
+import { parser } from 'stream-json';
+import { streamArray } from 'stream-json/streamers/StreamArray';
+import { pick } from 'stream-json/filters/Pick';
+
+
+
+export const getDetailedErrorsStreamed = async (
+  declaracaoId: string,
+  tipoArquivo: string
+): Promise<{ linha: number; camposComErro: string[] }[]> => {
+  const fileName = `detalhes-${declaracaoId}-${tipoArquivo}.json`;
+  const objectPath = `detalhes/${declaracaoId}/${tipoArquivo}/${fileName}`;
+  console.log("[MinIO] Iniciando leitura do arquivo stream:", objectPath);
+
+  const resultados: { linha: number; camposComErro: string[] }[] = [];
+
+  try {
+    const stream = await minioClient.getObject("inbcm", objectPath);
+    console.log("[MinIO] Stream recebido com sucesso do MinIO.");
+
+    const pipeline = chain([
+      stream,
+      parser(),
+      (data) => {
+        console.log("[MinIO][Etapa:parser] Token recebido:", data);
+        return data;
+      },
+      pick({ filter: 'detailedErrors' }),
+      (data) => {
+        console.log("[MinIO][Etapa:pick] detailedErrors encontrado:", data);
+        return data;
+      },
+      streamArray(),
+      (data) => {
+        console.log("[MinIO][Etapa:streamArray] Item processado:", data.value);
+        resultados.push(data.value);
+      }
+    ]);
+
+    pipeline.on('data', () => {}); // necessário para o pipeline rodar
+    await new Promise<void>((resolve, reject) => {
+      pipeline.on('end', () => {
+        console.log("[MinIO] Pipeline finalizado com sucesso.");
+        resolve();
+      });
+      pipeline.on('error', (err) => {
+        console.error("[MinIO] Erro no pipeline:", err);
+        reject(err);
+      });
+    });
+
+    console.log(`[MinIO] Total de registros processados: ${resultados.length}`);
+    return resultados;
+  } catch (error) {
+    console.error("[MinIO] Erro geral ao processar JSON grande:", error);
+    throw error;
+  }
+};
+
 
 const corrigirOrtografia: Record<string, string> = {
   museologico: "museológico",
@@ -20,14 +82,16 @@ const corrigirOrtografia: Record<string, string> = {
 
 const gerarTabelaPendencias = (
   tipo: "museologico" | "bibliografico" | "arquivistico",
-  declaracao: DeclaracaoModel
+  detailedErrors: { linha: number, camposComErro: string[] }[],
 ) => {
-  const campos = MapeadorCamposPercentual[tipo]
-  const erros = declaracao[tipo]?.detailedErrors ?? []
+  // Mapeador de campos para o tipo do acervo
+  const campos = MapeadorCamposPercentual[tipo];
+  
+  // Corrigir o tipo do acervo para exibição na tabela
+  const tipoCorrigido = corrigirOrtografia[tipo] || tipo;
 
-  const tipoCorrigido = corrigirOrtografia[tipo] || tipo
-
-  if (erros.length === 0) {
+  // Se não há erros, retorna uma tabela informando que não há pendências
+  if (detailedErrors.length === 0) {
     return {
       table: {
         widths: ["100%"],
@@ -50,20 +114,22 @@ const gerarTabelaPendencias = (
         paddingTop: () => 5,
         paddingBottom: () => 5
       }
-    }
+    };
   }
 
-  const errosOrdenados = erros
+  // Ordenando os erros pela linha e tratando valores nulos em camposComErro
+  const errosOrdenados = detailedErrors
     .map((erro) => ({
       ...erro,
-      linha: erro.linha + 1,
-      camposComErro: erro.camposComErro ?? []
+      linha: erro.linha + 1, // Incrementa 1 na linha para ajustar a numeração
+      camposComErro: erro.camposComErro ?? [] // Garantir que camposComErro nunca seja nulo ou undefined
     }))
-    .sort((a, b) => a.linha - b.linha)
+    .sort((a, b) => a.linha - b.linha); // Ordena por linha
 
+  // Montando o corpo da tabela com os erros
   return {
     table: {
-      widths: ["10%", "50%", "40%"],
+      widths: ["10%", "50%", "40%"], // Definindo larguras das colunas
       body: [
         [
           {
@@ -80,8 +146,9 @@ const gerarTabelaPendencias = (
           { text: "Campo", style: "tableHeader", alignment: "center" },
           { text: "Descrição", style: "tableHeader", alignment: "center" }
         ],
+        // Preenchendo a tabela com os erros
         ...errosOrdenados.flatMap((erro) =>
-          (erro.camposComErro ?? []).map((campo) => {
+          erro.camposComErro.map((campo) => {
             if (campo === "Não localizado") {
               return [
                 {
@@ -101,9 +168,9 @@ const gerarTabelaPendencias = (
                   alignment: "left",
                   noWrap: true
                 }
-              ]
+              ];
             } else {
-              const campoKey = campo as keyof typeof campos
+              const campoKey = campo as keyof typeof campos;
               return [
                 {
                   text: `${erro.linha}`,
@@ -117,26 +184,28 @@ const gerarTabelaPendencias = (
                   noWrap: true
                 },
                 {
-                  text: "Campo vazio",
+                  text: "Campo vazio", // Adapte conforme necessário para exibir a descrição correta
                   style: "tableData",
                   alignment: "left",
                   noWrap: true
                 }
-              ]
+              ];
             }
           })
         )
       ]
     },
     layout: {
-      fillColor: (rowIndex: number) => (rowIndex % 2 === 0 ? "#F5F5F5" : null),
+      fillColor: (rowIndex: number) =>
+        rowIndex % 2 === 0 ? "#F5F5F5" : null,
       paddingLeft: () => 10,
       paddingRight: () => 10,
       paddingTop: () => 5,
       paddingBottom: () => 5
     }
-  }
-}
+  };
+};
+
 
 /**
  * Gera o PDF do recibo com base no ID da declaração.
@@ -147,7 +216,7 @@ const gerarTabelaPendencias = (
  */
 export async function gerarPDFRelatorioPendenciais(
   declaracaoId: mongoose.Types.ObjectId
-): Promise<Buffer> {
+):Promise<string> {
   const fonts = {
     Roboto: {
       normal: path.resolve("fonts/Roboto-Regular.ttf"),
@@ -157,7 +226,13 @@ export async function gerarPDFRelatorioPendenciais(
     }
   }
   const printer = new PdfPrinter(fonts)
+  const relatorioExistente = await verificarRelatorioExistente(
+     declaracaoId.toHexString()
+)
 
+  if (relatorioExistente) {
+    return relatorioExistente
+  }
   try {
     const declaracao = (await buscaDeclaracao(
       declaracaoId
@@ -165,17 +240,50 @@ export async function gerarPDFRelatorioPendenciais(
       museu_id: IMuseu & { usuario: IUsuario }
       anoDeclaracao: AnoDeclaracaoModel
     }
+    console.log("[MinIO] Buscando erros com:");
+    console.log(" - declaracaoId:", declaracaoId.toString());
+    console.log(" - tipoArquivo:", "museologico");
+    let errosMuseologico: any[] = []
+    let errosBibliografico: any[] = []
+    let errosArquivistico: any[] = []
+    
+    try {
+      const resultadoMuseologico = await getDetailedErrorsStreamed(declaracaoId.toString(), "museologico");
+      console.log("[MinIO] Resultado museológico:", resultadoMuseologico);
+      errosMuseologico = Array.isArray(resultadoMuseologico) ? resultadoMuseologico : [];
+    } catch (error) {
+      console.warn("[MinIO] Arquivo museológico não encontrado:", error);
+    }
+    
+    try {
+      const resultadoBibliografico = await getDetailedErrorsStreamed(declaracaoId.toString(), "bibliografico");
+      console.log("[MinIO] Resultado bibliográfico:", resultadoBibliografico);
+      errosBibliografico = Array.isArray(resultadoBibliografico) ? resultadoBibliografico : [];
+    } catch (error) {
+      console.warn("[MinIO] Arquivo bibliográfico não encontrado:", error);
+    }
+    
+    try {
+      const resultadoArquivistico = await getDetailedErrorsStreamed(declaracaoId.toString(), "arquivistico");
+      console.log("[MinIO] Resultado arquivístico:", resultadoArquivistico);
+      errosArquivistico = Array.isArray(resultadoArquivistico) ? resultadoArquivistico : [];
+    } catch (error) {
+      console.warn("[MinIO] Arquivo arquivístico não encontrado:", error);
+    }
+    
 
-    const tabelaMuseologico = declaracao.museologico
-      ? gerarTabelaPendencias("museologico", declaracao)
-      : undefined
+    // Gerar tabelas de pendências usando os erros recuperados
+    console.log("[PDF] Gerando tabela para museológico com", errosMuseologico.length, "erros")
+      const tabelaMuseologico = declaracao.museologico
+    ? gerarTabelaPendencias("museologico", errosMuseologico)
+    : undefined
 
     const tabelaBibliografico = declaracao.bibliografico
-      ? gerarTabelaPendencias("bibliografico", declaracao)
+      ? gerarTabelaPendencias("bibliografico", errosBibliografico)
       : undefined
 
     const tabelaArquivistico = declaracao.arquivistico
-      ? gerarTabelaPendencias("arquivistico", declaracao)
+      ? gerarTabelaPendencias("arquivistico", errosArquivistico)
       : undefined
 
     const conteudo: Content[] = []
@@ -196,7 +304,6 @@ export async function gerarPDFRelatorioPendenciais(
         conteudo.push({ text: "\n\n", pageBreak: "before" })
       conteudo.push(tabelaArquivistico)
     }
-
     const dadosFormatados = formatarDadosRecibo(declaracao)
 
     const docDefinition: TDocumentDefinitions = {
@@ -539,22 +646,40 @@ export async function gerarPDFRelatorioPendenciais(
         }
       }
     }
+   
+   
+   
 
-    return new Promise<Buffer>((resolve, reject) => {
-      const pdfDoc = printer.createPdfKitDocument(docDefinition)
-      const chunks: Buffer[] = []
+    return await new Promise<string>((resolve, reject) => {
+      try {
+        const pdfDoc = printer.createPdfKitDocument(docDefinition)
+        const chunks: Buffer[] = []
 
-      pdfDoc.on("data", (chunk: Buffer) => chunks.push(chunk))
-      pdfDoc.on("end", () => {
-        const result = Buffer.concat(chunks)
-        resolve(result)
-      })
-      pdfDoc.on("error", (err: Error) => {
-        reject(err)
-      })
-      pdfDoc.end()
+        pdfDoc.on("data", (chunk: Buffer) => chunks.push(chunk))
+        pdfDoc.on("end", async () => {
+          const pdfBuffer = Buffer.concat(chunks)
+
+          const fileName = `relatorio_pendencias_${declaracaoId}.pdf`
+          const fileUrl = await uploadRelatorioPendenciasToMinio(fileName, pdfBuffer)
+
+          resolve(fileUrl) 
+        })
+
+        pdfDoc.on("error", (err: Error) => {
+          reject(new HTTPError(`Erro ao gerar PDF: ${err.message}`, 500))
+        })
+
+        pdfDoc.end()
+      } catch (error) {
+        reject(new HTTPError("Erro ao gerar o relatório de pendências.", 500))
+      }
     })
   } catch (error) {
-    throw new HTTPError("Erro ao gerar o recibo.", 500)
+    console.log(error)
+    throw new HTTPError("Erro ao montar o relatório de pendências.", 500)
   }
 }
+  
+
+
+

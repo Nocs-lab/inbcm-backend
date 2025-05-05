@@ -34,25 +34,23 @@ class ReciboController {
   async gerarReciboDetalhamento(req: Request, res: Response) {
     try {
       const { id } = req.params
+  
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        res.status(400).json({ error: "ID inválido." })
-        return
+        return res.status(400).json({ error: "ID inválido." })
       }
-
+  
       const declaracaoId = new mongoose.Types.ObjectId(id)
-      const pdfBuffer = await gerarPDFRelatorioPendenciais(declaracaoId)
-
-      res.setHeader(
-        "Content-Disposition",
-        "attachment; filename=relatorio-pendencias.pdf"
-      )
-      res.setHeader("Content-Type", "application/pdf")
-      res.send(pdfBuffer)
+  
+     
+      const fileUrl = await gerarPDFRelatorioPendenciais(declaracaoId)
+  
+      return res.status(200).json({ url: fileUrl })
     } catch (error) {
       logger.error("Erro ao gerar o recibo:", error)
-      res.status(500).json({ error: "Erro ao gerar o recibo." })
+      return res.status(500).json({ error: "Erro ao gerar o recibo." })
     }
   }
+  
 
   async validarRecibo(req: Request, res: Response): Promise<Response> {
     try {

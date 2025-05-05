@@ -3,6 +3,67 @@ import minioClient from "../db/minioClient"
 import HTTPError from "./error"
 import { Readable } from "stream"
 
+import { Buffer } from "buffer"
+
+
+export const verificarRelatorioExistente = async (
+  declaracaoId: string
+): Promise<string | null> => {
+  const bucket = "inbcm"
+  const prefix = `relatorios-pendencias/${declaracaoId}/`
+  const objectsStream = minioClient.listObjectsV2(bucket, prefix, true)
+
+  return new Promise((resolve, reject) => {
+    objectsStream.on("data", (obj) => {
+      const url = `${process.env.MINIO_ENDPOINT}/${bucket}/${obj.name}`
+      resolve(url) 
+    })
+
+    objectsStream.on("end", () => resolve(null))
+    objectsStream.on("error", (err) => reject(err))
+  })
+}
+
+
+export const uploadRelatorioPendenciasToMinio = async (
+  declaracaoId: string,
+  pdfBuffer: Buffer
+): Promise<string> => {
+  try {
+    const fileName = `relatorio_pendencias_${declaracaoId}.pdf`
+    const objectPath = `relatorios/pendencias/${declaracaoId}/${fileName}`
+    const bucketName = "inbcm"
+
+    await minioClient.putObject(bucketName, objectPath, pdfBuffer, pdfBuffer.length, {
+      "Content-Type": "application/pdf"
+    })
+
+    return objectPath
+  } catch (error) {
+    throw new HTTPError(
+      `Erro ao fazer upload do relatório de pendências para o MinIO: `,
+      500
+    )
+  }
+}
+export const uploadDetalhesDeclaracaoToMinio = async (
+  declaracaoId: string,
+  tipoArquivo: string,
+  detalhes: object
+): Promise<string> => {
+ 
+  const fileName = `detalhes-${declaracaoId}-${tipoArquivo}.json`
+  const objectPath = `detalhes/${declaracaoId}/${tipoArquivo}/${fileName}`
+  const buffer = Buffer.from(JSON.stringify(detalhes, null, 2), "utf-8")
+
+  await minioClient.putObject("inbcm", objectPath, buffer, buffer.length, {
+    "Content-Type": "application/json"
+  })
+
+  return objectPath
+}
+
+
 /**
  * Implementa regra de negócio para definição de nomenclatura dos arquivos.
  *
