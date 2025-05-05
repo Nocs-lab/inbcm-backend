@@ -17,9 +17,9 @@ export interface Arquivo {
   analistasResponsaveis?: mongoose.Types.ObjectId[]
   analistasResponsaveisNome?: string[]
   porcentagemGeral?: number
-  porcentagemPorCampo?: { campo: string; percentual: number }[]
-  detailedErrors?: { linha: number; camposComErro: string[] }[]
-  naoEcontrados: []
+  // porcentagemPorCampo?: { campo: string; percentual: number }[]
+  // detailedErrors?: { linha: number; camposComErro: string[] }[]
+  // naoEcontrados: []
   usuario: mongoose.Types.ObjectId
   usuarioNome: string
 }
@@ -72,18 +72,18 @@ const ArquivoSchema = new Schema<Arquivo>(
     analistasResponsaveis: [{ type: Schema.Types.ObjectId, ref: "usuarios" }],
     analistasResponsaveisNome: [{ type: String }],
     porcentagemGeral: { type: Number, default: 0 },
-    porcentagemPorCampo: [
-      {
-        campo: { type: String, required: true },
-        percentual: { type: Number, required: true }
-      }
-    ],
-    detailedErrors: [
-      {
-        linha: { type: Number, required: true },
-        camposComErro: [{ type: String, required: true }]
-      }
-    ],
+    // porcentagemPorCampo: [
+    //   {
+    //     campo: { type: String, required: true },
+    //     percentual: { type: Number, required: true }
+    //   }
+    // ],
+    // detailedErrors: [
+    //   {
+    //     linha: { type: Number, required: true },
+    //     camposComErro: [{ type: String, required: true }]
+    //   }
+    // ],
     usuarioNome: {
       type: String,
       required: true
@@ -125,7 +125,8 @@ export interface DeclaracaoModel extends Document {
   responsavelEnvioAnaliseNome: string
   dataAnalise?: Date
   dataExclusao?: Date
-  dataFimAnalise?: Date
+  dataFimAnalise?: Date,
+  arquivoDetalhado?:string,
   timeLine: TimeLine[]
 }
 
@@ -175,6 +176,7 @@ const DeclaracaoSchema = new Schema<DeclaracaoModel>(
     dataAnalise: { type: Date },
     dataFimAnalise: { type: Date },
     dataExclusao: { type: Date },
+    arquivoDetalhado: { type: String, required: false },
     timeLine: [TimeLineSchema]
   },
   { timestamps: true, versionKey: false }
