@@ -1085,14 +1085,20 @@ export class DeclaracaoController {
   }
 
   async listarItensPorTipodeBemAdmin(req: Request, res: Response) {
+    console.log("Chegou no listar itens admin")
     const { museuId, ano, tipo } = req.params
-
+    const { page = 1, limit = 50 } = req.query
+    console.log("Listar itens admin")
     try {
       const result = await this.declaracaoService.buscarItensPorTipoAdmin(
         museuId,
         ano,
-        tipo
+        tipo,
+        Number(page),
+        Number(limit)
       )
+
+      console.log(result)
 
       if (!result) {
         return res
@@ -1126,6 +1132,7 @@ export class DeclaracaoController {
    */
   async listarItensPorTipodeBem(req: Request, res: Response) {
     const { museuId, ano, tipo } = req.params
+    const { page = 1, limit = 50 } = req.query
     const user_id = req.user.id
 
     try {
@@ -1142,7 +1149,9 @@ export class DeclaracaoController {
         museuId,
         ano,
         user_id,
-        tipo
+        tipo,
+        Number(page),
+        Number(limit)
       )
 
       if (!result) {
