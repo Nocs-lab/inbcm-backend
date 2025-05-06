@@ -43,6 +43,6 @@ routes.put(
   MuseuController.desvincularUsuarioDoMuseu
 )
 
-routes.get("/listar-museus",MuseuController.getMuseus)
+routes.get("/listar-museus",userPermissionMiddleware("getMuseus"),MuseuController.getMuseus)
 
 export default routes

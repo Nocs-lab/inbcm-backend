@@ -157,6 +157,11 @@ const setPermissions = async () => {
       name: "getStatusImportacao",
       label: "Permite consultar status da importacao",
       description:"Permite consultar status da importacao"
+    },
+    {
+      name: "getMuseus",
+      label: "Listagem de museus",
+      description:"Permite listagem de museus"
     }
 
 
