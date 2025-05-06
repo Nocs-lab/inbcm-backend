@@ -1294,8 +1294,6 @@ class DeclaracaoService {
     page = 1,
     limit = 10
   ) {
- 
-   
     const museu = await Museu.findOne({ _id: museuId });
   
     if (!museu) {
@@ -1303,7 +1301,6 @@ class DeclaracaoService {
     }
   
   
-    // Definir o modelo e os campos de projeção com base no tipo de item
     let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico;
     let retornoPorItem: string;
   
@@ -1324,22 +1321,35 @@ class DeclaracaoService {
         throw new Error("Tipo de item inválido");
     }
   
-  
    
+    const declaracoes = await Declaracoes.find({
+      museu_id: new mongoose.Types.ObjectId(museuId),
+      anoDeclaracao: new mongoose.Types.ObjectId(ano)
+    }).select("_id");
+  
+    const declaracaoIds = declaracoes.map((d) => d._id);
+  
+    if (declaracaoIds.length === 0) {
+      return {
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+        itens: [],
+        links: {
+          first: null,
+          prev: null,
+          next: null,
+          last: null
+        }
+      };
+    }
+  
+    
     const maxVersaoResult = await Model.aggregate([
       {
-        $lookup: {
-          from: "declaracoes",
-          localField: "declaracao_ref",
-          foreignField: "_id",
-          as: "declaracoes"
-        }
-      },
-      { $unwind: "$declaracoes" },
-      {
         $match: {
-          "declaracoes.museu_id": new mongoose.Types.ObjectId(museuId),
-          "declaracoes.anoDeclaracao": new mongoose.Types.ObjectId(ano)
+          declaracao_ref: { $in: declaracaoIds }
         }
       },
       {
@@ -1349,39 +1359,41 @@ class DeclaracaoService {
         }
       }
     ]);
-   
   
     const maxVersao = maxVersaoResult[0]?.maxVersao;
-    if (maxVersao === undefined) return [];
+    if (maxVersao === undefined) {
+      return {
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+        itens: [],
+        links: {
+          first: null,
+          prev: null,
+          next: null,
+          last: null
+        }
+      };
+    }
   
-    const declaracaoIdsStartTime = Date.now();
-    const declaracaoIds = await Declaracoes.find({
-      museu_id: new mongoose.Types.ObjectId(museuId),
-      anoDeclaracao: new mongoose.Types.ObjectId(ano)
-    }).select("_id");
-    const declaracaoIdList = declaracaoIds.map((d) => d._id);
-    
+ 
     const total = await Model.countDocuments({
       versao: maxVersao,
-      declaracao_ref: { $in: declaracaoIdList }
+      declaracao_ref: { $in: declaracaoIds }
     });
-   
   
     const totalPages = Math.ceil(total / limit);
   
-   
-   
-    const result = await Model.find({
+    const itens = await Model.find({
       versao: maxVersao,
-      declaracao_ref: { $in: declaracaoIdList }
+      declaracao_ref: { $in: declaracaoIds }
     })
       .select(retornoPorItem)
       .skip((page - 1) * limit)
       .limit(limit)
-      .lean(); 
-   
+      .lean();
   
-    
     const baseUrl = `/api/admin/declaracoes/listar-itens/${museuId}/${ano}/${tipoItem}`;
     const links = {
       first: `${baseUrl}?page=1&limit=${limit}`,
@@ -1390,17 +1402,16 @@ class DeclaracaoService {
       last: `${baseUrl}?page=${totalPages}&limit=${limit}`
     };
   
-    
-  
     return {
       total,
       page,
       limit,
       totalPages,
-      itens: result,
+      itens,
       links
     };
   }
+  
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *
@@ -1428,7 +1439,7 @@ class DeclaracaoService {
     if (!museu) {
       throw new Error("Museu inválido ou você não tem permissão para acessá-lo")
     }
-   console.log("Tipo item:" + tipoItem)
+  
     let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico
     let retornoPorItem: string
   
@@ -1449,14 +1460,15 @@ class DeclaracaoService {
         throw new Error("Tipo de item inválido")
     }
   
-    const declaracao = await Declaracoes.findOne({
+    // Buscar declarações do museu e ano
+    const declaracoes = await Declaracoes.find({
       museu_id: new mongoose.Types.ObjectId(museuId),
       anoDeclaracao: new mongoose.Types.ObjectId(ano)
-    }).sort({ versao: -1 })
-    
-    console.log("Declaração encontrada:", declaracao)
-
-    if (!declaracao) {
+    }).select("_id")
+  
+    const declaracaoIds = declaracoes.map(d => d._id)
+  
+    if (declaracaoIds.length === 0) {
       return {
         total: 0,
         page,
@@ -1467,14 +1479,22 @@ class DeclaracaoService {
       }
     }
   
+    // Descobrir a maior versão dentro das declarações
     const maxVersaoResult = await Model.aggregate([
-      { $match: { declaracao_ref: declaracao._id } },
-      { $group: { _id: null, maxVersao: { $max: "$versao" } } }
+      {
+        $match: {
+          declaracao_ref: { $in: declaracaoIds }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          maxVersao: { $max: "$versao" }
+        }
+      }
     ])
-    console.log("Versões encontradas:", maxVersaoResult)
-
+  
     const maxVersao = maxVersaoResult[0]?.maxVersao
-    console.log("Max versão:", maxVersao)
   
     if (maxVersao === undefined) {
       return {
@@ -1492,15 +1512,15 @@ class DeclaracaoService {
     const [result, total] = await Promise.all([
       Model.find({
         versao: maxVersao,
-        declaracao_ref: declaracao._id
+        declaracao_ref: { $in: declaracaoIds }
       })
         .select(retornoPorItem)
         .skip(skip)
         .limit(limit),
-      
+  
       Model.countDocuments({
         versao: maxVersao,
-        declaracao_ref: declaracao._id
+        declaracao_ref: { $in: declaracaoIds }
       })
     ])
   
@@ -1524,6 +1544,7 @@ class DeclaracaoService {
       links
     }
   }
+  
 
   async adicionarEvento(
     declaracaoId: mongoose.Types.ObjectId,
