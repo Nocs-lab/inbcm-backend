@@ -1085,14 +1085,20 @@ export class DeclaracaoController {
   }
 
   async listarItensPorTipodeBemAdmin(req: Request, res: Response) {
+    
     const { museuId, ano, tipo } = req.params
-
+    const { page = 1, limit = 50 } = req.query
+   
     try {
       const result = await this.declaracaoService.buscarItensPorTipoAdmin(
         museuId,
         ano,
-        tipo
+        tipo,
+        Number(page),
+        Number(limit)
       )
+
+      console.log(result)
 
       if (!result) {
         return res
@@ -1124,49 +1130,53 @@ export class DeclaracaoController {
    * @description Este método verifica se o museu pertence ao usuário que está fazendo a requisição, e se válido, busca itens de um tipo específico (Arquivistico, Bibliografico, Museologico) da maior versão da declaração para aquele museu e ano.
    * @returns {Promise<void>} - Retorna uma promessa que resolve quando a resposta é enviada ao cliente. A promessa não retorna nenhum valor, mas durante sua execução, ela pode enviar uma resposta JSON contendo os itens encontrados ou uma mensagem de erro apropriada.
    */
-  async listarItensPorTipodeBem(req: Request, res: Response) {
-    const { museuId, ano, tipo } = req.params
-    const user_id = req.user.id
+  
+async listarItensPorTipodeBem(req: Request, res: Response) {
+  const { museuId, ano, tipo } = req.params
+  const { page = 1, limit = 50 } = req.query
+  const user_id = req.user.id
 
-    try {
-      const museu = await Museu.findOne({ _id: museuId, usuario: user_id })
+  try {
+    const museu = await Museu.findOne({ _id: museuId, usuario: user_id })
 
-      if (!museu) {
-        return res.status(400).json({
-          success: false,
-          message: "Museu inválido ou você não tem permissão para acessá-lo"
-        })
-      }
+    if (!museu) {
+      return res.status(400).json({
+        success: false,
+        message: "Museu inválido ou você não tem permissão para acessá-lo"
+      })
+    }
 
-      const result = await this.declaracaoService.buscarItensPorTipo(
-        museuId,
-        ano,
-        user_id,
-        tipo
-      )
+    const result = await this.declaracaoService.buscarItensPorTipo(
+      museuId,
+      ano,
+      user_id,
+      tipo,
+      Number(page),
+      Number(limit)
+    )
 
-      if (!result) {
-        return res
-          .status(404)
-          .json({ message: `Itens ${tipo} não encontrados` })
-      }
+    if (!result) {
+      return res
+        .status(404)
+        .json({ message: `Itens ${tipo} não encontrados` })
+    }
 
-      res.status(200).json(result)
-    } catch (error) {
-      logger.error(`Erro ao listar itens ${tipo}:`, error)
+    res.status(200).json(result)
+  } catch (error) {
+    logger.error(`Erro ao listar itens ${tipo}:`, error)
 
-      if (error instanceof Error) {
-        res.status(500).json({
-          message: `Erro ao listar itens ${tipo}`,
-          error: error.message
-        })
-      } else {
-        res
-          .status(500)
-          .json({ message: `Erro desconhecido ao listar itens ${tipo}` })
-      }
+    if (error instanceof Error) {
+      res.status(500).json({
+        message: `Erro ao listar itens ${tipo}`,
+        error: error.message
+      })
+    } else {
+      res
+        .status(500)
+        .json({ message: `Erro desconhecido ao listar itens ${tipo}` })
     }
   }
+}
 }
 
 export default DeclaracaoController
