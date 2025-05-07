@@ -18,39 +18,160 @@ const corrigirOrtografia: Record<string, string> = {
   bibliografico: "bibliográfico"
 }
 
-const gerarTabelaPendencias = (
-  tipo: "museologico" | "bibliografico" | "arquivistico",
-  declaracao: DeclaracaoModel
-) => {
-  const campos = MapeadorCamposPercentual[tipo]
-  const erros = declaracao[tipo]?.detailedErrors ?? []
+// const gerarTabelaPendencias = (
+//   tipo: "museologico" | "bibliografico" | "arquivistico",
+//   declaracao: DeclaracaoModel
+// ) => {
+//   const campos = MapeadorCamposPercentual[tipo]
+//   const erros = declaracao[tipo]?.detailedErrors ?? []
 
-  const tipoCorrigido = corrigirOrtografia[tipo] || tipo
+//   const tipoCorrigido = corrigirOrtografia[tipo] || tipo
+
+//   if (erros.length === 0) {
+//     return {
+//       table: {
+//         widths: ["100%"],
+//         body: [
+//           [
+//             {
+//               text: `Não há pendências para o acervo ${tipoCorrigido}`,
+//               style: "tableHeader",
+//               fillColor: "#D9D9D9",
+//               alignment: "center"
+//             }
+//           ]
+//         ]
+//       },
+//       layout: {
+//         fillColor: (rowIndex: number) =>
+//           rowIndex % 2 === 0 ? "#F5F5F5" : null,
+//         paddingLeft: () => 10,
+//         paddingRight: () => 10,
+//         paddingTop: () => 5,
+//         paddingBottom: () => 5
+//       }
+//     }
+//   }
+
+//   const errosOrdenados = erros
+//     .map((erro) => ({
+//       ...erro,
+//       linha: erro.linha + 1,
+//       camposComErro: erro.camposComErro ?? []
+//     }))
+//     .sort((a, b) => a.linha - b.linha)
+
+//   return {
+//     table: {
+//       widths: ["10%", "50%", "40%"],
+//       body: [
+//         [
+//           {
+//             text: `Pendências do acervo ${tipoCorrigido}`,
+//             style: "tableHeader",
+//             fillColor: "#D9D9D9",
+//             colSpan: 3
+//           },
+//           {},
+//           {}
+//         ],
+//         [
+//           { text: "Linha", style: "tableHeader", alignment: "center" },
+//           { text: "Campo", style: "tableHeader", alignment: "center" },
+//           { text: "Descrição", style: "tableHeader", alignment: "center" }
+//         ],
+//         ...errosOrdenados.flatMap((erro) =>
+//           (erro.camposComErro ?? []).map((campo) => {
+//             if (campo === "Não localizado") {
+//               return [
+//                 {
+//                   text: `${erro.linha}`,
+//                   style: "tableData",
+//                   alignment: "center"
+//                 },
+//                 {
+//                   text: "Situação",
+//                   style: "tableData",
+//                   alignment: "left",
+//                   noWrap: true
+//                 },
+//                 {
+//                   text: "Item não localizado",
+//                   style: "tableData",
+//                   alignment: "left",
+//                   noWrap: true
+//                 }
+//               ]
+//             } else {
+//               const campoKey = campo as keyof typeof campos
+//               return [
+//                 {
+//                   text: `${erro.linha}`,
+//                   style: "tableData",
+//                   alignment: "center"
+//                 },
+//                 {
+//                   text: campos[campoKey] || campo,
+//                   style: "tableData",
+//                   alignment: "left",
+//                   noWrap: true
+//                 },
+//                 {
+//                   text: "Campo vazio",
+//                   style: "tableData",
+//                   alignment: "left",
+//                   noWrap: true
+//                 }
+//               ]
+//             }
+//           })
+//         )
+//       ]
+//     },
+//     layout: {
+//       fillColor: (rowIndex: number) => (rowIndex % 2 === 0 ? "#F5F5F5" : null),
+//       paddingLeft: () => 10,
+//       paddingRight: () => 10,
+//       paddingTop: () => 5,
+//       paddingBottom: () => 5
+//     }
+//   }
+// }
+
+const processarTabelasEmLotes = (
+  tipo: "museologico" | "bibliografico" | "arquivistico",
+  declaracao: DeclaracaoModel,
+  batchSize = 1000
+): Content[] => {
+  const campos = MapeadorCamposPercentual[tipo];
+  const erros = declaracao[tipo]?.detailedErrors ?? [];
+  const tipoCorrigido = corrigirOrtografia[tipo] || tipo;
 
   if (erros.length === 0) {
-    return {
-      table: {
-        widths: ["100%"],
-        body: [
-          [
-            {
-              text: `Não há pendências para o acervo ${tipoCorrigido}`,
-              style: "tableHeader",
-              fillColor: "#D9D9D9",
-              alignment: "center"
-            }
+    return [
+      {
+        table: {
+          widths: ["100%"],
+          body: [
+            [
+              {
+                text: `Não há pendências para o acervo ${tipoCorrigido}`,
+                style: "tableHeader",
+                fillColor: "#D9D9D9",
+                alignment: "center"
+              }
+            ]
           ]
-        ]
-      },
-      layout: {
-        fillColor: (rowIndex: number) =>
-          rowIndex % 2 === 0 ? "#F5F5F5" : null,
-        paddingLeft: () => 10,
-        paddingRight: () => 10,
-        paddingTop: () => 5,
-        paddingBottom: () => 5
+        },
+        layout: {
+          fillColor: (rowIndex: number) => (rowIndex % 2 === 0 ? "#F5F5F5" : null),
+          paddingLeft: () => 10,
+          paddingRight: () => 10,
+          paddingTop: () => 5,
+          paddingBottom: () => 5
+        }
       }
-    }
+    ];
   }
 
   const errosOrdenados = erros
@@ -59,12 +180,20 @@ const gerarTabelaPendencias = (
       linha: erro.linha + 1,
       camposComErro: erro.camposComErro ?? []
     }))
-    .sort((a, b) => a.linha - b.linha)
+    .sort((a, b) => a.linha - b.linha);
 
-  return {
-    table: {
-      widths: ["10%", "50%", "40%"],
-      body: [
+  // Dividir os erros em lotes
+  const batches: typeof errosOrdenados[] = [];
+  for (let i = 0; i < errosOrdenados.length; i += batchSize) {
+    batches.push(errosOrdenados.slice(i, i + batchSize));
+  }
+
+  return batches.map((batch, batchIndex) => {
+    const body: any[] = [];
+    
+    // Adicionar cabeçalho apenas no primeiro lote
+    if (batchIndex === 0) {
+      body.push(
         [
           {
             text: `Pendências do acervo ${tipoCorrigido}`,
@@ -79,65 +208,76 @@ const gerarTabelaPendencias = (
           { text: "Linha", style: "tableHeader", alignment: "center" },
           { text: "Campo", style: "tableHeader", alignment: "center" },
           { text: "Descrição", style: "tableHeader", alignment: "center" }
-        ],
-        ...errosOrdenados.flatMap((erro) =>
-          (erro.camposComErro ?? []).map((campo) => {
-            if (campo === "Não localizado") {
-              return [
-                {
-                  text: `${erro.linha}`,
-                  style: "tableData",
-                  alignment: "center"
-                },
-                {
-                  text: "Situação",
-                  style: "tableData",
-                  alignment: "left",
-                  noWrap: true
-                },
-                {
-                  text: "Item não localizado",
-                  style: "tableData",
-                  alignment: "left",
-                  noWrap: true
-                }
-              ]
-            } else {
-              const campoKey = campo as keyof typeof campos
-              return [
-                {
-                  text: `${erro.linha}`,
-                  style: "tableData",
-                  alignment: "center"
-                },
-                {
-                  text: campos[campoKey] || campo,
-                  style: "tableData",
-                  alignment: "left",
-                  noWrap: true
-                },
-                {
-                  text: "Campo vazio",
-                  style: "tableData",
-                  alignment: "left",
-                  noWrap: true
-                }
-              ]
-            }
-          })
-        )
-      ]
-    },
-    layout: {
-      fillColor: (rowIndex: number) => (rowIndex % 2 === 0 ? "#F5F5F5" : null),
-      paddingLeft: () => 10,
-      paddingRight: () => 10,
-      paddingTop: () => 5,
-      paddingBottom: () => 5
+        ]
+      );
     }
-  }
-}
 
+    // Adicionar linhas do lote atual
+    body.push(
+      ...batch.flatMap((erro) =>
+        (erro.camposComErro ?? []).map((campo) => {
+          if (campo === "Não localizado") {
+            return [
+              {
+                text: `${erro.linha}`,
+                style: "tableData",
+                alignment: "center"
+              },
+              {
+                text: "Situação",
+                style: "tableData",
+                alignment: "left",
+                noWrap: true
+              },
+              {
+                text: "Item não localizado",
+                style: "tableData",
+                alignment: "left",
+                noWrap: true
+              }
+            ];
+          } else {
+            const campoKey = campo as keyof typeof campos;
+            return [
+              {
+                text: `${erro.linha}`,
+                style: "tableData",
+                alignment: "center"
+              },
+              {
+                text: campos[campoKey] || campo,
+                style: "tableData",
+                alignment: "left",
+                noWrap: true
+              },
+              {
+                text: "Campo vazio",
+                style: "tableData",
+                alignment: "left",
+                noWrap: true
+              }
+            ];
+          }
+        })
+      )
+    );
+
+    return {
+      table: {
+        widths: ["10%", "50%", "40%"],
+        body: body
+      },
+      layout: {
+        fillColor: (rowIndex: number) => (rowIndex % 2 === 0 ? "#F5F5F5" : null),
+        paddingLeft: () => 10,
+        paddingRight: () => 10,
+        paddingTop: () => 5,
+        paddingBottom: () => 5
+      },
+      pageBreak: batchIndex > 0 ? 'before' : undefined
+    };
+  });
+};
 /**
  * Gera o PDF do recibo com base no ID da declaração.
  *
@@ -166,36 +306,28 @@ export async function gerarPDFRelatorioPendenciais(
       anoDeclaracao: AnoDeclaracaoModel
     }
 
-    const tabelaMuseologico = declaracao.museologico
-      ? gerarTabelaPendencias("museologico", declaracao)
-      : undefined
+    const conteudo: Content[] = [];
 
-    const tabelaBibliografico = declaracao.bibliografico
-      ? gerarTabelaPendencias("bibliografico", declaracao)
-      : undefined
-
-    const tabelaArquivistico = declaracao.arquivistico
-      ? gerarTabelaPendencias("arquivistico", declaracao)
-      : undefined
-
-    const conteudo: Content[] = []
-
-    // Adiciona tabela Museológica, se existir
-    if (tabelaMuseologico) conteudo.push(tabelaMuseologico)
-
-    // Adiciona tabela Bibliográfica, se existir, com quebra de página ANTES dela
-    if (tabelaBibliografico) {
-      if (conteudo.length > 0)
-        conteudo.push({ text: "\n\n", pageBreak: "before" })
-      conteudo.push(tabelaBibliografico)
+    // Processar tabela museológica em lotes
+    if (declaracao.museologico) {
+      const tabelasMuseologico = processarTabelasEmLotes("museologico", declaracao);
+      conteudo.push(...tabelasMuseologico);
     }
 
-    // Adiciona tabela Arquivística, se existir, com quebra de página ANTES dela
-    if (tabelaArquivistico) {
-      if (conteudo.length > 0)
-        conteudo.push({ text: "\n\n", pageBreak: "before" })
-      conteudo.push(tabelaArquivistico)
+    // Processar tabela bibliográfica em lotes (com quebra de página antes)
+    if (declaracao.bibliografico) {
+      if (conteudo.length > 0) conteudo.push({ text: "\n\n", pageBreak: "before" });
+      const tabelasBibliografico = processarTabelasEmLotes("bibliografico", declaracao);
+      conteudo.push(...tabelasBibliografico);
     }
+
+    // Processar tabela arquivística em lotes (com quebra de página antes)
+    if (declaracao.arquivistico) {
+      if (conteudo.length > 0) conteudo.push({ text: "\n\n", pageBreak: "before" });
+      const tabelasArquivistico = processarTabelasEmLotes("arquivistico", declaracao);
+      conteudo.push(...tabelasArquivistico);
+    }
+
 
     const dadosFormatados = formatarDadosRecibo(declaracao)
 
