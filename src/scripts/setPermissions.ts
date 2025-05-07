@@ -137,6 +137,32 @@ const setPermissions = async () => {
       label: "Atualizar perfil do usuário",
       description: "Permite atualizar nome, email e senha do usuário."
     },
+    {
+      name:"iniciarImportacao",
+      label:"Cadastrar museus via api museus br",
+      description:"Permite realizar insert de museus via api museus br"
+    },
+    {
+      name: "getUltimaImportacao",
+      label:"Permite consultar última importação válida",
+      description:"Permite consultar última importacação válida",
+    },
+    {
+      name:"getContagemMuseus",
+      label:"Permite contagem de museus",
+      description:"Permite realizar contagem de museus"
+
+    },
+    {
+      name: "getStatusImportacao",
+      label: "Permite consultar status da importacao",
+      description:"Permite consultar status da importacao"
+    },
+    {
+      name: "getMuseus",
+      label: "Listagem de museus",
+      description:"Permite listagem de museus"
+    }
 
 
   ]

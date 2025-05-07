@@ -3,6 +3,7 @@ import { Museu, Usuario } from "../models"
 import logger from "../utils/logger"
 import { MuseuFiltro } from "../types/MuseuFIltro"
 
+
 class MuseuController {
   /**
    * @swagger
@@ -421,6 +422,45 @@ class MuseuController {
         .json({ mensagem: "Erro ao vincular usuários aos museus." })
     }
   }
+
+  static async getMuseus(req: Request, res: Response) {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = (page - 1) * limit;
+  
+      const total = await Museu.countDocuments();
+      const museus = await Museu.find({}, { usuario: 0 })
+        .skip(skip)
+        .limit(limit)
+        .exec();
+  
+      const totalPages = Math.ceil(total / limit);
+      const baseUrl = `/api/public/museus/listar-museus`;
+  
+      const links = {
+        first: `${baseUrl}?page=1&limit=${limit}`,
+        prev: page > 1 ? `${baseUrl}?page=${page - 1}&limit=${limit}` : null,
+        next: page < totalPages ? `${baseUrl}?page=${page + 1}&limit=${limit}` : null,
+        last: `${baseUrl}?page=${totalPages}&limit=${limit}`
+      };
+  
+      res.json({
+        total,
+        page,
+        limit,
+        totalPages,
+        itens: museus,
+        links
+      });
+    } catch (error) {
+      console.error("Erro ao buscar museus:", error);
+      res.status(500).json({ message: "Erro ao buscar museus" });
+    }
+  }
+  
+
+  
 }
 
 export default MuseuController

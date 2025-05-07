@@ -1,9 +1,31 @@
-import { Schema, model, Types } from "mongoose"
+import { Schema, model, Document, Types } from "mongoose";
 
-const ImportacaoSchema = new Schema({
-  museu: { type: Types.ObjectId, ref: "Museu", required: true },
-  data: { type: Date, default: Date.now },
-  arquivo: { type: String } 
-})
+export interface Importacao extends Document {
+  status: "pendente" | "em_andamento" | "concluida" | "erro";
+  iniciadoEm: Date;
+  finalizadoEm?: Date;
+  erro?: string;
+  museusCadastrados?: number;
+  usuario?: Types.ObjectId;
+  numeroImportados?: number;
+  totalImportacoesConcluidas?: number; 
+}
 
-export default model("Importacao", ImportacaoSchema)
+const ImportacaoSchema = new Schema<Importacao>({
+  status: { type: String, enum: ["pendente", "em_andamento", "concluida", "erro"], required: true },
+  iniciadoEm: { type: Date, required: true },
+  finalizadoEm: { type: Date },
+  erro: { type: String },
+  museusCadastrados: { type: Number},
+  numeroImportados: { type: Number},
+  totalImportacoesConcluidas: { type: Number, default: 0 },
+   usuario: 
+      {
+        type: Schema.Types.ObjectId,
+        ref: "usuarios",
+        required: false
+      }
+    
+});
+
+export default model<Importacao>("Importacoe", ImportacaoSchema);

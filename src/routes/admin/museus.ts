@@ -2,6 +2,7 @@ import express from "express"
 import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 import MuseuController from "../../controllers/MuseuController"
 
+
 const routes = express.Router()
 
 /**
@@ -41,5 +42,7 @@ routes.put(
   userPermissionMiddleware("desvincularUsuarioDoMuseu"),
   MuseuController.desvincularUsuarioDoMuseu
 )
+
+routes.get("/listar-museus",userPermissionMiddleware("getMuseus"),MuseuController.getMuseus)
 
 export default routes
