@@ -429,12 +429,20 @@ class MuseuController {
       const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
   
-      const total = await Museu.countDocuments();
+      const { regiao, uf, cidade, nome,bairro } = req.query;
   
-      const museus = await Museu.aggregate([
+      const matchStage: any = {};
+  
+      if (regiao) matchStage["estado.regiao"] = regiao;
+      if (uf) matchStage["endereco.uf"] = uf;
+      if (cidade) matchStage["endereco.municipio"] = cidade;
+      if (bairro) matchStage["endereco.bairro"] = bairro;
+      if (nome) matchStage["nome"] = { $regex: nome, $options: "i" };
+  
+      const pipeline: any[] = [
         {
           $lookup: {
-            from: "estados", 
+            from: "estados",
             localField: "endereco.uf",
             foreignField: "uf",
             as: "estado"
@@ -446,6 +454,7 @@ class MuseuController {
             preserveNullAndEmptyArrays: true
           }
         },
+        ...(Object.keys(matchStage).length > 0 ? [{ $match: matchStage }] : []),
         {
           $project: {
             regiao: "$estado.regiao",
@@ -457,9 +466,19 @@ class MuseuController {
         },
         { $skip: skip },
         { $limit: limit }
+      ];
+  
+      
+      const totalPipeline = pipeline.filter(
+        stage => !("$skip" in stage || "$limit" in stage)
+      );
+  
+      const [museus, totalDocs] = await Promise.all([
+        Museu.aggregate(pipeline),
+        Museu.aggregate(totalPipeline).then(res => res.length)
       ]);
   
-      const totalPages = Math.ceil(total / limit);
+      const totalPages = Math.ceil(totalDocs / limit);
       const baseUrl = `/api/public/museus/listar-museus`;
   
       const links = {
@@ -470,7 +489,7 @@ class MuseuController {
       };
   
       res.json({
-        total,
+        total: totalDocs,
         page,
         limit,
         totalPages,
@@ -482,6 +501,7 @@ class MuseuController {
       res.status(500).json({ message: "Erro ao buscar museus" });
     }
   }
+  
   
 
   
