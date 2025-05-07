@@ -430,10 +430,34 @@ class MuseuController {
       const skip = (page - 1) * limit;
   
       const total = await Museu.countDocuments();
-      const museus = await Museu.find({}, { usuario: 0 })
-        .skip(skip)
-        .limit(limit)
-        .exec();
+  
+      const museus = await Museu.aggregate([
+        {
+          $lookup: {
+            from: "estados", 
+            localField: "endereco.uf",
+            foreignField: "uf",
+            as: "estado"
+          }
+        },
+        {
+          $unwind: {
+            path: "$estado",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $project: {
+            regiao: "$estado.regiao",
+            codIbram: 1,
+            nome: 1,
+            esferaAdministraiva: 1,
+            endereco: 1
+          }
+        },
+        { $skip: skip },
+        { $limit: limit }
+      ]);
   
       const totalPages = Math.ceil(total / limit);
       const baseUrl = `/api/public/museus/listar-museus`;
