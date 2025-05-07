@@ -673,19 +673,18 @@ export async function gerarPDFRelatorioPendenciais(
     }
 
     return new Promise<Buffer>((resolve, reject) => {
-      const pdfDoc = printer.createPdfKitDocument(docDefinition)
-      const chunks: Buffer[] = []
+      const pdfDoc = printer.createPdfKitDocument(docDefinition);
+      const chunks: Buffer[] = [];
 
-      pdfDoc.on("data", (chunk: Buffer) => chunks.push(chunk))
-      pdfDoc.on("end", () => {
-        const result = Buffer.concat(chunks)
-        resolve(result)
-      })
-      pdfDoc.on("error", (err: Error) => {
-        reject(err)
-      })
-      pdfDoc.end()
-    })
+      pdfDoc.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
+        if (chunks.length % 100 === 0) setImmediate(() => {});
+      });
+
+      pdfDoc.on("end", () => resolve(Buffer.concat(chunks)));
+      pdfDoc.on("error", (err: Error) => reject(err));
+      pdfDoc.end();
+    });
   } catch (error) {
     throw new HTTPError("Erro ao gerar o recibo.", 500)
   }
