@@ -455,37 +455,36 @@ class DeclaracaoService {
           naoEncontrados
         } = await validate(arquivos[0].buffer);
   
-        // Converte Map para array com camposComErro como Map<string, string>
-        const detailedErrorsArray = Array.from(detailedErrors, ([linha, camposComErro]) => ({
-          linha,
-          camposComErro: camposComErro.reduce(
-            (acc: Record<string, string>, campo: string) => {
-              acc[campo] = "Campo inválido ou ausente";
-              return acc;
-            },
-            {}
-          )
-        }));
-  
-        // Converte naoEncontrados para array com camposComErro como Map<string, string>
-        const naoEncontradosArray = Array.from(naoEncontrados).map((linha) => ({
-          linha,
-          camposComErro: {
-            identificador: "Não localizado"
-          }
-        }));
-  
-        const detailedErrorsFinal = [
-          ...detailedErrorsArray,
-          ...naoEncontradosArray
-        ];
-  
-        // Salva as pendências em chunks
-        await salvarPendenciasEmChunks({
-          declaracaoId: novaDeclaracao._id as Types.ObjectId,
-          tipoArquivo: tipo,
-          erros: detailedErrorsFinal
-        });
+       const errosPorLinha = new Map<number, Record<string, string>>()
+
+      for (const [linha, campos] of detailedErrors) {
+        if (!errosPorLinha.has(linha)) {
+          errosPorLinha.set(linha, {})
+        }
+        const entry = errosPorLinha.get(linha)!
+        for (const campo of campos) {
+          entry[campo] = "Campo inválido ou ausente"
+        }
+      }
+
+      for (const linha of naoEncontrados) {
+        if (!errosPorLinha.has(linha)) {
+          errosPorLinha.set(linha, {})
+        }
+        const entry = errosPorLinha.get(linha)!
+        entry["situacao"] = "Não localizado"
+      }
+
+      const detailedErrorsFinal = Array.from(errosPorLinha, ([linha, camposComErro]) => ({
+        linha,
+        camposComErro
+      }))
+
+      await salvarPendenciasEmChunks({
+        declaracaoId: novaDeclaracao._id as Types.ObjectId,
+        tipoArquivo: tipo,
+        erros: detailedErrorsFinal
+      })
   
         // Calcula os percentuais de preenchimento
         const {
@@ -494,15 +493,11 @@ class DeclaracaoService {
           errors: camposObrigatorios
         } = calcularPercentuais(arquivoData, requiredFields);
   
-        if (naoEncontradosArray.length > 0) {
-          const situacaoNaoLocalizado = naoEncontradosArray.some((item) =>
-            Object.values(item.camposComErro).includes("Não localizado")
-          );
-  
-          if (situacaoNaoLocalizado && !camposObrigatorios.includes("situacao")) {
-            camposObrigatorios.push("situacao");
-          }
-        }
+        
+      if (detailedErrorsFinal.some(e => e.camposComErro["identificador"] === "Não localizado") &&
+          !camposObrigatorios.includes("situacao")) {
+        camposObrigatorios.push("situacao")
+      }
   
         // Prepara os dados alterados
         const dadosAlterados: Partial<Arquivo> = {
