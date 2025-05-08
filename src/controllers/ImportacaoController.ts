@@ -86,14 +86,22 @@ export class ImportacaoController {
   static async getUltimaImportacao(req: Request, res: Response) {
     const ultima = await Importacao.findOne({ status: "concluida" })
       .sort({ finalizadoEm: -1 })
-      .populate("usuario", "nome email") // Popula o campo 'usuario' com 'nome' e 'email'
+      .populate("usuario", "nome email")
       .lean();
   
     if (!ultima) {
-      return res.status(404).json({ message: "Nenhuma importação concluída encontrada." });
+      const count = await Museu.countDocuments();
+  
+      return res.json({
+        status: "default",
+        finalizadoEm: null,
+        iniciadoEm: null,
+        usuario: null,
+        museusCadastrados: count,
+        totalImportacoesConcluidas: 0,
+      });
     }
   
-    // Devolver a resposta com os dados da importação e usuário populado
     res.json(ultima);
   }
   
