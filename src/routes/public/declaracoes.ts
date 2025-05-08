@@ -8,6 +8,10 @@ import uploadAnalise from "../../middlewares/uploadAnalise"
 const routes = express.Router()
 const declaracaoController = new DeclaracaoController()
 
+
+routes.get("/pendencias/:id",declaracaoController.listarPendencias)
+console.log("Rota de pendências registrada")
+
 routes.get(
   "/download/analise/:declaracaoId/:tipoArquivo",
   userPermissionMiddleware("downloadAnalise"),
@@ -458,5 +462,6 @@ routes.delete(
   userPermissionMiddleware("excluirDeclaracao"),
   declaracaoController.excluirDeclaracao
 )
+
 
 export default routes

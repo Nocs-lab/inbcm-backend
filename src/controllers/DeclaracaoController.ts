@@ -42,6 +42,7 @@ export class DeclaracaoController {
     this.alterarAnalistaArquivo = this.alterarAnalistaArquivo.bind(this)
     this.uploadAnalise = this.uploadAnalise.bind(this)
     this.downloadAnalise = this.downloadAnalise.bind(this)
+    this.listarPendencias = this.listarPendencias.bind(this)
   }
 
   /**
@@ -1122,6 +1123,67 @@ export class DeclaracaoController {
       }
     }
   }
+  async listarPendencias(req: Request, res: Response) {
+    console.log("Chamando listar pendencias")
+    const tiposValidos = ["arquivistico", "bibliografico", "museologico"] as const
+    type TipoArquivo = typeof tiposValidos[number]
+
+    const tiposPendencia = ["naoLocalizado", "campoVazio"] as const
+    type TipoPendencia = typeof tiposPendencia[number]
+
+    try {
+      const { id } = req.params
+      const { tipoArquivo, tipoPendencia } = req.query
+
+      console.log("Recebido:", { id, tipoArquivo, tipoPendencia })
+
+      // Validando id
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({
+          message: "'id' não é um ObjectId válido"
+        })
+      }
+
+      console.log("ObjectId válido")
+
+      // Validando tipoArquivo
+      if (!tipoArquivo || !tiposValidos.includes(tipoArquivo as TipoArquivo)) {
+        return res.status(400).json({
+          message: "Parâmetros 'tipoArquivo' (arquivistico, bibliografico ou museologico) são obrigatórios e válidos"
+        })
+      }
+
+      console.log("Tipo de arquivo válido")
+
+      // Validando tipoPendencia
+      if (tipoPendencia && !tiposPendencia.includes(tipoPendencia as TipoPendencia)) {
+        return res.status(400).json({
+          message: "Parâmetro 'tipoPendencia' deve ser 'naoLocalizado' ou 'campoVazio'"
+        })
+      }
+
+      console.log("Tipo de pendência válido ou não fornecido")
+
+      // Chama o serviço para listar as pendências detalhadas
+      const resultado = await this.declaracaoService.listarPendenciasDetalhadas({
+        declaracaoId: id as string,
+        tipoArquivo: tipoArquivo as TipoArquivo,
+        tipoPendencia: tipoPendencia as TipoPendencia | undefined
+      })
+
+      console.log("Resultado da consulta:", resultado)
+
+      return res.status(200).json(resultado)
+
+    } catch (error) {
+      console.error("Erro ao listar pendências:", error)
+      return res.status(500).json({
+        message: "Erro ao listar pendências",
+        error: error instanceof Error ? error.message : error
+      })
+    }
+}
+
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
    * @param {string} req.params.museuId - O ID do museu.
@@ -1177,6 +1239,7 @@ async listarItensPorTipodeBem(req: Request, res: Response) {
     }
   }
 }
+
 }
 
 export default DeclaracaoController

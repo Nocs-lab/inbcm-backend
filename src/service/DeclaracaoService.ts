@@ -13,7 +13,7 @@ import {
   TimeLine
 } from "../models"
 import { IUsuario, SituacaoUsuario } from "../models/Usuario"
-import mongoose from "mongoose"
+import mongoose, { Types } from "mongoose"
 import {
   validate_museologico,
   validate_arquivistico,
@@ -37,8 +37,23 @@ import HTTPError from "../utils/error"
 import { AnoDeclaracao, AnoDeclaracaoModel } from "../models/AnoDeclaracao"
 import { sendEmail } from "../emails"
 import config from "../config"
+import { PendenciaDetalhadaModel } from "../models/PendenciasDetalhadas"
+import { salvarPendenciasEmChunks } from "../utils/declaracaoUtils"
+
+interface ErroDetalhado {
+  linha: number
+  camposComErro: Record<string, string>
+}
+
+interface Params {
+  declaracaoId: Types.ObjectId
+  tipoArquivo: "arquivistico" | "bibliografico" | "museologico"
+  erros: ErroDetalhado[]
+}
 
 class DeclaracaoService {
+
+  
   async showCards(declaracoes: DeclaracaoModel[]) {
     // Contagem do total de declarações
     const totalDeclaracoes = declaracoes.length
@@ -379,6 +394,12 @@ class DeclaracaoService {
         }
   }
 
+
+
+ 
+  
+  
+
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *
@@ -404,77 +425,85 @@ class DeclaracaoService {
         const novoHashBemCultural = createHashUpdate(
           arquivos[0].path,
           arquivos[0].filename
-        )
-
-        let validate = validate_arquivistico
-        let requiredFields: string[] = []
-
+        );
+  
+        let validate = validate_arquivistico;
+        let requiredFields: string[] = [];
+  
         // Define o validador e os campos obrigatórios com base no tipo de arquivo
         switch (tipo) {
           case "arquivistico":
-            validate = validate_arquivistico
-            requiredFields = arquivistico.required
-            break
+            validate = validate_arquivistico;
+            requiredFields = arquivistico.required;
+            break;
           case "bibliografico":
-            validate = validate_bibliografico
-            requiredFields = bibliografico.required
-            break
+            validate = validate_bibliografico;
+            requiredFields = bibliografico.required;
+            break;
           case "museologico":
-            validate = validate_museologico
-            requiredFields = museologico.required
-            break
+            validate = validate_museologico;
+            requiredFields = museologico.required;
+            break;
           default:
-            throw new Error("Tipo de declaração inválido")
+            throw new Error("Tipo de declaração inválido");
         }
-
+  
         // Valida o arquivo
         const {
           data: arquivoData,
           detailedErrors,
           naoEncontrados
-        } = await validate(arquivos[0].buffer)
-
-        // Converter Map detailedErrors para array
-        const detailedErrorsArray = Array.from(
-          detailedErrors,
-          ([linha, camposComErro]) => ({
-            linha,
-            camposComErro
-          })
-        )
-
-        // Converter Set naoEncontrados para array e formatá-lo
+        } = await validate(arquivos[0].buffer);
+  
+        // Converte Map para array com camposComErro como Map<string, string>
+        const detailedErrorsArray = Array.from(detailedErrors, ([linha, camposComErro]) => ({
+          linha,
+          camposComErro: camposComErro.reduce(
+            (acc: Record<string, string>, campo: string) => {
+              acc[campo] = "Campo inválido ou ausente";
+              return acc;
+            },
+            {}
+          )
+        }));
+  
+        // Converte naoEncontrados para array com camposComErro como Map<string, string>
         const naoEncontradosArray = Array.from(naoEncontrados).map((linha) => ({
           linha,
-          camposComErro: ["Não localizado"] // Indicando que a linha não foi encontrada
-        }))
-
-        // Unir detailedErrors com naoEncontrados
+          camposComErro: {
+            identificador: "Não localizado"
+          }
+        }));
+  
         const detailedErrorsFinal = [
           ...detailedErrorsArray,
           ...naoEncontradosArray
-        ]
-
+        ];
+  
+        // Salva as pendências em chunks
+        await salvarPendenciasEmChunks({
+          declaracaoId: novaDeclaracao._id as Types.ObjectId,
+          tipoArquivo: tipo,
+          erros: detailedErrorsFinal
+        });
+  
         // Calcula os percentuais de preenchimento
         const {
           porcentagemGeral,
           porcentagemPorCampo,
           errors: camposObrigatorios
-        } = calcularPercentuais(arquivoData, requiredFields)
-
+        } = calcularPercentuais(arquivoData, requiredFields);
+  
         if (naoEncontradosArray.length > 0) {
           const situacaoNaoLocalizado = naoEncontradosArray.some((item) =>
-            item.camposComErro.includes("Não localizado")
-          )
-
-          if (
-            situacaoNaoLocalizado &&
-            !camposObrigatorios.includes("situacao")
-          ) {
-            camposObrigatorios.push("situacao")
+            Object.values(item.camposComErro).includes("Não localizado")
+          );
+  
+          if (situacaoNaoLocalizado && !camposObrigatorios.includes("situacao")) {
+            camposObrigatorios.push("situacao");
           }
         }
-
+  
         // Prepara os dados alterados
         const dadosAlterados: Partial<Arquivo> = {
           nome: arquivos[0].filename,
@@ -485,61 +514,61 @@ class DeclaracaoService {
           versao: novaVersao,
           porcentagemGeral,
           porcentagemPorCampo,
-          detailedErrors: detailedErrorsFinal,
           usuario: userId as unknown as mongoose.Types.ObjectId,
           usuarioNome: responsavelEnvioNome
-        }
-
+        };
+  
         novaDeclaracao[tipo] = {
           ...arquivoAnterior,
           ...dadosAlterados
-        } as Arquivo
-
+        } as Arquivo;
+  
+        // Adiciona metadados aos itens do arquivo
         arquivoData.forEach((item: { [key: string]: unknown }) => {
-          item.declaracao_ref = novaDeclaracao._id
-          item.versao = novaVersao
-        })
-
-        let Modelo
+          item.declaracao_ref = novaDeclaracao._id;
+          item.versao = novaVersao;
+        });
+  
+        // Seleciona o modelo correto para inserção dos dados
+        let Modelo;
         switch (tipo) {
           case "arquivistico":
-            Modelo = Arquivistico
-            break
+            Modelo = Arquivistico;
+            break;
           case "bibliografico":
-            Modelo = Bibliografico
-            break
+            Modelo = Bibliografico;
+            break;
           case "museologico":
-            Modelo = Museologico
-            break
+            Modelo = Museologico;
+            break;
           default:
-            throw new Error("Tipo de declaração inválido")
+            throw new Error("Tipo de declaração inválido");
         }
-
-        await Modelo.insertMany(arquivoData)
+  
+        await Modelo.insertMany(arquivoData);
       } else if (arquivoAnterior) {
-        novaDeclaracao[tipo] = { ...arquivoAnterior } as Arquivo
+        novaDeclaracao[tipo] = { ...arquivoAnterior } as Arquivo;
       }
-
+  
+      // Atualiza informações de retificação, se houver
       if (novaDeclaracao.retificacaoRef) {
-        const declaracaoAnterior = (await Declaracoes.findById(
-          novaDeclaracao.retificacaoRef
-        ).exec()) as DeclaracaoModel | null
-
+        const declaracaoAnterior = await Declaracoes.findById(novaDeclaracao.retificacaoRef).exec();
         if (declaracaoAnterior) {
-          novaDeclaracao.retificacaoRef =
-            declaracaoAnterior._id as mongoose.Types.ObjectId
-          novaDeclaracao.retificacao = true
+          novaDeclaracao.retificacaoRef = declaracaoAnterior._id as mongoose.Types.ObjectId;
+          novaDeclaracao.retificacao = true;
         }
       }
-
-      novaDeclaracao.responsavelEnvioNome = responsavelEnvioNome
-
-      await novaDeclaracao.save()
+  
+      novaDeclaracao.responsavelEnvioNome = responsavelEnvioNome;
+  
+      await novaDeclaracao.save();
     } catch (error) {
-      console.error("Erro ao atualizar a declaração:", error)
-      throw new Error("Erro ao atualizar a declaração: " + error)
+      console.error("Erro ao atualizar a declaração:", error);
+      throw new Error("Erro ao atualizar a declaração: " + error);
     }
   }
+  
+  
 
   async getItensMuseu(museuId: string) {
     const declaracoesExistentes = await Declaracoes.find({
@@ -1545,7 +1574,8 @@ class DeclaracaoService {
     }
   }
   
-
+ 
+  
   async adicionarEvento(
     declaracaoId: mongoose.Types.ObjectId,
     evento: TimeLine
@@ -1845,6 +1875,53 @@ class DeclaracaoService {
 
     return novaDeclaracao
   }
+  async listarPendenciasDetalhadas({
+    declaracaoId,
+    tipoArquivo,
+    tipoPendencia
+  }: {
+    declaracaoId: string
+    tipoArquivo: "arquivistico" | "bibliografico" | "museologico"
+    tipoPendencia?: "naoLocalizado" | "campoVazio"
+  }) {
+    const match: any = {
+      declaracaoId: new mongoose.Types.ObjectId(declaracaoId),
+      tipoArquivo
+    }
+  
+    if (tipoPendencia === "naoLocalizado") {
+      match["erros.camposComErro"] = "Não localizado"
+    } else if (tipoPendencia === "campoVazio") {
+      match["erros.camposComErro"] = { $ne: "Não localizado" }
+    }
+  
+    try {
+      console.log("Agregando dados com o seguinte match:", match)
+  
+      const resultados = await PendenciaDetalhadaModel.aggregate([
+        { $match: match },
+        { $unwind: "$erros" },
+        {
+          $match: match
+        },
+        {
+          $project: {
+            linha: "$erros.linha",
+            camposComErro: "$erros.camposComErro",
+            _id: "$erros._id"
+          }
+        }
+      ])
+  
+      console.log("Resultados da agregação:", resultados)
+      return resultados
+    } catch (err) {
+      console.error("Erro na agregação MongoDB:", err)
+      throw new Error("Erro ao consultar pendências detalhadas no MongoDB")
+    }
+  }
+  
+  
 }
 
 export default DeclaracaoService
