@@ -10,7 +10,7 @@ const declaracaoController = new DeclaracaoController()
 
 
 routes.get("/pendencias/:id",declaracaoController.listarPendencias)
-console.log("Rota de pendências registrada")
+
 
 routes.get(
   "/download/analise/:declaracaoId/:tipoArquivo",
