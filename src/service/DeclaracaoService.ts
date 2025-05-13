@@ -463,7 +463,7 @@ class DeclaracaoService {
         }
         const entry = errosPorLinha.get(linha)!
         for (const campo of campos) {
-          entry[campo] = "Campo inválido ou ausente"
+          entry[campo] = "Campo vazio"
         }
       }
 
@@ -1871,50 +1871,70 @@ class DeclaracaoService {
     return novaDeclaracao
   }
   async listarPendenciasDetalhadas({
-    declaracaoId,
-    tipoArquivo,
-    tipoPendencia
-  }: {
-    declaracaoId: string
-    tipoArquivo: "arquivistico" | "bibliografico" | "museologico"
-    tipoPendencia?: "naoLocalizado" | "campoVazio"
-  }) {
-    const match: any = {
-      declaracaoId: new mongoose.Types.ObjectId(declaracaoId),
-      tipoArquivo
-    }
-  
-    if (tipoPendencia === "naoLocalizado") {
-      match["erros.camposComErro"] = "Não localizado"
-    } else if (tipoPendencia === "campoVazio") {
-      match["erros.camposComErro"] = { $ne: "Não localizado" }
-    }
-  
-    try {
-      console.log("Agregando dados com o seguinte match:", match)
-  
-      const resultados = await PendenciaDetalhadaModel.aggregate([
-        { $match: match },
-        { $unwind: "$erros" },
-        {
-          $match: match
-        },
-        {
-          $project: {
-            linha: "$erros.linha",
-            camposComErro: "$erros.camposComErro",
-            _id: "$erros._id"
-          }
+  declaracaoId,
+  tipoArquivo,
+  tipoPendencia
+}: {
+  declaracaoId: string
+  tipoArquivo: "arquivistico" | "bibliografico" | "museologico"
+  tipoPendencia?: "naoLocalizado" | "campoVazio"
+}) {
+  try {
+    const pipeline: any[] = [
+      {
+        $match: {
+          declaracaoId: new mongoose.Types.ObjectId(declaracaoId),
+          tipoArquivo
         }
-      ])
-  
-      console.log("Resultados da agregação:", resultados)
-      return resultados
-    } catch (err) {
-      console.error("Erro na agregação MongoDB:", err)
-      throw new Error("Erro ao consultar pendências detalhadas no MongoDB")
+      },
+      { $unwind: "$erros" },
+      {
+        $addFields: {
+          camposArray: { $objectToArray: "$erros.camposComErro" }
+        }
+      }
+    ]
+
+   
+    if (tipoPendencia === "naoLocalizado") {
+      pipeline.push({
+        $match: {
+          "camposArray.v": "Não localizado"
+        }
+      })
+    } else if (tipoPendencia === "campoVazio") {
+      pipeline.push({
+        $match: {
+          "camposArray.v": { $ne: "Não localizado" }
+        }
+      })
     }
+
+  
+    pipeline.push(
+      {
+        $project: {
+          linha: "$erros.linha",
+          camposComErro: "$erros.camposComErro",
+          _id: "$erros._id"
+        }
+      },
+      {
+        $sort: { linha: 1 } 
+      }
+    )
+
+    const resultados = await PendenciaDetalhadaModel.aggregate(pipeline)
+
+    return resultados
+  } catch (err) {
+    console.error("Erro na agregação MongoDB:", err)
+    throw new Error("Erro ao consultar pendências detalhadas no MongoDB")
   }
+}
+
+
+
   
   
 }

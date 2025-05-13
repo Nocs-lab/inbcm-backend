@@ -1135,7 +1135,7 @@ export class DeclaracaoController {
       const { id } = req.params
       const { tipoArquivo, tipoPendencia } = req.query
 
-      console.log("Recebido:", { id, tipoArquivo, tipoPendencia })
+     
 
       // Validando id
       if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -1144,7 +1144,7 @@ export class DeclaracaoController {
         })
       }
 
-      console.log("ObjectId válido")
+     
 
       // Validando tipoArquivo
       if (!tipoArquivo || !tiposValidos.includes(tipoArquivo as TipoArquivo)) {
@@ -1153,30 +1153,25 @@ export class DeclaracaoController {
         })
       }
 
-      console.log("Tipo de arquivo válido")
-
-      // Validando tipoPendencia
       if (tipoPendencia && !tiposPendencia.includes(tipoPendencia as TipoPendencia)) {
         return res.status(400).json({
           message: "Parâmetro 'tipoPendencia' deve ser 'naoLocalizado' ou 'campoVazio'"
         })
       }
 
-      console.log("Tipo de pendência válido ou não fornecido")
-
-      // Chama o serviço para listar as pendências detalhadas
+     
       const resultado = await this.declaracaoService.listarPendenciasDetalhadas({
         declaracaoId: id as string,
         tipoArquivo: tipoArquivo as TipoArquivo,
         tipoPendencia: tipoPendencia as TipoPendencia | undefined
       })
 
-      console.log("Resultado da consulta:", resultado)
+   
 
       return res.status(200).json(resultado)
 
     } catch (error) {
-      console.error("Erro ao listar pendências:", error)
+    
       return res.status(500).json({
         message: "Erro ao listar pendências",
         error: error instanceof Error ? error.message : error
