@@ -30,7 +30,8 @@ const addPermissionsToDeclarant = async () => {
     "viewDashboard",
     "getPeriodos",
     "getTimeLineDeclarant",
-    "atualizarPerfilUsuario"
+    "atualizarPerfilUsuario",
+    "listarPendencias"
   ]
 
   try {

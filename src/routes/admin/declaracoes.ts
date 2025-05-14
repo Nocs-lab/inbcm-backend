@@ -5,9 +5,12 @@ import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 const routes = express.Router()
 const declaracaoController = new DeclaracaoController()
 
+routes.get("/pendencias/:id",declaracaoController.listarPendencias)
+
 routes.get(
   "/",
   userPermissionMiddleware("getDeclaracoes"),
+  userPermissionMiddleware("listarPendencias"),
   declaracaoController.getDeclaracoes
 )
 routes.get(
