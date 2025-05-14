@@ -10,6 +10,7 @@ routes.get("/pendencias/:id",declaracaoController.listarPendencias)
 routes.get(
   "/",
   userPermissionMiddleware("getDeclaracoes"),
+  userPermissionMiddleware("listarPendencias"),
   declaracaoController.getDeclaracoes
 )
 routes.get(

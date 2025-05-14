@@ -9,7 +9,9 @@ const routes = express.Router()
 const declaracaoController = new DeclaracaoController()
 
 
-routes.get("/pendencias/:id",declaracaoController.listarPendencias)
+routes.get("/pendencias/:id",
+  userPermissionMiddleware("listarPendencias"),
+  declaracaoController.listarPendencias)
 
 
 routes.get(

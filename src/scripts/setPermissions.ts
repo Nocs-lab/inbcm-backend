@@ -1,3 +1,4 @@
+import { name } from "@pulsecron/pulse/dist/pulse/name"
 import connect from "../db/conn"
 import { Permission } from "../models/Permission"
 import logger from "../utils/logger"
@@ -162,6 +163,11 @@ const setPermissions = async () => {
       name: "getMuseus",
       label: "Listagem de museus",
       description:"Permite listagem de museus"
+    },
+    {
+      name: "listarPendencias",
+      label: "listagem pendencias",
+      description:"Permite listar pendencias"
     }
 
 

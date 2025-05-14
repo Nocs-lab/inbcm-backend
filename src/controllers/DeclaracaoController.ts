@@ -1137,7 +1137,7 @@ export class DeclaracaoController {
 
      
 
-      // Validando id
+     
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({
           message: "'id' não é um ObjectId válido"
@@ -1146,7 +1146,7 @@ export class DeclaracaoController {
 
      
 
-      // Validando tipoArquivo
+    
       if (!tipoArquivo || !tiposValidos.includes(tipoArquivo as TipoArquivo)) {
         return res.status(400).json({
           message: "Parâmetros 'tipoArquivo' (arquivistico, bibliografico ou museologico) são obrigatórios e válidos"
