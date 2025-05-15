@@ -23,11 +23,6 @@ const parsed = {
   METABASE_SITE_URL: process.env.METABASE_SITE_URL ?? "",
   METABASE_SECRET_KEY: process.env.METABASE_SECRET_KEY ?? "",
   METABASE_DASHBOARD_ID: process.env.METABASE_DASHBOARD_ID ?? "",
-  EMAIL_HOST: process.env.EMAIL_HOST ?? "",
-  EMAIL_PORT: process.env.EMAIL_PORT ?? "",
-  EMAIL_USER: process.env.EMAIL_USER ?? "",
-  EMAIL_PASS: process.env.EMAIL_PASS ?? "",
-  EMAIL_FROM: process.env.EMAIL_FROM ?? "",
   PUBLIC_SITE_URL: process.env.PUBLIC_SITE_URL ?? "https://localhost:5173"
 }
 logger.info("Carregando configurações...")
@@ -57,14 +52,6 @@ const schema = z.object({
     .string()
     .min(1)
     .transform((val) => parseInt(val)),
-  EMAIL_HOST: z.string().min(1),
-  EMAIL_PORT: z
-    .string()
-    .min(1)
-    .transform((val) => parseInt(val, 10)),
-  EMAIL_USER: z.string().min(1),
-  EMAIL_PASS: z.string().min(1),
-  EMAIL_FROM: z.string().min(1),
   PUBLIC_SITE_URL: z.string().min(1).url()
 })
 
