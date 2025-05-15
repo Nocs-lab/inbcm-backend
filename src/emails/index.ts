@@ -3,18 +3,56 @@ import templates from "./templates"
 import nodemailer from "nodemailer"
 import Pulse from "@pulsecron/pulse"
 import { UsuarioService } from "../service/UserService"
+import { Config } from "../models"
+import Mail from "nodemailer/lib/mailer"
 
 type Templates = {
   "forgot-password": { url: string }
   "solicitar-acesso": { name: string }
-  "novo-usuario-admin": {nome: string, email: string, horario: string, url: string}
-  "reprovacao-cadastro-usuario": {nome:string}
-  "confirmacao-envio-declaracao" : {url:string, horario:string, response:object, museu:object, anoReferencia:number}
-  "confirmacao-retificacao-declaracao" : {url:string, horario:string, response:object, museu:object, anoReferencia:number, hashOriginal:string}
-  "declaracao-em-conformidade": { dataAtual:string, hash:string, url:string,museu:string}
-  "declaracao-nao-conformidade": { dataAtual:string, hash:string, url:string,museu:string}
-  "prazo-declaracao" : {dataFim: string, diasFim: number, anoReferencia: number}
-  "prazo-retificacao" : {dataFim: string, diasFim: number, anoReferencia: number}
+  "novo-usuario-admin": {
+    nome: string
+    email: string
+    horario: string
+    url: string
+  }
+  "reprovacao-cadastro-usuario": { nome: string }
+  "confirmacao-envio-declaracao": {
+    url: string
+    horario: string
+    response: object
+    museu: object
+    anoReferencia: number
+  }
+  "confirmacao-retificacao-declaracao": {
+    url: string
+    horario: string
+    response: object
+    museu: object
+    anoReferencia: number
+    hashOriginal: string
+  }
+  "declaracao-em-conformidade": {
+    dataAtual: string
+    hash: string
+    url: string
+    museu: string
+  }
+  "declaracao-nao-conformidade": {
+    dataAtual: string
+    hash: string
+    url: string
+    museu: string
+  }
+  "prazo-declaracao": {
+    dataFim: string
+    diasFim: number
+    anoReferencia: number
+  }
+  "prazo-retificacao": {
+    dataFim: string
+    diasFim: number
+    anoReferencia: number
+  }
 }
 
 const pulse = new Pulse({
@@ -35,23 +73,38 @@ const subjects: Record<
   "solicitar-acesso": () =>
     "[INBCM] Solicitação de acesso ao módulo declarante",
   "novo-usuario-admin": () => "[INBCM] Novo usuário solicitou acesso ao INBCM",
-  "reprovacao-cadastro-usuario": () => "[INBCM] Seu acesso ao INBCM foi reprovado.",
-  "confirmacao-envio-declaracao": () => "[INBCM] Sua declaração foi recebida com sucesso!",
-  "confirmacao-retificacao-declaracao": () => "[INBCM] Sua declaração retificadora foi recebida com sucesso!",
-  "declaracao-em-conformidade": () => "[INBCM] Atualização na situação de declaração para conforme!",
-  "declaracao-nao-conformidade": () => "[INBCM] Atualização na situação de declaração para não conforme",
+  "reprovacao-cadastro-usuario": () =>
+    "[INBCM] Seu acesso ao INBCM foi reprovado.",
+  "confirmacao-envio-declaracao": () =>
+    "[INBCM] Sua declaração foi recebida com sucesso!",
+  "confirmacao-retificacao-declaracao": () =>
+    "[INBCM] Sua declaração retificadora foi recebida com sucesso!",
+  "declaracao-em-conformidade": () =>
+    "[INBCM] Atualização na situação de declaração para conforme!",
+  "declaracao-nao-conformidade": () =>
+    "[INBCM] Atualização na situação de declaração para não conforme",
   "prazo-declaracao": () => "[INBCM] Prazo para envio de declaração",
   "prazo-retificacao": () => "[INBCM] Prazo para retificação de declaração"
 }
 
-const transporter = nodemailer.createTransport({
-  host: config.EMAIL_HOST,
-  port: config.EMAIL_PORT,
-  auth: {
-    user: config.EMAIL_USER,
-    pass: config.EMAIL_PASS
+async function getSender() {
+  const config = await Config.findOne({})
+
+  if (!config) {
+    throw new Error("Configuração de e-mail não definida")
   }
-})
+
+  const transporter = nodemailer.createTransport({
+    host: config.emailHost,
+    port: config.emailPort,
+    auth: {
+      user: config.emailUser,
+      pass: config.emailPass
+    }
+  })
+
+  return (options: Omit<Mail.Options, "from">) => transporter.sendMail(options)
+}
 
 pulse.define<{
   template: keyof Templates
@@ -61,11 +114,11 @@ pulse.define<{
   const { template, to, data } = job.attrs.data
 
   const recipients = Array.isArray(to) ? to : [to]
+  const sendEmail = await getSender()
 
   await Promise.all(
     recipients.map(async (recipient) => {
-      await transporter.sendMail({
-        from: config.EMAIL_FROM,
+      await sendEmail({
         to: recipient,
         subject: subjects[template](data),
         html: templates[template]({
@@ -84,9 +137,9 @@ pulse.define<{
   const { template, data } = job.attrs.data
 
   const users = await UsuarioService.buscarUsuarios()
+  const sendEmail = await getSender()
 
-  await transporter.sendMail({
-    from: config.EMAIL_FROM,
+  await sendEmail({
     to: users.map((user) => user.email),
     subject: subjects[template](data),
     html: templates[template]({
