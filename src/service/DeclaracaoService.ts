@@ -39,6 +39,8 @@ import { sendEmail } from "../emails"
 import config from "../config"
 import { PendenciaDetalhadaModel } from "../models/PendenciasDetalhadas"
 import { salvarPendenciasEmChunks } from "../utils/declaracaoUtils"
+import { Filtro } from "../types/FiltroPaginacao"
+import { traduzirFiltrosParaMongo } from "../types/traduzirFiltros"
 
 interface ErroDetalhado {
   linha: number
@@ -1933,10 +1935,74 @@ class DeclaracaoService {
   }
 }
 
+async listarPendenciasDetalhadasComFiltro({
+  declaracaoId,
+  tipoArquivo,
+  filtros
+}: {
+  declaracaoId: string
+  tipoArquivo: "arquivistico" | "bibliografico" | "museologico"
+  filtros: Filtro[]
+}) {
+  try {
+    const pipeline: any[] = [
+      {
+        $match: {
+          declaracaoId: new mongoose.Types.ObjectId(declaracaoId),
+          tipoArquivo
+        }
+      },
+      { $unwind: "$erros" },
+      {
+        $addFields: {
+          camposComErroFiltrados: {
+            $filter: {
+              input: { $objectToArray: "$erros.camposComErro" },
+              as: "item",
+              cond: {
+                $in: ["$$item.v", filtros[0].valores] // ["Não localizado"], ["Campo vazio"]
+              }
+            }
+          }
+        }
+      },
+      {
+        $match: {
+          $expr: { $gt: [{ $size: "$camposComErroFiltrados" }, 0] }
+        }
+      },
+      {
+        $addFields: {
+          camposComErro: {
+            $arrayToObject: "$camposComErroFiltrados"
+          }
+        }
+      },
+      {
+        $project: {
+          linha: "$erros.linha",
+          camposComErro: 1,
+          _id: "$erros._id"
+        }
+      },
+      {
+        $sort: { linha: 1 }
+      }
+    ]
+
+    console.log("Pipeline final:", JSON.stringify(pipeline, null, 2))
+
+    const resultados = await PendenciaDetalhadaModel.aggregate(pipeline)
+    return resultados
+  } catch (err) {
+    console.error("Erro na agregação MongoDB:", err)
+    throw new Error("Erro ao consultar pendências detalhadas")
+  }
+}
 
 
-  
-  
+
+
 }
 
 export default DeclaracaoService

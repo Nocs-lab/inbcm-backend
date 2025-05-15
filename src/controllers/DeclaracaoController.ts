@@ -19,6 +19,7 @@ import { sendEmail } from "../emails"
 import config from "../config"
 import { DataUtils } from "../utils/dataUtils"
 import { MuseuHelper } from "../utils/museuHelper"
+import { filtroPaginacaoSchema } from "../types/FiltroPaginacao"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -1123,60 +1124,36 @@ export class DeclaracaoController {
       }
     }
   }
+  
+
   async listarPendencias(req: Request, res: Response) {
-    console.log("Chamando listar pendencias")
-    const tiposValidos = ["arquivistico", "bibliografico", "museologico"] as const
-    type TipoArquivo = typeof tiposValidos[number]
+  try {
+    const { id } = req.params
+    const parsed = filtroPaginacaoSchema.safeParse(req.body)
 
-    const tiposPendencia = ["naoLocalizado", "campoVazio"] as const
-    type TipoPendencia = typeof tiposPendencia[number]
-
-    try {
-      const { id } = req.params
-      const { tipoArquivo, tipoPendencia } = req.query
-
-     
-
-     
-      if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({
-          message: "'id' não é um ObjectId válido"
-        })
-      }
-
-     
-
-    
-      if (!tipoArquivo || !tiposValidos.includes(tipoArquivo as TipoArquivo)) {
-        return res.status(400).json({
-          message: "Parâmetros 'tipoArquivo' (arquivistico, bibliografico ou museologico) são obrigatórios e válidos"
-        })
-      }
-
-      if (tipoPendencia && !tiposPendencia.includes(tipoPendencia as TipoPendencia)) {
-        return res.status(400).json({
-          message: "Parâmetro 'tipoPendencia' deve ser 'naoLocalizado' ou 'campoVazio'"
-        })
-      }
-
-     
-      const resultado = await this.declaracaoService.listarPendenciasDetalhadas({
-        declaracaoId: id as string,
-        tipoArquivo: tipoArquivo as TipoArquivo,
-        tipoPendencia: tipoPendencia as TipoPendencia | undefined
-      })
-
-   
-
-      return res.status(200).json(resultado)
-
-    } catch (error) {
-    
-      return res.status(500).json({
-        message: "Erro ao listar pendências",
-        error: error instanceof Error ? error.message : error
-      })
+    if (!parsed.success) {
+      return res.status(400).json({ errors: parsed.error.format() })
     }
+
+    const { filtros, pagina, tamanho,tipoArquivo } = parsed.data
+    console.log("Filtros recebidos:", filtros)
+    console.log("TipoArquivo recebido:", tipoArquivo)
+    console.log("Página:", pagina, "Tamanho:", tamanho)
+
+      const resultado = await this.declaracaoService.listarPendenciasDetalhadasComFiltro({
+      declaracaoId: id,
+      tipoArquivo,
+      filtros,
+    })
+
+    return res.status(200).json({
+      conteudo: resultado.slice((pagina - 1) * tamanho, pagina * tamanho),
+      totalElementos: resultado.length
+    })
+  } catch (err) {
+    return res.status(500).json({ message: "Erro ao buscar pendências", error: err })
+  }
+
 }
 
   /**
