@@ -11,7 +11,7 @@ class EmailConfigController {
       const config = await Config.findOne({})
 
       if (!config) {
-        return res.status(204).json({
+        return res.status(200).json({
           emailHost: "",
           emailPort: 0,
           emailUser: "",
