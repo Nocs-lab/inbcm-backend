@@ -1123,61 +1123,61 @@ export class DeclaracaoController {
       }
     }
   }
-  async listarPendencias(req: Request, res: Response) {
-    console.log("Chamando listar pendencias")
-    const tiposValidos = ["arquivistico", "bibliografico", "museologico"] as const
-    type TipoArquivo = typeof tiposValidos[number]
+ async listarPendencias(req: Request, res: Response) {
+  const tiposValidos = ["arquivistico", "bibliografico", "museologico"] as const;
+  type TipoArquivo = typeof tiposValidos[number];
 
-    const tiposPendencia = ["naoLocalizado", "campoVazio"] as const
-    type TipoPendencia = typeof tiposPendencia[number]
+  const tiposPendencia = ["naoLocalizado", "campoVazio"] as const;
+  type TipoPendencia = typeof tiposPendencia[number];
 
-    try {
-      const { id } = req.params
-      const { tipoArquivo, tipoPendencia } = req.query
+  try {
+    const { id } = req.params;
+    const { tipoArquivo, tipoPendencia, page = "1", limit = "10" } = req.query;
 
-     
-
-     
-      if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({
-          message: "'id' não é um ObjectId válido"
-        })
-      }
-
-     
-
-    
-      if (!tipoArquivo || !tiposValidos.includes(tipoArquivo as TipoArquivo)) {
-        return res.status(400).json({
-          message: "Parâmetros 'tipoArquivo' (arquivistico, bibliografico ou museologico) são obrigatórios e válidos"
-        })
-      }
-
-      if (tipoPendencia && !tiposPendencia.includes(tipoPendencia as TipoPendencia)) {
-        return res.status(400).json({
-          message: "Parâmetro 'tipoPendencia' deve ser 'naoLocalizado' ou 'campoVazio'"
-        })
-      }
-
-     
-      const resultado = await this.declaracaoService.listarPendenciasDetalhadas({
-        declaracaoId: id as string,
-        tipoArquivo: tipoArquivo as TipoArquivo,
-        tipoPendencia: tipoPendencia as TipoPendencia | undefined
-      })
-
-   
-
-      return res.status(200).json(resultado)
-
-    } catch (error) {
-    
-      return res.status(500).json({
-        message: "Erro ao listar pendências",
-        error: error instanceof Error ? error.message : error
-      })
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "'id' não é um ObjectId válido"
+      });
     }
+
+    if (!tipoArquivo || !tiposValidos.includes(tipoArquivo as TipoArquivo)) {
+      return res.status(400).json({
+        message: "Parâmetros 'tipoArquivo' (arquivistico, bibliografico ou museologico) são obrigatórios e válidos"
+      });
+    }
+
+    if (tipoPendencia && !tiposPendencia.includes(tipoPendencia as TipoPendencia)) {
+      return res.status(400).json({
+        message: "Parâmetro 'tipoPendencia' deve ser 'naoLocalizado' ou 'campoVazio'"
+      });
+    }
+
+    const parsedPage = parseInt(page as string, 10);
+    const parsedLimit = parseInt(limit as string, 10);
+
+    if (isNaN(parsedPage) || parsedPage < 1 || isNaN(parsedLimit) || parsedLimit < 1) {
+      return res.status(400).json({
+        message: "'page' e 'limit' devem ser números inteiros positivos"
+      });
+    }
+
+    const resultado = await this.declaracaoService.listarPendenciasDetalhadas({
+      declaracaoId: id,
+      tipoArquivo: tipoArquivo as TipoArquivo,
+      tipoPendencia: tipoPendencia as TipoPendencia | undefined,
+      page: parsedPage,
+      limit: parsedLimit
+    });
+
+    return res.status(200).json(resultado);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Erro ao listar pendências",
+      error: error instanceof Error ? error.message : error
+    });
+  }
 }
+
 
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
