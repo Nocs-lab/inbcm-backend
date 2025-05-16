@@ -3,12 +3,21 @@ import logger from "../utils/logger"
 import { Config } from "../models"
 
 class EmailConfigController {
-  public async getEmailConfigs(req: Request, res: Response): Promise<Response> {
+  public async getEmailConfigs(
+    _req: Request,
+    res: Response
+  ): Promise<Response> {
     try {
       const config = await Config.findOne({})
 
       if (!config) {
-        return res.status(404).json({ message: "Configuração não encontrada" })
+        return res.status(204).json({
+          emailHost: "",
+          emailPort: 0,
+          emailUser: "",
+          emailPass: "",
+          emailFrom: ""
+        })
       }
 
       return res.status(200).json(config)
