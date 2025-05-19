@@ -1872,14 +1872,18 @@ class DeclaracaoService {
 
     return novaDeclaracao
   }
-  async listarPendenciasDetalhadas({
+ async listarPendenciasDetalhadas({
   declaracaoId,
   tipoArquivo,
-  tipoPendencia
+  tipoPendencia,
+  page = 1,
+  limit = 10
 }: {
-  declaracaoId: string
-  tipoArquivo: "arquivistico" | "bibliografico" | "museologico"
-  tipoPendencia?: "naoLocalizado" | "campoVazio"
+  declaracaoId: string;
+  tipoArquivo: "arquivistico" | "bibliografico" | "museologico";
+  tipoPendencia?: "naoLocalizado" | "campoVazio";
+  page?: number;
+  limit?: number;
 }) {
   try {
     const pipeline: any[] = [
@@ -1895,24 +1899,29 @@ class DeclaracaoService {
           camposArray: { $objectToArray: "$erros.camposComErro" }
         }
       }
-    ]
+    ];
 
-   
     if (tipoPendencia === "naoLocalizado") {
       pipeline.push({
         $match: {
           "camposArray.v": "Não localizado"
         }
-      })
+      });
     } else if (tipoPendencia === "campoVazio") {
       pipeline.push({
         $match: {
           "camposArray.v": { $ne: "Não localizado" }
         }
-      })
+      });
     }
 
-  
+    // Pipeline de contagem de total
+    const countPipeline = [...pipeline, { $count: "total" }];
+    const countResult = await PendenciaDetalhadaModel.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+    const totalPages = Math.ceil(total / limit);
+
+    // Adiciona paginação e projeção ao pipeline principal
     pipeline.push(
       {
         $project: {
@@ -1921,17 +1930,32 @@ class DeclaracaoService {
           _id: "$erros._id"
         }
       },
-      {
-        $sort: { linha: 1 } 
-      }
-    )
+      { $sort: { linha: 1 } },
+      { $skip: (page - 1) * limit },
+      { $limit: limit }
+    );
 
-    const resultados = await PendenciaDetalhadaModel.aggregate(pipeline)
+    const resultados = await PendenciaDetalhadaModel.aggregate(pipeline);
 
-    return resultados
+    const baseUrl = `/api/admin/pendencias/${declaracaoId}/${tipoArquivo}`;
+    const links = {
+      first: `${baseUrl}?page=1&limit=${limit}`,
+      prev: page > 1 ? `${baseUrl}?page=${page - 1}&limit=${limit}` : null,
+      next: page < totalPages ? `${baseUrl}?page=${page + 1}&limit=${limit}` : null,
+      last: `${baseUrl}?page=${totalPages}&limit=${limit}`
+    };
+
+    return {
+      total,
+      page,
+      limit,
+      totalPages,
+      pendencias: resultados,
+      links
+    };
   } catch (err) {
-    console.error("Erro na agregação MongoDB:", err)
-    throw new Error("Erro ao consultar pendências detalhadas no MongoDB")
+    console.error("Erro na agregação MongoDB:", err);
+    throw new Error("Erro ao consultar pendências detalhadas no MongoDB");
   }
 }
 
