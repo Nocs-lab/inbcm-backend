@@ -14,7 +14,7 @@ export const filtroPaginacaoSchema = z.object({
   tamanho: z.number().int().min(1),
   colunas: z.array(z.string()).optional(),
   tipoArquivo: z.enum(["museologico", "arquivistico", "bibliografico"]),
-  filtros: z.array(filtroSchema).nonempty()
+  filtros: z.array(filtroSchema).optional().default([])
 })
 
 export type Filtro = z.infer<typeof filtroSchema>

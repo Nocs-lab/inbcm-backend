@@ -1945,6 +1945,11 @@ async listarPendenciasDetalhadasComFiltro({
   filtros: Filtro[]
 }) {
   try {
+   
+    if (!filtros.length) {
+      return []
+    }
+
     const pipeline: any[] = [
       {
         $match: {
@@ -1960,7 +1965,7 @@ async listarPendenciasDetalhadasComFiltro({
               input: { $objectToArray: "$erros.camposComErro" },
               as: "item",
               cond: {
-                $in: ["$$item.v", filtros[0].valores] // ["Não localizado"], ["Campo vazio"]
+                $in: ["$$item.v", filtros[0].valores]
               }
             }
           }
@@ -1990,8 +1995,6 @@ async listarPendenciasDetalhadasComFiltro({
       }
     ]
 
-    console.log("Pipeline final:", JSON.stringify(pipeline, null, 2))
-
     const resultados = await PendenciaDetalhadaModel.aggregate(pipeline)
     return resultados
   } catch (err) {
@@ -1999,6 +2002,7 @@ async listarPendenciasDetalhadasComFiltro({
     throw new Error("Erro ao consultar pendências detalhadas")
   }
 }
+
 
 
 

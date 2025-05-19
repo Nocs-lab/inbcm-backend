@@ -1136,9 +1136,7 @@ export class DeclaracaoController {
     }
 
     const { filtros, pagina, tamanho,tipoArquivo } = parsed.data
-    console.log("Filtros recebidos:", filtros)
-    console.log("TipoArquivo recebido:", tipoArquivo)
-    console.log("Página:", pagina, "Tamanho:", tamanho)
+  
 
       const resultado = await this.declaracaoService.listarPendenciasDetalhadasComFiltro({
       declaracaoId: id,
