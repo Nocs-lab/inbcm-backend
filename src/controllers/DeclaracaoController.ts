@@ -19,6 +19,7 @@ import { sendEmail } from "../emails"
 import config from "../config"
 import { DataUtils } from "../utils/dataUtils"
 import { MuseuHelper } from "../utils/museuHelper"
+import { filtroPaginacaoSchema } from "../types/FiltroPaginacao"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -1123,61 +1124,35 @@ export class DeclaracaoController {
       }
     }
   }
- async listarPendencias(req: Request, res: Response) {
-  const tiposValidos = ["arquivistico", "bibliografico", "museologico"] as const;
-  type TipoArquivo = typeof tiposValidos[number];
+  
 
-  const tiposPendencia = ["naoLocalizado", "campoVazio"] as const;
-  type TipoPendencia = typeof tiposPendencia[number];
-
+  async listarPendencias(req: Request, res: Response) {
   try {
-    const { id } = req.params;
-    const { tipoArquivo, tipoPendencia, page = "1", limit = "10" } = req.query;
+    const { id } = req.params
+    const parsed = filtroPaginacaoSchema.safeParse(req.body)
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        message: "'id' não é um ObjectId válido"
-      });
+    if (!parsed.success) {
+      return res.status(400).json({ errors: parsed.error.format() })
     }
 
-    if (!tipoArquivo || !tiposValidos.includes(tipoArquivo as TipoArquivo)) {
-      return res.status(400).json({
-        message: "Parâmetros 'tipoArquivo' (arquivistico, bibliografico ou museologico) são obrigatórios e válidos"
-      });
-    }
+    const { filtros, pagina, tamanho,tipoArquivo } = parsed.data
+  
 
-    if (tipoPendencia && !tiposPendencia.includes(tipoPendencia as TipoPendencia)) {
-      return res.status(400).json({
-        message: "Parâmetro 'tipoPendencia' deve ser 'naoLocalizado' ou 'campoVazio'"
-      });
-    }
-
-    const parsedPage = parseInt(page as string, 10);
-    const parsedLimit = parseInt(limit as string, 10);
-
-    if (isNaN(parsedPage) || parsedPage < 1 || isNaN(parsedLimit) || parsedLimit < 1) {
-      return res.status(400).json({
-        message: "'page' e 'limit' devem ser números inteiros positivos"
-      });
-    }
-
-    const resultado = await this.declaracaoService.listarPendenciasDetalhadas({
+      const resultado = await this.declaracaoService.listarPendenciasDetalhadasComFiltro({
       declaracaoId: id,
-      tipoArquivo: tipoArquivo as TipoArquivo,
-      tipoPendencia: tipoPendencia as TipoPendencia | undefined,
-      page: parsedPage,
-      limit: parsedLimit
-    });
+      tipoArquivo,
+      filtros,
+    })
 
-    return res.status(200).json(resultado);
-  } catch (error) {
-    return res.status(500).json({
-      message: "Erro ao listar pendências",
-      error: error instanceof Error ? error.message : error
-    });
+    return res.status(200).json({
+      conteudo: resultado.slice((pagina - 1) * tamanho, pagina * tamanho),
+      totalElementos: resultado.length
+    })
+  } catch (err) {
+    return res.status(500).json({ message: "Erro ao buscar pendências", error: err })
   }
-}
 
+}
 
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
