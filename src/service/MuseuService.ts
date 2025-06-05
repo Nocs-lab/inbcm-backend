@@ -1,8 +1,7 @@
 import axios from "axios";
 import { Museu } from "../models/Museu";
 import logger from "../utils/logger";
-import mongoose from "mongoose";
-import connect from "../db/conn";
+import isEqual from "lodash.isequal";
 
 type Metadata = {
   "codigo-identificador-ibram-2"?: { value_as_string?: string };
@@ -26,20 +25,21 @@ type MuseuItem = {
 };
 
 class MuseuService {
-  private readonly API_URL = "https://museusbr.tainacan.org/wp-json/tainacan/v2/collection/208/items";
+  private readonly API_URL = "https://cadastro.museus.gov.br/wp-json/tainacan/v2/collection/208/items";
   private readonly PER_PAGE = 96;
 
-  public async fetchAndSaveMuseusPaginated(): Promise<{ total: number; inserted: number; duplicates: number }> {
+  public async fetchAndSaveMuseusPaginated(): Promise<{ total: number; inserted: number; updated: number; duplicates: number; skippedTests: number }> {
     try {
-     
       logger.info("Iniciando fetchAndSaveMuseusPaginated...");
 
       let offset = 0;
       let totalPages = 1;
       let currentPage = 0;
       let totalMuseus = 0;
-      let insertedCount = 0;
-      let duplicateCount = 0;
+      let inserted = 0;
+      let updated = 0;
+      let duplicates = 0;
+      let skippedTests = 0;
 
       while (currentPage < totalPages) {
         const response = await this.fetchMuseusPage(offset);
@@ -49,13 +49,22 @@ class MuseuService {
           const total = parseInt(response.headers["x-wp-total"] || "0", 10);
           totalPages = Math.ceil(total / this.PER_PAGE);
           totalMuseus = total;
-         // logger.info(`Total esperado: ${total} museus em ${totalPages} páginas`);
         }
 
         if (museusData.length > 0) {
-          const results = await this.processMuseusPage(museusData);
-          insertedCount += results.inserted;
-          duplicateCount += results.duplicates;
+          for (const item of museusData) {
+            if (item.status !== "publish") continue;
+            if (this.isTestMuseum(item.title)) {
+              skippedTests++;
+              continue;
+            }
+
+            const museu = this.mapItemToMuseu(item);
+            const status = await this.upsertMuseu(museu);
+            if (status === "inserted") inserted++;
+            else if (status === "updated") updated++;
+            else if (status === "duplicate") duplicates++;
+          }
 
           offset += museusData.length;
           currentPage++;
@@ -63,20 +72,24 @@ class MuseuService {
           break;
         }
       }
+
       logger.info("fetchAndSaveMuseusPaginated finalizado com sucesso");
+
       return {
         total: totalMuseus,
-        inserted: insertedCount,
-        duplicates: duplicateCount
+        inserted,
+        updated,
+        duplicates,
+        skippedTests
       };
     } catch (error) {
       logger.error(`Erro ao buscar ou inserir museus: ${error}`);
       throw error;
-    } 
+    }
   }
 
   private async fetchMuseusPage(offset: number) {
-    return await axios.get(this.API_URL, {
+    return axios.get(this.API_URL, {
       params: {
         offset,
         perpage: this.PER_PAGE,
@@ -86,65 +99,15 @@ class MuseuService {
     });
   }
 
-
   private isTestMuseum(name: string): boolean {
-    if (!name) return false;
-    
-   
-    const testMuseumRegex = /\bteste\b/i;
-
-    
-    return testMuseumRegex.test(name.trim());
-  }
-  
-  private async processMuseusPage(items: MuseuItem[]): Promise<{ 
-    inserted: number; 
-    duplicates: number;
-    skippedTests: number;
-    processedItems: any[];
-  }> {
-    let inserted = 0;
-    let duplicates = 0;
-    let skippedTests = 0;
-    const processedItems = [];
-  
-    for (const item of items) {
-      if (item.status !== "publish") {
-        //logger.info(`Museu ${item.title} não está publicado (status: ${item.status}). Ignorando.`);
-        continue;
-      }
-  
-      // Verifica se é um museu de teste
-      if (this.isTestMuseum(item.title)) {
-        //logger.info(`Museu "${item.title}" identificado como teste. Ignorando.`);
-        skippedTests++;
-        continue;
-      }
-  
-      const museu = this.mapItemToMuseu(item);
-      processedItems.push(museu);
-  
-      try {
-        const isDuplicate = await this.checkDuplicateMuseu(museu);
-        if (!isDuplicate) {
-          await Museu.create(museu);
-          inserted++;
-          //logger.info(`Museu ${museu.nome} inserido com sucesso`);
-        } else {
-          duplicates++;
-        }
-      } catch (error) {
-        //logger.error(`Erro ao processar museu ${museu.nome}:`, error);
-      }
-    }
-  
-    return { inserted, duplicates, skippedTests, processedItems };
+    return /\bteste\b/i.test(name?.trim() || "");
   }
 
   private mapItemToMuseu(item: MuseuItem) {
     const metadata = item.metadata || {};
 
     return {
+      idMuseusBr: item.id,
       codIbram: metadata["codigo-identificador-ibram-2"]?.value_as_string || "N/A",
       nome: item.title || "Sem Nome",
       esferaAdministraiva: metadata["esfera"]?.value_as_string || "Desconhecida",
@@ -161,18 +124,43 @@ class MuseuService {
     };
   }
 
-  private async checkDuplicateMuseu(museu: any): Promise<boolean> {
-    const existingMuseu = await Museu.findOne({
-      nome: museu.nome,
-      "endereco.logradouro": museu.endereco.logradouro,
-      "endereco.numero": museu.endereco.numero,
-      "endereco.bairro": museu.endereco.bairro,
-      "endereco.municipio": museu.endereco.municipio,
-      "endereco.uf": museu.endereco.uf
-    });
-
-    return !!existingMuseu;
+  private async  normalizarMuseu(museu: any) {
+    return {
+      codIbram: (museu.codIbram || "").trim().toLowerCase(),
+      nome: (museu.nome || "").trim().toLowerCase(),
+      esferaAdministraiva: (museu.esferaAdministraiva || "").trim().toLowerCase(),
+      endereco: {
+        logradouro: (museu.endereco?.logradouro || "").trim().toLowerCase(),
+        numero: (museu.endereco?.numero || "").trim().toLowerCase(),
+        complemento: (museu.endereco?.complemento || "").trim().toLowerCase(),
+        bairro: (museu.endereco?.bairro || "").trim().toLowerCase(),
+        cep: (museu.endereco?.cep || "").replace(/\D/g, ""),
+        municipio: (museu.endereco?.municipio || "").trim().toLowerCase(),
+        uf: (museu.endereco?.uf || "").trim().toUpperCase(),
+      }
+    };
   }
+
+ private async upsertMuseu(museu: any): Promise<"inserted" | "updated" | "duplicate"> {
+  const existingMuseu = await Museu.findOne({ idMuseusBr: museu.idMuseusBr });
+
+  if (!existingMuseu) {
+    await Museu.create(museu);
+    return "inserted";
+  }
+
+  const dadosAntigos = this.normalizarMuseu(existingMuseu);
+  const dadosNovos = this.normalizarMuseu(museu);
+
+  if (!isEqual(dadosAntigos, dadosNovos)) {
+    await Museu.updateOne({ idMuseusBr: museu.idMuseusBr }, museu);
+    logger.info(`Museu ${museu.nome} atualizado com novas informações.`);
+    return "updated";
+  }
+
+  return "duplicate";
 }
 
-export default new MuseuService();
+}
+
+export default new MuseuService()
