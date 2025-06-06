@@ -280,7 +280,10 @@ class UsuarioController {
 
       if (nome) usuario.nome = nome
       if (email) usuario.email = email
-      if (senha) usuario.senha = await argon2.hash(senha)
+      if (senha) {
+        usuario.senha = await argon2.hash(senha);
+        await sendEmail("troca-de-senha-usuario", usuario.email, {nome:usuario.nome})
+      }
 
       if (perfil) {
         const perfilValido = await Profile.findOne({ name: perfil }).exec()

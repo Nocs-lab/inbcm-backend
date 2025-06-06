@@ -1259,6 +1259,238 @@ templates["novo-usuario-admin"] = template({
   usePartial: true,
   useData: true
 })
+templates["prazo-declaracao"] = template({
+  "1": function (container, depth0, helpers, partials, data) {
+    var helper,
+      alias1 = depth0 != null ? depth0 : container.nullContext || {},
+      alias2 = container.hooks.helperMissing,
+      alias3 = "function",
+      alias4 = container.escapeExpression,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (
+      '  <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">O prazo para o envio das declarações de ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "anoReferencia") ||
+            (depth0 != null
+              ? lookupProperty(depth0, "anoReferencia")
+              : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "anoReferencia",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 2, column: 159 },
+                end: { line: 2, column: 176 }
+              }
+            })
+          : helper)
+      ) +
+      " se encerra em " +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "dataFim") ||
+            (depth0 != null ? lookupProperty(depth0, "dataFim") : depth0)) !=
+          null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "dataFim",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 2, column: 191 },
+                end: { line: 2, column: 202 }
+              }
+            })
+          : helper)
+      ) +
+      " (" +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "diasFim") ||
+            (depth0 != null ? lookupProperty(depth0, "diasFim") : depth0)) !=
+          null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "diasFim",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 2, column: 204 },
+                end: { line: 2, column: 215 }
+              }
+            })
+          : helper)
+      ) +
+      ")</p>\n"
+    )
+  },
+  compiler: [8, ">= 4.3.0"],
+  main: function (container, depth0, helpers, partials, data) {
+    var stack1,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (stack1 = container.invokePartial(
+      lookupProperty(partials, "layout"),
+      depth0,
+      {
+        name: "layout",
+        hash: { title: "Fim do perído de submissão" },
+        fn: container.program(1, data, 0),
+        inverse: container.noop,
+        data: data,
+        helpers: helpers,
+        partials: partials,
+        decorators: container.decorators
+      }
+    )) != null
+      ? stack1
+      : ""
+  },
+  usePartial: true,
+  useData: true
+})
+templates["prazo-retificacao"] = template({
+  "1": function (container, depth0, helpers, partials, data) {
+    var helper,
+      alias1 = depth0 != null ? depth0 : container.nullContext || {},
+      alias2 = container.hooks.helperMissing,
+      alias3 = "function",
+      alias4 = container.escapeExpression,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (
+      '  <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">O prazo para o envio das retificações de ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "aoReferencia") ||
+            (depth0 != null
+              ? lookupProperty(depth0, "aoReferencia")
+              : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "aoReferencia",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 2, column: 160 },
+                end: { line: 2, column: 176 }
+              }
+            })
+          : helper)
+      ) +
+      " se encerra em " +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "dataFim") ||
+            (depth0 != null ? lookupProperty(depth0, "dataFim") : depth0)) !=
+          null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "dataFim",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 2, column: 191 },
+                end: { line: 2, column: 202 }
+              }
+            })
+          : helper)
+      ) +
+      " (" +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "diasFim") ||
+            (depth0 != null ? lookupProperty(depth0, "diasFim") : depth0)) !=
+          null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "diasFim",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 2, column: 204 },
+                end: { line: 2, column: 215 }
+              }
+            })
+          : helper)
+      ) +
+      ")</p>\n"
+    )
+  },
+  compiler: [8, ">= 4.3.0"],
+  main: function (container, depth0, helpers, partials, data) {
+    var stack1,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (stack1 = container.invokePartial(
+      lookupProperty(partials, "layout"),
+      depth0,
+      {
+        name: "layout",
+        hash: { title: "Fim do perído de retificaçãi" },
+        fn: container.program(1, data, 0),
+        inverse: container.noop,
+        data: data,
+        helpers: helpers,
+        partials: partials,
+        decorators: container.decorators
+      }
+    )) != null
+      ? stack1
+      : ""
+  },
+  usePartial: true,
+  useData: true
+})
 templates["reprovacao-cadastro-usuario"] = template({
   "1": function (container, depth0, helpers, partials, data) {
     var helper,
@@ -1381,6 +1613,74 @@ templates["solicitar-acesso"] = template({
       {
         name: "layout",
         hash: { title: "[INBCM] Solicitação de acesso ao módulo declarante" },
+        fn: container.program(1, data, 0),
+        inverse: container.noop,
+        data: data,
+        helpers: helpers,
+        partials: partials,
+        decorators: container.decorators
+      }
+    )) != null
+      ? stack1
+      : ""
+  },
+  usePartial: true,
+  useData: true
+})
+templates["troca-de-senha-usuario"] = template({
+  "1": function (container, depth0, helpers, partials, data) {
+    var helper,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (
+      '\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Olá, ' +
+      container.escapeExpression(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "nome") ||
+            (depth0 != null ? lookupProperty(depth0, "nome") : depth0)) != null
+            ? helper
+            : container.hooks.helperMissing),
+        typeof helper === "function"
+          ? helper.call(depth0 != null ? depth0 : container.nullContext || {}, {
+              name: "nome",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 4, column: 7 },
+                end: { line: 4, column: 15 }
+              }
+            })
+          : helper)
+      ) +
+      ',</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Informamos que a sua senha foi alterada com sucesso.</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Se você não solicitou a troca de senha, por favor entre em contato conosco.\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Atenciosamente,</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Equipe INBCM</p>\n\n'
+    )
+  },
+  compiler: [8, ">= 4.3.0"],
+  main: function (container, depth0, helpers, partials, data) {
+    var stack1,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (stack1 = container.invokePartial(
+      lookupProperty(partials, "layout"),
+      depth0,
+      {
+        name: "layout",
+        hash: { title: "[INBCM] Seu acesso ao INBCM foi não foi aprovado." },
         fn: container.program(1, data, 0),
         inverse: container.noop,
         data: data,

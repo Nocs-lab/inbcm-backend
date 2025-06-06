@@ -53,6 +53,9 @@ type Templates = {
     diasFim: number
     anoReferencia: number
   }
+  "troca-de-senha-usuario": {
+    nome: string
+  }
 }
 
 const pulse = new Pulse({
@@ -84,7 +87,8 @@ const subjects: Record<
   "declaracao-nao-conformidade": () =>
     "[INBCM] Atualização na situação de declaração para não conforme",
   "prazo-declaracao": () => "[INBCM] Prazo para envio de declaração",
-  "prazo-retificacao": () => "[INBCM] Prazo para retificação de declaração"
+  "prazo-retificacao": () => "[INBCM] Prazo para retificação de declaração",
+  "troca-de-senha-usuario": () => "[INBCM] Confirmação de troca de senha"
 }
 
 async function getSender() {
