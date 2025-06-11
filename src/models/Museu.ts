@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document, Types } from "mongoose"
 
 export interface IMuseu extends Document {
+  idMuseusBr: number;
   codIbram: string
   nome: string
   esferaAdministraiva: string
@@ -44,11 +45,12 @@ export interface IMuseu extends Document {
     bairro: string
     cep: string
     municipio: string
-    uf: string
+    uf: string,
   }
   usuario: Types.ObjectId[]
 }
 const MuseuSchema: Schema = new Schema({
+  idMuseusBr: { type: Number, required: true, unique: true },
   codIbram: { type: String, required: true },
   nome: { type: String, required: true },
   esferaAdministraiva: { type: String, required: true },
