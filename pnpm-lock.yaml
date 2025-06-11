@@ -20,6 +20,9 @@ importers:
       '@pulsecron/pulse':
         specifier: ^1.6.7
         version: 1.6.7(socks@2.8.4)
+      '@types/lodash.isequal':
+        specifier: ^4.5.8
+        version: 4.5.8
       aws-sdk:
         specifier: ^2.1692.0
         version: 2.1692.0
@@ -186,9 +189,6 @@ importers:
       '@types/jsonwebtoken':
         specifier: ^9.0.9
         version: 9.0.9
-      '@types/lodash.isequal':
-        specifier: ^4.5.8
-        version: 4.5.8
       '@types/mongoose':
         specifier: ^5.11.97
         version: 5.11.97(socks@2.8.4)
