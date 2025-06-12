@@ -26,6 +26,9 @@ const routes = express.Router()
  */
 routes.get("/", MuseuController.listarMuseus)
 
+
+routes.post("/search",userPermissionMiddleware("listarMuseusComFiltro"),MuseuController.listarMuseusComFiltro)
+
 routes.get(
   "/listarCidades",
   userPermissionMiddleware("listarMunicipios"),
@@ -44,5 +47,7 @@ routes.put(
 )
 
 routes.get("/listar-museus",userPermissionMiddleware("getMuseus"),MuseuController.getMuseus)
+
+
 
 export default routes

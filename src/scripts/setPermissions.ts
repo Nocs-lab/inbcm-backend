@@ -168,6 +168,11 @@ const setPermissions = async () => {
       name: "listarPendencias",
       label: "listagem pendencias",
       description:"Permite listar pendencias"
+    },
+    {
+      name:"listarMuseusComFiltro",
+      label:"listagem de museus com filtros",
+      description: "Permite listar museus aplicando filtros de busca"
     }
 
 

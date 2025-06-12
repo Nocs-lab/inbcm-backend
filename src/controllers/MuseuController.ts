@@ -2,6 +2,8 @@ import { Request, Response } from "express"
 import { Museu, Usuario } from "../models"
 import logger from "../utils/logger"
 import { MuseuFiltro } from "../types/MuseuFIltro"
+import { filtroPaginacaoMuseus } from "../types/FiltroPaginacaoMuseus"
+import { traduzirFiltrosParaMongo } from "../types/traduzirFiltros"
 
 
 class MuseuController {
@@ -502,6 +504,33 @@ class MuseuController {
     }
   }
   
+
+  static async listarMuseusComFiltro(req: Request, res: Response) {
+    try {
+        const { pagina, tamanho, filtros } = filtroPaginacaoMuseus.parse(req.body)
+
+        const mongoFiltros = traduzirFiltrosParaMongo(filtros)
+
+        const museus = await Museu.find(mongoFiltros)
+          .skip((pagina - 1) * tamanho)
+          .limit(tamanho)
+
+        const total = await Museu.countDocuments(mongoFiltros)
+
+        return res.status(200).json({
+          dados: museus,
+          total,
+          pagina,
+          tamanho
+        })
+      } catch (erro) {
+        logger.error("Erro ao listar museus com filtro:", erro)
+        return res
+          .status(500)
+          .json({ mensagem: "Erro ao listar museus com filtro." })
+      }
+}
+
   
 
   
