@@ -4,41 +4,62 @@ export function traduzirFiltrosParaMongo(filtros: Filtro[]): any {
   const mongoFiltros: any = {}
 
   filtros.forEach(filtro => {
-    // Caso especial: buscar por valores dentro de camposComErro (camposArray.v)
-    if (filtro.atributo.startsWith("camposComErro")) {
-      const valor = filtro.valores[0]
+    const campo = filtro.atributo
+    const valor = filtro.valores[0]
+    const isString = filtro.tipo === "string"
 
+    // Caso especial: camposComErro
+    if (campo.startsWith("camposComErro")) {
       if (filtro.operador === "eq") {
-        // Procurar qualquer campo que tenha esse valor
         mongoFiltros["camposArray.v"] = { $eq: valor }
       }
+      return
+    }
 
-      // Exemplo: se quiser filtrar campo específico (ex: camposComErro.situacao = "X")
-      // pode usar camposArray.k e camposArray.v em combinação com $elemMatch
-      // Exemplo:
-      // mongoFiltros["camposArray"] = { $elemMatch: { k: "situacao", v: valor } }
-    } else {
-      // Filtros normais
-      const campo = filtro.atributo
-      const valor = filtro.valores[0]
-
-      switch (filtro.operador) {
-        case "eq":
+    switch (filtro.operador) {
+      case "eq":
+        if (isString) {
+          mongoFiltros[campo] = valor.toUpperCase()
+        } else {
           mongoFiltros[campo] = { $eq: valor }
-          break
-        case "ne":
+        }
+        break
+
+      case "ne":
+        if (isString) {
+          mongoFiltros[campo] = { $ne: valor.toUpperCase() }
+        } else {
           mongoFiltros[campo] = { $ne: valor }
-          break
-        case "in":
+        }
+        break
+
+      case "in":
+        if (isString) {
+          mongoFiltros[campo] = {
+            $in: filtro.valores.map(v => v.toUpperCase())
+          }
+        } else {
           mongoFiltros[campo] = { $in: filtro.valores }
-          break
-       
-      }
+        }
+        break
+
+      case "like":
+        mongoFiltros[campo] = { $regex: valor, $options: "i" }
+        break
+
+      case "gte":
+        mongoFiltros[campo] = { $gte: valor }
+        break
+
+      case "lte":
+        mongoFiltros[campo] = { $lte: valor }
+        break
     }
   })
 
   return mongoFiltros
 }
+
 
 
 export function traduzirOperador(op: string): string {
