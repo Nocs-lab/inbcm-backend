@@ -505,31 +505,47 @@ class MuseuController {
   }
   
 
-  static async listarMuseusComFiltro(req: Request, res: Response) {
-    try {
-        const { pagina, tamanho, filtros } = filtroPaginacaoMuseus.parse(req.body)
+static async listarMuseusComFiltro(req: Request, res: Response) {
+  try {
+    const { pagina, tamanho, filtros } = filtroPaginacaoMuseus.parse(req.body)
 
-        const mongoFiltros = traduzirFiltrosParaMongo(filtros)
+    const mongoFiltros = traduzirFiltrosParaMongo(filtros)
 
-        const museus = await Museu.find(mongoFiltros)
-          .skip((pagina - 1) * tamanho)
-          .limit(tamanho)
+    const [museus, total] = await Promise.all([
+      Museu.find(mongoFiltros)
+        .skip((pagina - 1) * tamanho)
+        .limit(tamanho),
+      Museu.countDocuments(mongoFiltros)
+    ])
 
-        const total = await Museu.countDocuments(mongoFiltros)
+    const totalPages = Math.ceil(total / tamanho)
 
-        return res.status(200).json({
-          dados: museus,
-          total,
-          pagina,
-          tamanho
-        })
-      } catch (erro) {
-        logger.error("Erro ao listar museus com filtro:", erro)
-        return res
-          .status(500)
-          .json({ mensagem: "Erro ao listar museus com filtro." })
-      }
+    const basePath = "/api/public/museus/search"
+    const buildLink = (page: number) => `${basePath}?page=${page}&limit=${tamanho}`
+
+    const links = {
+      first: buildLink(1),
+      prev: pagina > 1 ? buildLink(pagina - 1) : null,
+      next: pagina < totalPages ? buildLink(pagina + 1) : null,
+      last: buildLink(totalPages)
+    }
+
+    return res.status(200).json({
+      itens: museus,
+      total,
+      page: pagina,
+      limit: tamanho,
+      totalPages,
+      links
+    })
+  } catch (erro) {
+    logger.error("Erro ao listar museus com filtro:", erro)
+    return res
+      .status(500)
+      .json({ mensagem: "Erro ao listar museus com filtro." })
+  }
 }
+
 
   
 
