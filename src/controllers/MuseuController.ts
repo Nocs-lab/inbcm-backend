@@ -5,7 +5,6 @@ import { MuseuFiltro } from "../types/MuseuFIltro"
 import { filtroPaginacaoMuseus } from "../types/FiltroPaginacaoMuseus"
 import { traduzirFiltrosParaMongo } from "../types/traduzirFiltros"
 
-
 class MuseuController {
   /**
    * @swagger
@@ -427,20 +426,20 @@ class MuseuController {
 
   static async getMuseus(req: Request, res: Response) {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const skip = (page - 1) * limit;
-  
-      const { regiao, uf, cidade, nome,bairro } = req.query;
-  
-      const matchStage: any = {};
-  
-      if (regiao) matchStage["estado.regiao"] = regiao;
-      if (uf) matchStage["endereco.uf"] = uf;
-      if (cidade) matchStage["endereco.municipio"] = cidade;
-      if (bairro) matchStage["endereco.bairro"] = bairro;
-      if (nome) matchStage["nome"] = { $regex: nome, $options: "i" };
-  
+      const page = parseInt(req.query.page as string) || 1
+      const limit = parseInt(req.query.limit as string) || 10
+      const skip = (page - 1) * limit
+
+      const { regiao, uf, cidade, nome, bairro } = req.query
+
+      const matchStage: any = {}
+
+      if (regiao) matchStage["estado.regiao"] = regiao
+      if (uf) matchStage["endereco.uf"] = uf
+      if (cidade) matchStage["endereco.municipio"] = cidade
+      if (bairro) matchStage["endereco.bairro"] = bairro
+      if (nome) matchStage["nome"] = { $regex: nome, $options: "i" }
+
       const pipeline: any[] = [
         {
           $lookup: {
@@ -468,28 +467,30 @@ class MuseuController {
         },
         { $skip: skip },
         { $limit: limit }
-      ];
-  
-      
+      ]
+
       const totalPipeline = pipeline.filter(
-        stage => !("$skip" in stage || "$limit" in stage)
-      );
-  
+        (stage) => !("$skip" in stage || "$limit" in stage)
+      )
+
       const [museus, totalDocs] = await Promise.all([
         Museu.aggregate(pipeline),
-        Museu.aggregate(totalPipeline).then(res => res.length)
-      ]);
-  
-      const totalPages = Math.ceil(totalDocs / limit);
-      const baseUrl = `/api/public/museus/listar-museus`;
-  
+        Museu.aggregate(totalPipeline).then((res) => res.length)
+      ])
+
+      const totalPages = Math.ceil(totalDocs / limit)
+      const baseUrl = `/api/public/museus/listar-museus`
+
       const links = {
         first: `${baseUrl}?page=1&limit=${limit}`,
         prev: page > 1 ? `${baseUrl}?page=${page - 1}&limit=${limit}` : null,
-        next: page < totalPages ? `${baseUrl}?page=${page + 1}&limit=${limit}` : null,
+        next:
+          page < totalPages
+            ? `${baseUrl}?page=${page + 1}&limit=${limit}`
+            : null,
         last: `${baseUrl}?page=${totalPages}&limit=${limit}`
-      };
-  
+      }
+
       res.json({
         total: totalDocs,
         page,
@@ -497,43 +498,38 @@ class MuseuController {
         totalPages,
         itens: museus,
         links
-      });
+      })
     } catch (error) {
-      console.error("Erro ao buscar museus:", error);
-      res.status(500).json({ message: "Erro ao buscar museus" });
+      console.error("Erro ao buscar museus:", error)
+      res.status(500).json({ message: "Erro ao buscar museus" })
     }
   }
-  
 
   static async listarMuseusComFiltro(req: Request, res: Response) {
     try {
-        const { pagina, tamanho, filtros } = filtroPaginacaoMuseus.parse(req.body)
+      const { pagina, tamanho, filtros } = filtroPaginacaoMuseus.parse(req.body)
 
-        const mongoFiltros = traduzirFiltrosParaMongo(filtros)
+      const mongoFiltros = traduzirFiltrosParaMongo(filtros)
 
-        const museus = await Museu.find(mongoFiltros)
-          .skip((pagina - 1) * tamanho)
-          .limit(tamanho)
+      const museus = await Museu.find(mongoFiltros)
+        .skip((pagina - 1) * tamanho)
+        .limit(tamanho)
 
-        const total = await Museu.countDocuments(mongoFiltros)
+      const total = await Museu.countDocuments(mongoFiltros)
 
-        return res.status(200).json({
-          dados: museus,
-          total,
-          pagina,
-          tamanho
-        })
-      } catch (erro) {
-        logger.error("Erro ao listar museus com filtro:", erro)
-        return res
-          .status(500)
-          .json({ mensagem: "Erro ao listar museus com filtro." })
-      }
-}
-
-  
-
-  
+      return res.status(200).json({
+        dados: museus,
+        total,
+        pagina,
+        tamanho
+      })
+    } catch (erro) {
+      logger.error("Erro ao listar museus com filtro:", erro)
+      return res
+        .status(500)
+        .json({ mensagem: "Erro ao listar museus com filtro." })
+    }
+  }
 }
 
 export default MuseuController
