@@ -1,76 +1,94 @@
-import { Filtro } from "./FiltroPaginacao"
 
-export function traduzirFiltrosParaMongo(filtros: Filtro[]): any {
-  const mongoFiltros: any = {}
+
+import { Filtro } from "./FiltroPaginacao"; 
+
+interface FiltrosTraduzidos {
+  filtrosMuseu: any;
+  filtrosAgregacao: any;
+}
+
+export function traduzirFiltrosParaMongo(filtros: Filtro[]): FiltrosTraduzidos {
+  const filtrosMuseu: any = {};
+  const filtrosAgregacao: any = {};
 
   filtros.forEach(filtro => {
-    const campo = filtro.atributo
-    const valor = filtro.valores[0]
-    const isString = filtro.tipo === "string"
+    const campo = filtro.atributo;
 
-    // Caso especial: camposComErro
+   
+    if (campo === "regiao") {
+      const isString = filtro.tipo === "string";
+
+    
+      if (filtro.operador === "eq") {
+        const valor = isString ? filtro.valores[0].toUpperCase() : filtro.valores[0];
+       
+        filtrosAgregacao['$expr'] = {
+          $eq: [{ $toUpper: "$estadoInfo.regiao" }, valor]
+        };
+      }
+      
+     
+      if (filtro.operador === "in") {
+        const valores = isString ? filtro.valores.map(v => v.toUpperCase()) : filtro.valores;
+     
+        filtrosAgregacao['$expr'] = {
+          $in: [{ $toUpper: "$estadoInfo.regiao" }, valores]
+        };
+      }
+      
+    
+
+      return;
+    }
+    
+    
+   
+    const isString = filtro.tipo === "string";
+    const valor = filtro.valores[0];
+
     if (campo.startsWith("camposComErro")) {
       if (filtro.operador === "eq") {
-        mongoFiltros["camposArray.v"] = { $eq: valor }
+        filtrosMuseu["camposArray.v"] = { $eq: valor };
       }
-      return
+      return;
     }
 
     switch (filtro.operador) {
       case "eq":
-        if (isString) {
-          mongoFiltros[campo] = valor.toUpperCase()
-        } else {
-          mongoFiltros[campo] = { $eq: valor }
-        }
-        break
-
+        filtrosMuseu[campo] = isString ? valor.toUpperCase() : { $eq: valor };
+        break;
       case "ne":
-        if (isString) {
-          mongoFiltros[campo] = { $ne: valor.toUpperCase() }
-        } else {
-          mongoFiltros[campo] = { $ne: valor }
-        }
-        break
-
+        filtrosMuseu[campo] = isString ? { $ne: valor.toUpperCase() } : { $ne: valor };
+        break;
       case "in":
-        if (isString) {
-          mongoFiltros[campo] = {
-            $in: filtro.valores.map(v => v.toUpperCase())
-          }
-        } else {
-          mongoFiltros[campo] = { $in: filtro.valores }
-        }
-        break
-
+        const valoresIn = isString ? filtro.valores.map(v => v.toUpperCase()) : filtro.valores;
+        filtrosMuseu[campo] = { $in: valoresIn };
+        break;
       case "like":
-        mongoFiltros[campo] = { $regex: valor, $options: "i" }
-        break
-
+        filtrosMuseu[campo] = { $regex: valor, $options: "i" };
+        break;
       case "gte":
-        mongoFiltros[campo] = { $gte: valor }
-        break
-
+        filtrosMuseu[campo] = { $gte: valor };
+        break;
       case "lte":
-        mongoFiltros[campo] = { $lte: valor }
-        break
+        filtrosMuseu[campo] = { $lte: valor };
+        break;
     }
-  })
+  });
 
-  return mongoFiltros
+  return { filtrosMuseu, filtrosAgregacao };
 }
-
 
 
 export function traduzirOperador(op: string): string {
   switch (op) {
-    case "eq": return "$eq"
-    case "ne": return "$ne"
-    case "in": return "$in"
-    case "like": return "$regex"
-    case "gte": return "$gte"
-    case "lte": return "$lte"
+    case "eq": return "$eq";
+    case "ne": return "$ne";
+    case "in": return "$in";
+    case "like": return "$regex";
+    case "gte": return "$gte";
+    case "lte": return "$lte";
     default:
-      throw new Error(`Operador inválido: ${op}`)
+      throw new Error(`Operador inválido: ${op}`);
   }
 }
