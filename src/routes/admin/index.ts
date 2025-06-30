@@ -10,6 +10,7 @@ import timeLineRoutes from "./timeline"
 import anoDeclaracaoRoutes from "./anodeclaracao"
 import emailConfigRoutes from "./emailconfig"
 import importRoutes from "./import"
+import exportadorRoutes from "./exportador"
 
 const routes = express.Router()
 
@@ -23,6 +24,7 @@ routes.use("/dashboard", dashboardRoutes)
 routes.use("/timeline", timeLineRoutes)
 routes.use("/anoDeclaracao", anoDeclaracaoRoutes)
 routes.use("/emailconfig", emailConfigRoutes)
-routes.use("/imports",importRoutes)
+routes.use("/imports", importRoutes)
+routes.use("/exportador", exportadorRoutes)
 
 export default routes
