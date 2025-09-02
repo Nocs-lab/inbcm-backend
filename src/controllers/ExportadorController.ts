@@ -75,7 +75,6 @@ export default class ExportadorController {
     response: Response
   ): Promise<Response> {
     try {
-      console.log(request.body)
       const exportacao = await this.exportadorService.criarExportacao(request.user.id, request.body.anoId)
       return response.status(201).json(exportacao)
     } catch (error) {
