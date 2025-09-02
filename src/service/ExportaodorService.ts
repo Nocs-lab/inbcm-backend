@@ -413,7 +413,7 @@ export default class ExportadorService {
       arquivistico: {}
     }
 
-        const [metadataRes1, metadataRes2, metadataRes3] = await Promise.all([
+    const [metadataRes1, metadataRes2, metadataRes3] = await Promise.all([
       fetch(
         `${config.url}/wp-json/tainacan/v2/collection/${museologicoId}/metadata/?nopaging=1&context=edit&include_disabled=true`,
         {
