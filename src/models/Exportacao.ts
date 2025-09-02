@@ -71,6 +71,6 @@ const ExportacaoSchema = new Schema<Exportacao>({
   }
 });
 
-const ExportacaoModel = model<Exportacao>("Exportacos", ExportacaoSchema);
+const ExportacaoModel = model<Exportacao>("Exportacoes", ExportacaoSchema);
 
 export default ExportacaoModel;
