@@ -1,7 +1,6 @@
 import express from "express"
 import ExportadorController from "../../controllers/ExportadorController"
 import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
-// import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 
 const routes = express.Router()
 

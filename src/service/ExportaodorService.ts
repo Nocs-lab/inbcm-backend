@@ -453,8 +453,7 @@ export default class ExportadorService {
     for (const field of museologicoMetadata) {
       if (field.metadata_type === "Tainacan\\Metadata_Types\\Core_Title") {
         mappings.museologico[field.id] = "titulo"
-      }
-      else if (field.metadata_type === "Tainacan\\Metadata_Types\\Core_Description") {
+      } else if (field.metadata_type === "Tainacan\\Metadata_Types\\Core_Description") {
         mappings.museologico[field.id] = "resumodescritivo"
       }
     }
@@ -462,8 +461,7 @@ export default class ExportadorService {
     for (const field of bibliograficoMetadata) {
       if (field.metadata_type === "Tainacan\\Metadata_Types\\Core_Title") {
         mappings.bibliografico[field.id] = "titulo"
-      }
-      else if (field.metadata_type === "Tainacan\\Metadata_Types\\Core_Description") {
+      } else if (field.metadata_type === "Tainacan\\Metadata_Types\\Core_Description") {
         mappings.bibliografico[field.id] = "resumodescritivo"
       }
     }
@@ -471,8 +469,7 @@ export default class ExportadorService {
     for (const field of arquivisticoMetadata) {
       if (field.metadata_type === "Tainacan\\Metadata_Types\\Core_Title") {
         mappings.arquivistico[field.id] = "titulo"
-      }
-      else if (field.metadata_type === "Tainacan\\Metadata_Types\\Core_Description") {
+      } else if (field.metadata_type === "Tainacan\\Metadata_Types\\Core_Description") {
         mappings.arquivistico[field.id] = "resumodescritivo"
       }
     }
@@ -625,7 +622,7 @@ export default class ExportadorService {
       const tipoLower: string = (tipo || "").toLowerCase()
       
       const res = await fetch(
-        `${process.env.PUBLIC_PORTAL_URL}/wp-json/tainacan/v2/importers/session/`,
+        `${config.url}/wp-json/tainacan/v2/importers/session/`,
         {
           method: "POST",
           headers: {
@@ -641,7 +638,7 @@ export default class ExportadorService {
       const { id: sessionId } = await res.json()
 
       await fetch(
-        `${process.env.PUBLIC_PORTAL_URL}/wp-json/tainacan/v2/importers/session/${sessionId}`,
+        `${config.url}/wp-json/tainacan/v2/importers/session/${sessionId}`,
         {
           method: "PUT",
           headers: {
@@ -676,7 +673,7 @@ export default class ExportadorService {
       headers.set("Authorization", `Basic ${credentials}`)
 
       await fetch(
-        `${process.env.PUBLIC_PORTAL_URL}/wp-json/tainacan/v2/importers/session/${sessionId}/file`,
+        `${config.url}/wp-json/tainacan/v2/importers/session/${sessionId}/file`,
         {
           method: "POST",
           headers,
@@ -685,7 +682,7 @@ export default class ExportadorService {
       )
 
       await fetch(
-        `${process.env.PUBLIC_PORTAL_URL}/wp-json/tainacan/v2/importers/session/${sessionId}`,
+        `${config.url}/wp-json/tainacan/v2/importers/session/${sessionId}`,
         {
           method: "PUT",
           headers: {
@@ -703,7 +700,7 @@ export default class ExportadorService {
       )
 
       await fetch(
-        `${process.env.PUBLIC_PORTAL_URL}/wp-json/tainacan/v2/importers/session/${sessionId}/run`,
+        `${config.url}/wp-json/tainacan/v2/importers/session/${sessionId}/run`,
         {
           method: "POST",
           headers: {
