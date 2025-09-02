@@ -17,10 +17,13 @@ export const userPermissionMiddleware: (permission: string) => Handler =
       if (config.NODE_ENV !== "PRODUCTION") {
         const authHeader = req.headers["authorization"]
         if (authHeader) {
-          const [email, password] = Buffer.from(authHeader.split(" ")[1] ?? " : ", "base64")
+          const [email, password] = Buffer.from(
+            authHeader.split(" ")[1] ?? " : ",
+            "base64"
+          )
             .toString()
             .split(":")
-          
+
           const user = await Usuario.findOne({ email })
           if (user) {
             if (await verify(user.senha, password)) {

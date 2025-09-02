@@ -2,7 +2,6 @@ import express from "express"
 import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 import MuseuController from "../../controllers/MuseuController"
 
-
 const routes = express.Router()
 
 /**
@@ -26,8 +25,11 @@ const routes = express.Router()
  */
 routes.get("/", MuseuController.listarMuseus)
 
-
-routes.post("/search",userPermissionMiddleware("listarMuseusComFiltro"),MuseuController.listarMuseusComFiltro)
+routes.post(
+  "/search",
+  userPermissionMiddleware("listarMuseusComFiltro"),
+  MuseuController.listarMuseusComFiltro
+)
 
 routes.get(
   "/listarCidades",
@@ -46,8 +48,10 @@ routes.put(
   MuseuController.desvincularUsuarioDoMuseu
 )
 
-routes.get("/listar-museus",userPermissionMiddleware("getMuseus"),MuseuController.getMuseus)
-
-
+routes.get(
+  "/listar-museus",
+  userPermissionMiddleware("getMuseus"),
+  MuseuController.getMuseus
+)
 
 export default routes
