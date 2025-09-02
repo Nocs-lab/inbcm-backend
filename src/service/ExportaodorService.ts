@@ -357,7 +357,7 @@ export default class ExportadorService {
             Authorization: `Basic ${credentials}`
           },
           body: JSON.stringify({
-            name: "Arquivistico",
+            name: "Arquivístico",
             description: "",
             enable_cover_page: "no",
             cover_page_id: "",
