@@ -8,7 +8,7 @@ import permissionsRoutes from "./permission"
 import userRoutes from "./user"
 import timeLineRoutes from "./timeline"
 import anoDeclaracaoRoutes from "./anodeclaracao"
-import emailConfigRoutes from "./emailconfig"
+import configRoutes from "./config"
 import importRoutes from "./import"
 import exportadorRoutes from "./exportador"
 
@@ -23,7 +23,7 @@ routes.use("/users", userRoutes)
 routes.use("/dashboard", dashboardRoutes)
 routes.use("/timeline", timeLineRoutes)
 routes.use("/anoDeclaracao", anoDeclaracaoRoutes)
-routes.use("/emailconfig", emailConfigRoutes)
+routes.use("/config", configRoutes)
 routes.use("/imports", importRoutes)
 routes.use("/exportador", exportadorRoutes)
 

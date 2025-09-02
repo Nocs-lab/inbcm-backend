@@ -1,19 +1,85 @@
+import { Request, Response } from "express"
 import ExportadorService from "../service/ExportaodorService"
 
 export default class ExportadorController {
-  private exportadorService: ExportadorService
+  private exportadorService = new ExportadorService()
 
-  constructor(exportadorService: ExportadorService) {
-    this.exportadorService = exportadorService
+  constructor() {
+    this.criarColecoes = this.criarColecoes.bind(this)
+    this.iniciarExportacao = this.iniciarExportacao.bind(this)
+    this.listarExportacoes = this.listarExportacoes.bind(this)
+    this.obterExportacao = this.obterExportacao.bind(this)
+    this.criarExportacao = this.criarExportacao.bind(this)
   }
 
-  async exportarDados(request: Request, response: Response): Promise<Response> {
+  async criarColecoes(
+    request: Request,
+    response: Response
+  ): Promise<Response> {
     try {
-      const { tipoExportacao } = request.body
-      const resultado = await this.exportadorService.exportar(tipoExportacao)
-      return response.status(200).json(resultado)
+      const { id } = request.params
+      await this.exportadorService.criarColecoes(id)
+      return response.status(200).json({ message: "Coleções criadas com sucesso!" })
     } catch (error) {
-      return response.status(500).json({ error: error.message })
+      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao criar coleções.'
+      return response.status(500).json({ error: errorMessage })
+    }
+  }
+
+  async iniciarExportacao(
+    request: Request,
+    response: Response
+  ): Promise<Response> {
+    try {
+      const { id } = request.params
+      await this.exportadorService.exportar(id!)
+      return response.status(200).json({})
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao iniciar a exportação.'
+      return response.status(500).json({ error: errorMessage })
+    }
+  }
+
+  async listarExportacoes(
+    _request: Request,
+    response: Response
+  ): Promise<Response> {
+    try {
+      const exportacoes = await this.exportadorService.listarExportacoes()
+      return response.status(200).json(exportacoes)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao listar exportações.'
+      return response.status(500).json({ error: errorMessage })
+    }
+  }
+
+  async obterExportacao(
+    request: Request,
+    response: Response
+  ): Promise<Response> {
+    try {
+      const { id } = request.params
+      const exportacao = await this.exportadorService.obterExportacao(id)
+      if (!exportacao) {
+        return response.status(404).json({ error: "Exportação não encontrada." })
+      }
+      return response.status(200).json(exportacao)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao obter exportação.'
+      return response.status(500).json({ error: errorMessage })
+    }
+  }
+
+  async criarExportacao(
+    request: Request,
+    response: Response
+  ): Promise<Response> {
+    try {
+      const exportacao = await this.exportadorService.criarExportacao(request.user.id, request.body.anoId)
+      return response.status(201).json(exportacao)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao criar exportação.'
+      return response.status(500).json({ error: errorMessage })
     }
   }
 }
