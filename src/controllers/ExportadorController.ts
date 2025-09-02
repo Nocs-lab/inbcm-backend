@@ -35,7 +35,7 @@ export default class ExportadorController {
       await this.exportadorService.exportar(id!)
       return response.status(200).json({})
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error inesperado ao iniciar a importação.'
+      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao iniciar a exportação.'
       return response.status(500).json({ error: errorMessage })
     }
   }
