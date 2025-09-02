@@ -551,9 +551,9 @@ export default class ExportadorService {
     }
 
     const csvContent = [
-      fields!.map((field) => field.id).join(";"),
+      fields.map((field) => field.id).join(";"),
       ...itens.map((item) =>
-        fields!.map((field) => item[field.id] || "").join(";")
+        fields.map((field) => item[field.id] || "").join(";")
       )
     ].join("\n")
 
