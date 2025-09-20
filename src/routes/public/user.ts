@@ -37,7 +37,7 @@ routes.post(
 
 routes.post(
   "/recuperar-senha",
-  UsuarioController.recuperarSenha
+  UsuarioController.recuperarSenhaPublic
 )
 
 routes.get(

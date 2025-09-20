@@ -44,4 +44,17 @@ routes.delete(
   userPermissionMiddleware("deletarUsuario"),
   UsuarioController.deletarUsuario
 )
+routes.post(
+  "/recuperar-senha",
+  UsuarioController.recuperarSenhaAdmin
+)
+routes.get(
+  "/checar-token-recuperacao/:token",
+  UsuarioController.checarTokenDeRecuperacao
+)
+routes.post(
+  "/resetar-senha",
+  UsuarioController.redefinirSenha
+)
+
 export default routes

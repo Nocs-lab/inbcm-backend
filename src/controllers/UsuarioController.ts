@@ -13,6 +13,7 @@ import minioClient from "../db/minioClient"
 import { sendEmail } from "../emails"
 import argon from "@node-rs/argon2"
 import { createHash, randomUUID } from "crypto"
+import config from "../config"
 
 class UsuarioController {
   async registerUsuarioExternoDeclarant(req: Request, res: Response) {
@@ -565,16 +566,24 @@ class UsuarioController {
     }
   }
 
-  async recuperarSenha(req: Request, res: Response) {
+  async recuperarSenhaAdmin(req: Request, res: Response) {
+    return this.recuperarSenha(req, res, true)
+  }
+
+  async recuperarSenhaPublic(req: Request, res: Response) {
+    return this.recuperarSenha(req, res, false)
+  }
+
+  async recuperarSenha(req: Request, res: Response, admin: boolean) {
     const { email } = req.body
-    
+
     if (!email) {
       return res.status(400).json({ message: "O campo email é obrigatório." })
     }
 
     try {
       const usuario = await Usuario.findOne({ email: email.toLowerCase() })
-      
+  
       if (!usuario) {
         return res.status(404).json({ message: "Usuário não encontrado." })
       }
@@ -588,7 +597,7 @@ class UsuarioController {
       await usuario.save()
       await sendEmail("forgot-password", usuario.email, {
         nome: usuario.nome,
-        url: `${process.env.FRONTEND_URL}/resetar-senha/${token}`
+        url: `${admin ? config.ADMIN_SITE_URL : config.PUBLIC_SITE_URL}/resetar-senha/${token}`
       })
 
       return res.status(200).json({ message: "Email de recuperação de senha enviado." })
