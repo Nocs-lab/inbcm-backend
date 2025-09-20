@@ -15,6 +15,8 @@ export interface IUsuario extends Document {
   museus: IMuseu[]
   admin: boolean
   senha: string
+  resetPasswordToken?: string
+  resetPasswordExpires?: Date
   profile: IProfile | Types.ObjectId
   situacao: SituacaoUsuario
   especialidadeAnalista: string[]
@@ -27,6 +29,8 @@ export const UsuarioSchema = new Schema<IUsuario>({
   email: { type: String, required: true, unique: true },
   admin: { type: Boolean, default: false },
   senha: { type: String, required: false },
+  resetPasswordToken: { type: String, required: false },
+  resetPasswordExpires: { type: Date, required: false },
   profile: { type: Schema.Types.ObjectId, required: true, ref: "profiles" },
   situacao: {
     type: Number,

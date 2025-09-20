@@ -35,4 +35,19 @@ routes.post(
   UsuarioController.registerUsuarioExternoAnalyst
 )
 
+routes.post(
+  "/recuperar-senha",
+  UsuarioController.recuperarSenha
+)
+
+routes.get(
+  "/checar-token-recuperacao/:token",
+  UsuarioController.checarTokenDeRecuperacao
+)
+
+routes.post(
+  "/resetar-senha",
+  UsuarioController.redefinirSenha
+)
+
 export default routes

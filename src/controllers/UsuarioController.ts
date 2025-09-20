@@ -12,6 +12,7 @@ import argon2 from "@node-rs/argon2"
 import minioClient from "../db/minioClient"
 import { sendEmail } from "../emails"
 import argon from "@node-rs/argon2"
+import { createHash, randomUUID } from "crypto"
 
 class UsuarioController {
   async registerUsuarioExternoDeclarant(req: Request, res: Response) {
@@ -561,6 +562,89 @@ class UsuarioController {
     } catch (error) {
       logger.error("Erro ao buscar documento:", error)
       return res.status(500).json({ message: "Erro ao buscar documento." })
+    }
+  }
+
+  async recuperarSenha(req: Request, res: Response) {
+    const { email } = req.body
+    
+    if (!email) {
+      return res.status(400).json({ message: "O campo email é obrigatório." })
+    }
+
+    try {
+      const usuario = await Usuario.findOne({ email: email.toLowerCase() })
+      
+      if (!usuario) {
+        return res.status(404).json({ message: "Usuário não encontrado." })
+      }
+      
+      const token = createHash("sha256").update(randomUUID()).digest("hex")
+      const tokenExpiracao = new Date(Date.now() + 60 * 60 * 1000)
+
+      usuario.resetPasswordToken = token
+      usuario.resetPasswordExpires = tokenExpiracao
+
+      await usuario.save()
+      await sendEmail("forgot-password", usuario.email, {
+        nome: usuario.nome,
+        url: `${process.env.FRONTEND_URL}/resetar-senha/${token}`
+      })
+
+      return res.status(200).json({ message: "Email de recuperação de senha enviado." })
+    } catch (error) {
+      logger.error("Erro ao processar recuperação de senha:", error)
+      return res.status(500).json({ message: "Erro ao processar recuperação de senha." })
+    }
+  }
+
+  async checarTokenDeRecuperacao(req: Request, res: Response) {
+    const { token } = req.params
+
+    try {
+      const usuario = await Usuario.findOne({
+        resetPasswordToken: token,
+        resetPasswordExpires: { $gt: new Date() }
+      })
+
+      if (!usuario) {
+        return res.status(400).json({ message: "Token inválido ou expirado." })
+      }
+      
+      return res.status(200).json({ message: "Token válido." })
+    } catch (error) {
+      logger.error("Erro ao verificar token de recuperação de senha:", error)
+      return res.status(500).json({ message: "Erro ao verificar token." })
+    }
+  }
+
+  async redefinirSenha(req: Request, res: Response) {
+    const { token, novaSenha } = req.body
+    
+    if (!token || !novaSenha) {
+      return res.status(400).json({ message: "Token e nova senha são obrigatórios." })
+    }
+
+    try {
+      const usuario = await Usuario.findOne({
+        resetPasswordToken: token,
+        resetPasswordExpires: { $gt: new Date() }
+      })
+
+      if (!usuario) {
+        return res.status(400).json({ message: "Token inválido ou expirado." })
+      }
+
+      usuario.senha = await argon2.hash(novaSenha)
+      usuario.resetPasswordToken = undefined
+      usuario.resetPasswordExpires = undefined
+      
+      await usuario.save()
+      return res.status(200).json({ message: "Senha redefinida com sucesso." })
+    }
+    catch (error) {
+      logger.error("Erro ao redefinir senha:", error)
+      return res.status(500).json({ message: "Erro ao redefinir senha." })
     }
   }
 }
