@@ -103,7 +103,7 @@ async function getSender() {
     }
   })
 
-  return (options: Omit<Mail.Options, "from">) => transporter.sendMail(options)
+  return (options: Omit<Mail.Options, "from">) => transporter.sendMail({ ...options, from: config.emailFrom })
 }
 
 pulse.define<{
