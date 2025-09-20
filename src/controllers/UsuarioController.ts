@@ -613,7 +613,6 @@ class UsuarioController {
       const tokenExpiracao = new Date(Date.now() + 60 * 60 * 1000)
 
       usuario.resetPasswordToken = token
-      console.log(token)
       usuario.resetPasswordExpires = tokenExpiracao
 
       await usuario.save()
