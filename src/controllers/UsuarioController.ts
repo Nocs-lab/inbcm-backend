@@ -2,7 +2,7 @@ import { Request, Response } from "express"
 import Usuario, { SituacaoUsuario, validarCPF } from "../models/Usuario"
 import logger from "../utils/logger"
 import { UsuarioService } from "../service/UserService"
-import { Declaracoes, Museu } from "../models"
+import { Declaracoes } from "../models"
 import { IProfile, Profile } from "../models/Profile"
 import { Types } from "mongoose"
 import { UpdateUserDto } from "../models/dto/UserDto"
@@ -16,6 +16,27 @@ import { createHash, randomUUID } from "crypto"
 import config from "../config"
 
 class UsuarioController {
+  constructor() {
+    this.registerUsuarioExternoDeclarant = this.registerUsuarioExternoDeclarant.bind(this)
+    this.registerUsuarioExternoAnalyst = this.registerUsuarioExternoAnalyst.bind(
+      this
+    )
+    this.registerUsuario = this.registerUsuario.bind(this)
+    this.getUsuarios = this.getUsuarios.bind(this)
+    this.getUsuarioPorId = this.getUsuarioPorId.bind(this)
+    this.getUsuario = this.getUsuario.bind(this)
+    this.atualizarUsuario = this.atualizarUsuario.bind(this)
+    this.atualizarPerfilUsuario = this.atualizarPerfilUsuario.bind(this)
+    this.deletarUsuario = this.deletarUsuario.bind(this)
+    this.getUsersByProfile = this.getUsersByProfile.bind(this)
+    this.getDocumento = this.getDocumento.bind(this)
+    this.recuperarSenhaAdmin = this.recuperarSenhaAdmin.bind(this)
+    this.recuperarSenhaPublic = this.recuperarSenhaPublic.bind(this)
+    this.recuperarSenha = this.recuperarSenha.bind(this)
+    this.checarTokenDeRecuperacao = this.checarTokenDeRecuperacao.bind(this)
+    this.redefinirSenha = this.redefinirSenha.bind(this)
+  }
+
   async registerUsuarioExternoDeclarant(req: Request, res: Response) {
     const { nome, email, cpf, museus, senha } = req.body
 
@@ -592,12 +613,13 @@ class UsuarioController {
       const tokenExpiracao = new Date(Date.now() + 60 * 60 * 1000)
 
       usuario.resetPasswordToken = token
+      console.log(token)
       usuario.resetPasswordExpires = tokenExpiracao
 
       await usuario.save()
       await sendEmail("forgot-password", usuario.email, {
         nome: usuario.nome,
-        url: `${admin ? config.ADMIN_SITE_URL : config.PUBLIC_SITE_URL}/resetar-senha/${token}`
+        url: `${admin ? config.ADMIN_SITE_URL : config.PUBLIC_SITE_URL}/resetarSenha/${token}`
       })
 
       return res.status(200).json({ message: "Email de recuperação de senha enviado." })
@@ -629,7 +651,7 @@ class UsuarioController {
 
   async redefinirSenha(req: Request, res: Response) {
     const { token, novaSenha } = req.body
-    
+
     if (!token || !novaSenha) {
       return res.status(400).json({ message: "Token e nova senha são obrigatórios." })
     }
@@ -658,4 +680,4 @@ class UsuarioController {
   }
 }
 
-export default new UsuarioController()
+export default UsuarioController
