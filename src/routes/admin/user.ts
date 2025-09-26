@@ -2,47 +2,61 @@ import express from "express"
 import UsuarioController from "../../controllers/UsuarioController"
 import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 
+const usuarioController = new UsuarioController()
+
 const routes = express.Router()
 
 routes.post(
   "/",
   userPermissionMiddleware("registerUsuario"),
-  UsuarioController.registerUsuario
+  usuarioController.registerUsuario
 )
 routes.get(
   "/",
   userPermissionMiddleware("getUsuarios"),
-  UsuarioController.getUsuarios
+  usuarioController.getUsuarios
 )
 routes.get(
   "/by-profile/:profileId",
   userPermissionMiddleware("getUsersByProfile"),
-  UsuarioController.getUsersByProfile
+  usuarioController.getUsersByProfile
 )
 routes.get(
   "/:id",
   userPermissionMiddleware("UsuarioController"),
-  UsuarioController.getUsuarioPorId
+  usuarioController.getUsuarioPorId
 )
 routes.get(
   "/documento/:id",
   userPermissionMiddleware("UsuarioController"),
-  UsuarioController.getDocumento
+  usuarioController.getDocumento
 )
 routes.put(
   "/:id",
   userPermissionMiddleware("atualizarUsuario"),
-  UsuarioController.atualizarUsuario
+  usuarioController.atualizarUsuario
 )
 routes.put(
   "/:id",
   userPermissionMiddleware("atualizarPerfilUsuario"),
-  UsuarioController.atualizarPerfilUsuario
+  usuarioController.atualizarPerfilUsuario
 )
 routes.delete(
   "/:id",
   userPermissionMiddleware("deletarUsuario"),
-  UsuarioController.deletarUsuario
+  usuarioController.deletarUsuario
+)
+routes.post(
+  "/recuperar-senha",
+  usuarioController.recuperarSenhaAdmin
+)
+routes.get(
+  "/checar-token-recuperacao/:token",
+  usuarioController.checarTokenDeRecuperacao
+)
+routes.post(
+  "/redefinir-senha",
+  usuarioController.redefinirSenha
 )
 
 export default routes

@@ -3,18 +3,20 @@ import UsuarioController from "../../controllers/UsuarioController"
 import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 import multer, { memoryStorage } from "multer"
 
+const usuarioController = new UsuarioController()
+
 const routes = express.Router()
 
 routes.get(
   "/",
   userPermissionMiddleware("getUsuario"),
-  UsuarioController.getUsuario
+  usuarioController.getUsuario
 )
 
 routes.put(
   "/:id",
   userPermissionMiddleware("atualizarPerfilUsuario"),
-  UsuarioController.atualizarPerfilUsuario
+  usuarioController.atualizarPerfilUsuario
 )
 
 routes.post(
@@ -23,7 +25,7 @@ routes.post(
     limits: { fileSize: 1024 * 1024 * 1024 * 3 },
     storage: memoryStorage()
   }).single("arquivo"),
-  UsuarioController.registerUsuarioExternoDeclarant
+  usuarioController.registerUsuarioExternoDeclarant
 )
 
 routes.post(
@@ -32,7 +34,22 @@ routes.post(
     limits: { fileSize: 1024 * 1024 * 1024 * 3 },
     storage: memoryStorage()
   }).single("arquivo"),
-  UsuarioController.registerUsuarioExternoAnalyst
+  usuarioController.registerUsuarioExternoAnalyst
+)
+
+routes.post(
+  "/recuperar-senha",
+  usuarioController.recuperarSenhaPublic
+)
+
+routes.get(
+  "/checar-token-recuperacao/:token",
+  usuarioController.checarTokenDeRecuperacao
+)
+
+routes.post(
+  "/redefinir-senha",
+  usuarioController.redefinirSenha
 )
 
 export default routes

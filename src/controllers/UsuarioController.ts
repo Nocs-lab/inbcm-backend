@@ -2,7 +2,7 @@ import { Request, Response } from "express"
 import Usuario, { SituacaoUsuario, validarCPF } from "../models/Usuario"
 import logger from "../utils/logger"
 import { UsuarioService } from "../service/UserService"
-import { Declaracoes, Museu } from "../models"
+import { Declaracoes } from "../models"
 import { IProfile, Profile } from "../models/Profile"
 import { Types } from "mongoose"
 import { UpdateUserDto } from "../models/dto/UserDto"
@@ -12,8 +12,31 @@ import argon2 from "@node-rs/argon2"
 import minioClient from "../db/minioClient"
 import { sendEmail } from "../emails"
 import argon from "@node-rs/argon2"
+import { createHash, randomUUID } from "crypto"
+import config from "../config"
 
 class UsuarioController {
+  constructor() {
+    this.registerUsuarioExternoDeclarant = this.registerUsuarioExternoDeclarant.bind(this)
+    this.registerUsuarioExternoAnalyst = this.registerUsuarioExternoAnalyst.bind(
+      this
+    )
+    this.registerUsuario = this.registerUsuario.bind(this)
+    this.getUsuarios = this.getUsuarios.bind(this)
+    this.getUsuarioPorId = this.getUsuarioPorId.bind(this)
+    this.getUsuario = this.getUsuario.bind(this)
+    this.atualizarUsuario = this.atualizarUsuario.bind(this)
+    this.atualizarPerfilUsuario = this.atualizarPerfilUsuario.bind(this)
+    this.deletarUsuario = this.deletarUsuario.bind(this)
+    this.getUsersByProfile = this.getUsersByProfile.bind(this)
+    this.getDocumento = this.getDocumento.bind(this)
+    this.recuperarSenhaAdmin = this.recuperarSenhaAdmin.bind(this)
+    this.recuperarSenhaPublic = this.recuperarSenhaPublic.bind(this)
+    this.recuperarSenha = this.recuperarSenha.bind(this)
+    this.checarTokenDeRecuperacao = this.checarTokenDeRecuperacao.bind(this)
+    this.redefinirSenha = this.redefinirSenha.bind(this)
+  }
+
   async registerUsuarioExternoDeclarant(req: Request, res: Response) {
     const { nome, email, cpf, museus, senha } = req.body
 
@@ -563,6 +586,97 @@ class UsuarioController {
       return res.status(500).json({ message: "Erro ao buscar documento." })
     }
   }
+
+  async recuperarSenhaAdmin(req: Request, res: Response) {
+    return this.recuperarSenha(req, res, true)
+  }
+
+  async recuperarSenhaPublic(req: Request, res: Response) {
+    return this.recuperarSenha(req, res, false)
+  }
+
+  async recuperarSenha(req: Request, res: Response, admin: boolean) {
+    const { email } = req.body
+
+    if (!email) {
+      return res.status(400).json({ message: "O campo email é obrigatório." })
+    }
+
+    try {
+      const usuario = await Usuario.findOne({ email: email.toLowerCase() })
+  
+      if (!usuario) {
+        return res.status(404).json({ message: "Usuário não encontrado." })
+      }
+      
+      const token = createHash("sha256").update(randomUUID()).digest("hex")
+      const tokenExpiracao = new Date(Date.now() + 60 * 60 * 1000)
+
+      usuario.resetPasswordToken = token
+      usuario.resetPasswordExpires = tokenExpiracao
+
+      await usuario.save()
+      await sendEmail("forgot-password", usuario.email, {
+        nome: usuario.nome,
+        url: `${admin ? config.ADMIN_SITE_URL : config.PUBLIC_SITE_URL}/resetarSenha/${token}`
+      })
+
+      return res.status(200).json({ message: "Email de recuperação de senha enviado." })
+    } catch (error) {
+      logger.error("Erro ao processar recuperação de senha:", error)
+      return res.status(500).json({ message: "Erro ao processar recuperação de senha." })
+    }
+  }
+
+  async checarTokenDeRecuperacao(req: Request, res: Response) {
+    const { token } = req.params
+
+    try {
+      const usuario = await Usuario.findOne({
+        resetPasswordToken: token,
+        resetPasswordExpires: { $gt: new Date() }
+      })
+
+      if (!usuario) {
+        return res.status(400).json({ message: "Token inválido ou expirado." })
+      }
+      
+      return res.status(200).json({ message: "Token válido." })
+    } catch (error) {
+      logger.error("Erro ao verificar token de recuperação de senha:", error)
+      return res.status(500).json({ message: "Erro ao verificar token." })
+    }
+  }
+
+  async redefinirSenha(req: Request, res: Response) {
+    const { token, novaSenha } = req.body
+
+    if (!token || !novaSenha) {
+      return res.status(400).json({ message: "Token e nova senha são obrigatórios." })
+    }
+
+    try {
+      const usuario = await Usuario.findOne({
+        resetPasswordToken: token,
+        resetPasswordExpires: { $gt: new Date() }
+      })
+
+      if (!usuario) {
+        return res.status(400).json({ message: "Token inválido ou expirado." })
+      }
+
+      usuario.senha = await argon2.hash(novaSenha)
+      usuario.resetPasswordToken = undefined
+      usuario.resetPasswordExpires = undefined
+      
+      await usuario.save()
+      return res.status(200).json({ message: "Senha redefinida com sucesso." })
+    }
+    catch (error) {
+      logger.error("Erro ao redefinir senha:", error)
+      return res.status(500).json({ message: "Erro ao redefinir senha." })
+    }
+  }
 }
 
-export default new UsuarioController()
+export default UsuarioController

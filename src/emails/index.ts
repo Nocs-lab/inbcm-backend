@@ -3,8 +3,8 @@ import templates from "./templates"
 import nodemailer from "nodemailer"
 import Pulse from "@pulsecron/pulse"
 import { UsuarioService } from "../service/UserService"
-import { Config } from "../models"
 import Mail from "nodemailer/lib/mailer"
+import ConfiguracaoEmailModel from "../models/Configuracao/email"
 
 type Templates = {
   "forgot-password": { url: string }
@@ -88,7 +88,7 @@ const subjects: Record<
 }
 
 async function getSender() {
-  const config = await Config.findOne({})
+  const config = await ConfiguracaoEmailModel.findOne({})
 
   if (!config) {
     throw new Error("Configuração de e-mail não definida")
@@ -103,7 +103,7 @@ async function getSender() {
     }
   })
 
-  return (options: Omit<Mail.Options, "from">) => transporter.sendMail(options)
+  return (options: Omit<Mail.Options, "from">) => transporter.sendMail({ ...options, from: config.emailFrom })
 }
 
 pulse.define<{

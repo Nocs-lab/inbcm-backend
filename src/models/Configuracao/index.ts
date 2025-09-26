@@ -18,4 +18,7 @@ const ConfiguracaoBaseSchema = new mongoose.Schema<ConfiguracaoBase>({
 
 const ConfiguracaoBaseModel = mongoose.model<ConfiguracaoBase>("Configuracoes", ConfiguracaoBaseSchema);
 
-export default ConfiguracaoBaseModel;
+export default ConfiguracaoBaseModel
+
+export * from "./email"
+export * from "./portalPublico"
