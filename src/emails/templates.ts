@@ -1818,7 +1818,7 @@ templates["prazo-retificacao"] = template({
       depth0,
       {
         name: "layout",
-        hash: { title: "Fim do perído de retificaçãi" },
+        hash: { title: "Fim do período de retificação" },
         fn: container.program(1, data, 0),
         inverse: container.noop,
         data: data,
