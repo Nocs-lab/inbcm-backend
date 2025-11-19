@@ -1940,7 +1940,7 @@ class DeclaracaoService {
     )
 
     // Envio de e-mail para confirmar o recebimento da retificação
-    if (idDeclaracao && declaracaoExistente) {
+    if (declaracaoExistente) {
       const emailsMuseu = await MuseuHelper.getEmailsFromMuseuUsers(museu_id)
       const anoDeclaracaoDoc = await AnoDeclaracao.findById(anoDeclaracao)
       const anoReferencia = anoDeclaracaoDoc ? anoDeclaracaoDoc.ano.toString() : "N/A"
