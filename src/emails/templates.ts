@@ -1738,15 +1738,15 @@ templates["prazo-retificacao"] = template({
       alias4(
         ((helper =
           (helper =
-            lookupProperty(helpers, "aoReferencia") ||
+            lookupProperty(helpers, "anoReferencia") ||
             (depth0 != null
-              ? lookupProperty(depth0, "aoReferencia")
+              ? lookupProperty(depth0, "anoReferencia")
               : depth0)) != null
             ? helper
             : alias2),
         typeof helper === alias3
           ? helper.call(alias1, {
-              name: "aoReferencia",
+              name: "anoReferencia",
               hash: {},
               data: data,
               loc: {
