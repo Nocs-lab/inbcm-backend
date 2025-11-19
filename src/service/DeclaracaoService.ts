@@ -848,9 +848,7 @@ class DeclaracaoService {
       // Envio de e-mail para notificar os usuários do museu
       const museu = await Museu.findById(declaracao.museu_id)
       if (museu) {
-        const emailsDeclarantsIds = museu.usuario
-        const usuarios = await Usuario.find({ _id: { $in: emailsDeclarantsIds } })
-        const emailDeclarants = usuarios.map(usuario => usuario.email)
+        const emailDeclarants = await MuseuHelper.getEmailsFromMuseuUsers(museu)
 
         // Buscar informações do ano de declaração
         const anoDeclaracaoDoc = await AnoDeclaracao.findById(declaracao.anoDeclaracao)
