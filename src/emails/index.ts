@@ -43,6 +43,21 @@ type Templates = {
     url: string
     museu: string
   }
+  "declaracao-recebida": {
+    dataAtual: string
+    hash: string
+    url: string
+    museu: string
+    anoReferencia: string
+  }
+  "declaracao-em-analise": {
+    dataAtual: string
+    hash: string
+    url: string
+    museu: string
+    anoReferencia: string
+    analistas?: string[]
+  }
   "prazo-declaracao": {
     dataFim: string
     diasFim: number
@@ -83,12 +98,16 @@ const subjects: Record<
     "[INBCM] Atualização na situação de declaração para conforme!",
   "declaracao-nao-conformidade": () =>
     "[INBCM] Atualização na situação de declaração para não conforme",
+  "declaracao-recebida": () =>
+    "[INBCM] Declaração recebida com sucesso!",
+  "declaracao-em-analise": () =>
+    "[INBCM] Declaração enviada para análise",
   "prazo-declaracao": () => "[INBCM] Prazo para envio de declaração",
   "prazo-retificacao": () => "[INBCM] Prazo para retificação de declaração"
 }
 
 async function getSender() {
-  const config = await Config.findOne({})
+  const config = await ConfiguracaoEmailModel.findOne({})
 
   if (!config) {
     throw new Error("Configuração de e-mail não definida")
@@ -103,7 +122,7 @@ async function getSender() {
     }
   })
 
-  return (options: Omit<Mail.Options, "from">) => transporter.sendMail(options)
+  return (options: Omit<Mail.Options, "from">) => transporter.sendMail({ ...options, from: config.emailFrom })
 }
 
 pulse.define<{

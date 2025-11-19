@@ -41,6 +41,7 @@ import { PendenciaDetalhadaModel } from "../models/PendenciasDetalhadas"
 import { salvarPendenciasEmChunks } from "../utils/declaracaoUtils"
 import { Filtro } from "../types/FiltroPaginacao"
 import { traduzirFiltrosParaMongo } from "../types/traduzirFiltros"
+import { MuseuHelper } from "../utils/museuHelper"
 
 interface ErroDetalhado {
   linha: number
@@ -844,6 +845,44 @@ class DeclaracaoService {
 
       await declaracao.save({ validateBeforeSave: false })
 
+      // Envio de e-mail para notificar os usuários do museu
+      const museu = await Museu.findById(declaracao.museu_id)
+      if (museu) {
+        const emailsDeclarantsIds = museu.usuario
+        const usuarios = await Usuario.find({ _id: { $in: emailsDeclarantsIds } })
+        const emailDeclarants = usuarios.map(usuario => usuario.email)
+
+        // Buscar informações do ano de declaração
+        const anoDeclaracaoDoc = await AnoDeclaracao.findById(declaracao.anoDeclaracao)
+        const anoReferencia = anoDeclaracaoDoc ? anoDeclaracaoDoc.ano.toString() : "N/A"
+
+        const dataAtual = DataUtils.gerarDataHoraExtenso()
+        const url = `${config.PUBLIC_SITE_URL}`
+
+        // Preparar lista de analistas para o e-mail
+        const analistasFormatados = Object.entries(analistasPorTipo)
+          .flatMap(([tipo, ids]) => {
+            const tipoFormatado: { [key: string]: string } = {
+              arquivistico: "Arquivístico",
+              bibliografico: "Bibliográfico",
+              museologico: "Museológico"
+            }
+            return ids.map(id => {
+              const analista = analistasList.find(a => a._id.toString() === id)
+              return analista ? `${tipoFormatado[tipo] || tipo}: ${analista.nome}` : null
+            }).filter((item): item is string => item !== null)
+          })
+
+        await sendEmail("declaracao-em-analise", emailDeclarants, {
+          dataAtual,
+          hash: declaracao.hashDeclaracao,
+          url,
+          museu: declaracao.museu_nome,
+          anoReferencia,
+          analistas: analistasFormatados
+        })
+      }
+
       const declaracaoPopulada = await Declaracoes.findById(declaracao._id)
         .populate({ path: "responsavelEnvioAnalise", select: "nome" })
         .exec()
@@ -1040,7 +1079,6 @@ class DeclaracaoService {
       const usuarios = await Usuario.find({ _id: { $in: emailsDeclarantsIds } })
       const emailDeclarants = usuarios.map(usuario => usuario.email)
 
-
       // Atualizar o status da declaração
       if (todosFinalizados) {
         // Se todos os bens estiverem "Em Conformidade", a declaração também deve estar "Em Conformidade"
@@ -1166,6 +1204,24 @@ class DeclaracaoService {
     declaracao.status = Status.Recebida
 
     await declaracao.save()
+
+    // Envio de e-mail para notificar sobre a restauração
+    const museu = await Museu.findById(declaracao.museu_id)
+    if (museu) {
+      const emailsMuseu = await MuseuHelper.getEmailsFromMuseuUsers(declaracao.museu_id.toString())
+      const anoDeclaracaoDoc = await AnoDeclaracao.findById(declaracao.anoDeclaracao)
+      const anoReferencia = anoDeclaracaoDoc ? anoDeclaracaoDoc.ano.toString() : "N/A"
+      const dataAtual = DataUtils.gerarDataHoraExtenso()
+      const url = `${config.PUBLIC_SITE_URL}`
+
+      await sendEmail("declaracao-recebida", emailsMuseu, {
+        dataAtual,
+        hash: declaracao.hashDeclaracao,
+        url,
+        museu: declaracao.museu_nome,
+        anoReferencia
+      })
+    }
 
     return {
       message: "Declaração restaurada com sucesso para 'Recebida'.",
@@ -1733,6 +1789,21 @@ class DeclaracaoService {
       novaDeclaracao.ultimaDeclaracao = true
       await novaDeclaracao.save()
 
+      // Envio de e-mail para confirmar o recebimento da declaração
+      const emailsMuseu = await MuseuHelper.getEmailsFromMuseuUsers(museu_id)
+      const anoDeclaracaoDoc = await AnoDeclaracao.findById(anoDeclaracao)
+      const anoReferencia = anoDeclaracaoDoc ? anoDeclaracaoDoc.ano.toString() : "N/A"
+      const dataAtual = DataUtils.gerarDataHoraExtenso(novaDeclaracao.dataCriacao)
+      const url = `${config.PUBLIC_SITE_URL}`
+
+      await sendEmail("declaracao-recebida", emailsMuseu, {
+        dataAtual,
+        hash: novaDeclaracao.hashDeclaracao,
+        url,
+        museu: museu.nome,
+        anoReferencia
+      })
+
       return novaDeclaracao
     } catch (error) {
       if (error instanceof HTTPError) {
@@ -1869,6 +1940,24 @@ class DeclaracaoService {
       },
       { ultimaDeclaracao: false }
     )
+
+    // Envio de e-mail para confirmar o recebimento da retificação
+    if (idDeclaracao && declaracaoExistente) {
+      const emailsMuseu = await MuseuHelper.getEmailsFromMuseuUsers(museu_id)
+      const anoDeclaracaoDoc = await AnoDeclaracao.findById(anoDeclaracao)
+      const anoReferencia = anoDeclaracaoDoc ? anoDeclaracaoDoc.ano.toString() : "N/A"
+      const dataAtual = DataUtils.gerarDataHoraExtenso(novaDeclaracao.dataCriacao)
+      const url = `${config.PUBLIC_SITE_URL}`
+      const museuDoc = await Museu.findById(museu_id)
+
+      await sendEmail("declaracao-recebida", emailsMuseu, {
+        dataAtual,
+        hash: novaDeclaracao.hashDeclaracao,
+        url,
+        museu: museuDoc?.nome || "N/A",
+        anoReferencia
+      })
+    }
 
     return novaDeclaracao
   }

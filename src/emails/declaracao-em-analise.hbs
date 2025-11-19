@@ -1,0 +1,55 @@
+{{#> layout title="[INBCM] Declaração enviada para análise" }}
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  Olá prezado(a),</p>
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  Sua declaração foi <strong>enviada para análise</strong> e está sendo avaliada pela equipe do INBCM.</p>
+
+<table style="font-family: Helvetica, sans-serif; font-size: 16px; border-collapse: collapse; width: 100%;">
+  <tr>
+    <td style="padding: 8px; border: 1px solid #ddd;">Museu:</td>
+    <td style="padding: 8px; border: 1px solid #ddd;">{{museu}}</td>
+  </tr>
+  <tr>
+    <td style="padding: 8px; border: 1px solid #ddd;">Código da declaração:</td>
+    <td style="padding: 8px; border: 1px solid #ddd; word-wrap: break-word; max-width: 200px;">
+      {{hash}}
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 8px; border: 1px solid #ddd;">Data de envio para análise:</td>
+    <td style="padding: 8px; border: 1px solid #ddd;">{{dataAtual}}</td>
+  </tr>
+  <tr>
+    <td style="padding: 8px; border: 1px solid #ddd;">Ano de referência:</td>
+    <td style="padding: 8px; border: 1px solid #ddd;">{{anoReferencia}}</td>
+  </tr>
+</table>
+
+{{#if analistas}}
+<br><p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  <strong>Analistas responsáveis:</strong></p>
+<ul style="font-family: Helvetica, sans-serif; font-size: 16px; margin: 0; margin-bottom: 16px; padding-left: 20px;">
+  {{#each analistas}}
+  <li>{{this}}</li>
+  {{/each}}
+</ul>
+{{/if}}
+
+<br><p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  Você será notificado quando a análise for concluída.</p>
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  Para acompanhar o andamento da análise, acesse o nosso portal:</p>
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  {{url}}</p>
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  Atenciosamente,</p>
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  Equipe INBCM</p>
+
+{{/layout}}

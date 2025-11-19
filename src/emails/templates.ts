@@ -704,6 +704,214 @@ templates["confirmacao-retificacao-declaracao"] = template({
   usePartial: true,
   useData: true
 })
+templates["declaracao-em-analise"] = template({
+  "1": function (container, depth0, helpers, partials, data) {
+    var stack1,
+      helper,
+      alias1 = depth0 != null ? depth0 : container.nullContext || {},
+      alias2 = container.hooks.helperMissing,
+      alias3 = "function",
+      alias4 = container.escapeExpression,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (
+      '\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Olá prezado(a),</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Sua declaração foi <strong>enviada para análise</strong> e está sendo avaliada pela equipe do INBCM.</p>\n\n<table style="font-family: Helvetica, sans-serif; font-size: 16px; border-collapse: collapse; width: 100%;">\n  <tr>\n    <td style="padding: 8px; border: 1px solid #ddd;">Museu:</td>\n    <td style="padding: 8px; border: 1px solid #ddd;">' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "museu") ||
+            (depth0 != null ? lookupProperty(depth0, "museu") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "museu",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 12, column: 54 },
+                end: { line: 12, column: 63 }
+              }
+            })
+          : helper)
+      ) +
+      '</td>\n  </tr>\n  <tr>\n    <td style="padding: 8px; border: 1px solid #ddd;">Código da declaração:</td>\n    <td style="padding: 8px; border: 1px solid #ddd; word-wrap: break-word; max-width: 200px;">\n      ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "hash") ||
+            (depth0 != null ? lookupProperty(depth0, "hash") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "hash",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 17, column: 6 },
+                end: { line: 17, column: 14 }
+              }
+            })
+          : helper)
+      ) +
+      '\n    </td>\n  </tr>\n  <tr>\n    <td style="padding: 8px; border: 1px solid #ddd;">Data de envio para análise:</td>\n    <td style="padding: 8px; border: 1px solid #ddd;">' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "dataAtual") ||
+            (depth0 != null ? lookupProperty(depth0, "dataAtual") : depth0)) !=
+          null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "dataAtual",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 22, column: 54 },
+                end: { line: 22, column: 67 }
+              }
+            })
+          : helper)
+      ) +
+      '</td>\n  </tr>\n  <tr>\n    <td style="padding: 8px; border: 1px solid #ddd;">Ano de referência:</td>\n    <td style="padding: 8px; border: 1px solid #ddd;">' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "anoReferencia") ||
+            (depth0 != null
+              ? lookupProperty(depth0, "anoReferencia")
+              : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "anoReferencia",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 26, column: 54 },
+                end: { line: 26, column: 71 }
+              }
+            })
+          : helper)
+      ) +
+      "</td>\n  </tr>\n</table>\n\n" +
+      ((stack1 = lookupProperty(helpers, "if").call(
+        alias1,
+        depth0 != null ? lookupProperty(depth0, "analistas") : depth0,
+        {
+          name: "if",
+          hash: {},
+          fn: container.program(2, data, 0),
+          inverse: container.noop,
+          data: data,
+          loc: { start: { line: 30, column: 0 }, end: { line: 38, column: 7 } }
+        }
+      )) != null
+        ? stack1
+        : "") +
+      '\n<br><p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Você será notificado quando a análise for concluída.</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Para acompanhar o andamento da análise, acesse o nosso portal:</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "url") ||
+            (depth0 != null ? lookupProperty(depth0, "url") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "url",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 47, column: 2 },
+                end: { line: 47, column: 9 }
+              }
+            })
+          : helper)
+      ) +
+      '</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Atenciosamente,</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Equipe INBCM</p>\n\n'
+    )
+  },
+  "2": function (container, depth0, helpers, partials, data) {
+    var stack1,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (
+      '<br><p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  <strong>Analistas responsáveis:</strong></p>\n<ul style="font-family: Helvetica, sans-serif; font-size: 16px; margin: 0; margin-bottom: 16px; padding-left: 20px;">\n' +
+      ((stack1 = lookupProperty(helpers, "each").call(
+        depth0 != null ? depth0 : container.nullContext || {},
+        depth0 != null ? lookupProperty(depth0, "analistas") : depth0,
+        {
+          name: "each",
+          hash: {},
+          fn: container.program(3, data, 0),
+          inverse: container.noop,
+          data: data,
+          loc: { start: { line: 34, column: 2 }, end: { line: 36, column: 11 } }
+        }
+      )) != null
+        ? stack1
+        : "") +
+      "</ul>\n"
+    )
+  },
+  "3": function (container, depth0, helpers, partials, data) {
+    return (
+      "  <li>" +
+      container.escapeExpression(container.lambda(depth0, depth0)) +
+      "</li>\n"
+    )
+  },
+  compiler: [8, ">= 4.3.0"],
+  main: function (container, depth0, helpers, partials, data) {
+    var stack1,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (stack1 = container.invokePartial(
+      lookupProperty(partials, "layout"),
+      depth0,
+      {
+        name: "layout",
+        hash: { title: "[INBCM] Declaração enviada para análise" },
+        fn: container.program(1, data, 0),
+        inverse: container.noop,
+        data: data,
+        helpers: helpers,
+        partials: partials,
+        decorators: container.decorators
+      }
+    )) != null
+      ? stack1
+      : ""
+  },
+  usePartial: true,
+  useData: true
+})
 templates["declaracao-em-conformidade"] = template({
   "1": function (container, depth0, helpers, partials, data) {
     var helper,
@@ -936,10 +1144,13 @@ templates["declaracao-nao-conformidade"] = template({
   usePartial: true,
   useData: true
 })
-templates["forgot-password"] = template({
+templates["declaracao-recebida"] = template({
   "1": function (container, depth0, helpers, partials, data) {
-    var stack1,
-      helper,
+    var helper,
+      alias1 = depth0 != null ? depth0 : container.nullContext || {},
+      alias2 = container.hooks.helperMissing,
+      alias3 = "function",
+      alias4 = container.escapeExpression,
       lookupProperty =
         container.lookupProperty ||
         function (parent, propertyName) {
@@ -950,33 +1161,164 @@ templates["forgot-password"] = template({
         }
 
     return (
-      '  <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">Hi there ' +
-      container.escapeExpression(
+      '\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Olá prezado(a),</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Sua declaração foi <strong>recebida com sucesso</strong> pelo sistema INBCM.</p>\n\n<table style="font-family: Helvetica, sans-serif; font-size: 16px; border-collapse: collapse; width: 100%;">\n  <tr>\n    <td style="padding: 8px; border: 1px solid #ddd;">Museu:</td>\n    <td style="padding: 8px; border: 1px solid #ddd;">' +
+      alias4(
         ((helper =
           (helper =
-            lookupProperty(helpers, "name") ||
-            (depth0 != null ? lookupProperty(depth0, "name") : depth0)) != null
+            lookupProperty(helpers, "museu") ||
+            (depth0 != null ? lookupProperty(depth0, "museu") : depth0)) != null
             ? helper
-            : container.hooks.helperMissing),
-        typeof helper === "function"
-          ? helper.call(depth0 != null ? depth0 : container.nullContext || {}, {
-              name: "name",
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "museu",
               hash: {},
               data: data,
               loc: {
-                start: { line: 2, column: 128 },
-                end: { line: 2, column: 136 }
+                start: { line: 12, column: 54 },
+                end: { line: 12, column: 63 }
               }
             })
           : helper)
       ) +
-      '</p>\n  <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">Sometimes you just want to send a simple HTML email with a simple design and clear call to action. This is it.</p>\n  ' +
+      '</td>\n  </tr>\n  <tr>\n    <td style="padding: 8px; border: 1px solid #ddd;">Código da declaração:</td>\n    <td style="padding: 8px; border: 1px solid #ddd; word-wrap: break-word; max-width: 200px;">\n      ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "hash") ||
+            (depth0 != null ? lookupProperty(depth0, "hash") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "hash",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 17, column: 6 },
+                end: { line: 17, column: 14 }
+              }
+            })
+          : helper)
+      ) +
+      '\n    </td>\n  </tr>\n  <tr>\n    <td style="padding: 8px; border: 1px solid #ddd;">Data de recebimento:</td>\n    <td style="padding: 8px; border: 1px solid #ddd;">' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "dataAtual") ||
+            (depth0 != null ? lookupProperty(depth0, "dataAtual") : depth0)) !=
+          null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "dataAtual",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 22, column: 54 },
+                end: { line: 22, column: 67 }
+              }
+            })
+          : helper)
+      ) +
+      '</td>\n  </tr>\n  <tr>\n    <td style="padding: 8px; border: 1px solid #ddd;">Ano de referência:</td>\n    <td style="padding: 8px; border: 1px solid #ddd;">' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "anoReferencia") ||
+            (depth0 != null
+              ? lookupProperty(depth0, "anoReferencia")
+              : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "anoReferencia",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 26, column: 54 },
+                end: { line: 26, column: 71 }
+              }
+            })
+          : helper)
+      ) +
+      '</td>\n  </tr>\n</table>\n\n<br><p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Sua declaração será analisada em breve. Você receberá uma notificação quando a análise for iniciada.</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Para acompanhar o status da sua declaração, acesse o nosso portal:</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "url") ||
+            (depth0 != null ? lookupProperty(depth0, "url") : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "url",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 37, column: 2 },
+                end: { line: 37, column: 9 }
+              }
+            })
+          : helper)
+      ) +
+      '</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Atenciosamente,</p>\n\n<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">\n  Equipe INBCM</p>\n\n'
+    )
+  },
+  compiler: [8, ">= 4.3.0"],
+  main: function (container, depth0, helpers, partials, data) {
+    var stack1,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (stack1 = container.invokePartial(
+      lookupProperty(partials, "layout"),
+      depth0,
+      {
+        name: "layout",
+        hash: { title: "[INBCM] Declaração recebida com sucesso" },
+        fn: container.program(1, data, 0),
+        inverse: container.noop,
+        data: data,
+        helpers: helpers,
+        partials: partials,
+        decorators: container.decorators
+      }
+    )) != null
+      ? stack1
+      : ""
+  },
+  usePartial: true,
+  useData: true
+})
+templates["forgot-password"] = template({
+  "1": function (container, depth0, helpers, partials, data) {
+    var stack1,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (
+      '  <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">Prezado(a) usuário(a),</p>\n  <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">Para recuperar a senha referente às suas credenciais, por favor, clique no botão abaixo:</p>\n  ' +
       ((stack1 = container.invokePartial(
         lookupProperty(partials, "button"),
         depth0,
         {
           name: "button",
-          hash: { link: "http://htmlemail.io" },
+          hash: { link: "{{url}}" },
           fn: container.program(2, data, 0),
           inverse: container.noop,
           data: data,
@@ -987,11 +1329,11 @@ templates["forgot-password"] = template({
       )) != null
         ? stack1
         : "") +
-      '\n  <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">This is a really simple email template. It\'s sole purpose is to get the recipient to click the button with no distractions.</p>\n'
+      "\n"
     )
   },
   "2": function (container, depth0, helpers, partials, data) {
-    return "Call To Action"
+    return "Redefinir senha"
   },
   compiler: [8, ">= 4.3.0"],
   main: function (container, depth0, helpers, partials, data) {
@@ -1245,6 +1587,238 @@ templates["novo-usuario-admin"] = template({
       {
         name: "layout",
         hash: { title: "[INBCM] Novo usuário solicitou acesso ao INBCM" },
+        fn: container.program(1, data, 0),
+        inverse: container.noop,
+        data: data,
+        helpers: helpers,
+        partials: partials,
+        decorators: container.decorators
+      }
+    )) != null
+      ? stack1
+      : ""
+  },
+  usePartial: true,
+  useData: true
+})
+templates["prazo-declaracao"] = template({
+  "1": function (container, depth0, helpers, partials, data) {
+    var helper,
+      alias1 = depth0 != null ? depth0 : container.nullContext || {},
+      alias2 = container.hooks.helperMissing,
+      alias3 = "function",
+      alias4 = container.escapeExpression,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (
+      '  <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">O prazo para o envio das declarações de ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "anoReferencia") ||
+            (depth0 != null
+              ? lookupProperty(depth0, "anoReferencia")
+              : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "anoReferencia",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 2, column: 159 },
+                end: { line: 2, column: 176 }
+              }
+            })
+          : helper)
+      ) +
+      " se encerra em " +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "dataFim") ||
+            (depth0 != null ? lookupProperty(depth0, "dataFim") : depth0)) !=
+          null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "dataFim",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 2, column: 191 },
+                end: { line: 2, column: 202 }
+              }
+            })
+          : helper)
+      ) +
+      " (" +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "diasFim") ||
+            (depth0 != null ? lookupProperty(depth0, "diasFim") : depth0)) !=
+          null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "diasFim",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 2, column: 204 },
+                end: { line: 2, column: 215 }
+              }
+            })
+          : helper)
+      ) +
+      ")</p>\n"
+    )
+  },
+  compiler: [8, ">= 4.3.0"],
+  main: function (container, depth0, helpers, partials, data) {
+    var stack1,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (stack1 = container.invokePartial(
+      lookupProperty(partials, "layout"),
+      depth0,
+      {
+        name: "layout",
+        hash: { title: "Fim do perído de submissão" },
+        fn: container.program(1, data, 0),
+        inverse: container.noop,
+        data: data,
+        helpers: helpers,
+        partials: partials,
+        decorators: container.decorators
+      }
+    )) != null
+      ? stack1
+      : ""
+  },
+  usePartial: true,
+  useData: true
+})
+templates["prazo-retificacao"] = template({
+  "1": function (container, depth0, helpers, partials, data) {
+    var helper,
+      alias1 = depth0 != null ? depth0 : container.nullContext || {},
+      alias2 = container.hooks.helperMissing,
+      alias3 = "function",
+      alias4 = container.escapeExpression,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (
+      '  <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">O prazo para o envio das retificações de ' +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "aoReferencia") ||
+            (depth0 != null
+              ? lookupProperty(depth0, "aoReferencia")
+              : depth0)) != null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "aoReferencia",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 2, column: 160 },
+                end: { line: 2, column: 176 }
+              }
+            })
+          : helper)
+      ) +
+      " se encerra em " +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "dataFim") ||
+            (depth0 != null ? lookupProperty(depth0, "dataFim") : depth0)) !=
+          null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "dataFim",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 2, column: 191 },
+                end: { line: 2, column: 202 }
+              }
+            })
+          : helper)
+      ) +
+      " (" +
+      alias4(
+        ((helper =
+          (helper =
+            lookupProperty(helpers, "diasFim") ||
+            (depth0 != null ? lookupProperty(depth0, "diasFim") : depth0)) !=
+          null
+            ? helper
+            : alias2),
+        typeof helper === alias3
+          ? helper.call(alias1, {
+              name: "diasFim",
+              hash: {},
+              data: data,
+              loc: {
+                start: { line: 2, column: 204 },
+                end: { line: 2, column: 215 }
+              }
+            })
+          : helper)
+      ) +
+      ")</p>\n"
+    )
+  },
+  compiler: [8, ">= 4.3.0"],
+  main: function (container, depth0, helpers, partials, data) {
+    var stack1,
+      lookupProperty =
+        container.lookupProperty ||
+        function (parent, propertyName) {
+          if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
+            return parent[propertyName]
+          }
+          return undefined
+        }
+
+    return (stack1 = container.invokePartial(
+      lookupProperty(partials, "layout"),
+      depth0,
+      {
+        name: "layout",
+        hash: { title: "Fim do perído de retificaçãi" },
         fn: container.program(1, data, 0),
         inverse: container.noop,
         data: data,
