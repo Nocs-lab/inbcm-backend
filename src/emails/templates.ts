@@ -1702,7 +1702,7 @@ templates["prazo-declaracao"] = template({
       depth0,
       {
         name: "layout",
-        hash: { title: "Fim do perído de submissão" },
+        hash: { title: "Fim do período de submissão" },
         fn: container.program(1, data, 0),
         inverse: container.noop,
         data: data,
