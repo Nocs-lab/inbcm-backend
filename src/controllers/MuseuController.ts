@@ -133,23 +133,17 @@ class MuseuController {
       const { search, page, limit } = req.query
 
       const filtro: MuseuFiltro = {}
-
       if (search) {
-        const busca = (search as string)
-          .split(" ")
-          .filter((item) => item.trim() !== "")
-        if (busca.length > 0) {
-          filtro.nome = { $regex: busca.join("|"), $options: "i" }
-        }
+        filtro.$text = { $search: search as string }
       }
-
       const pageNumber = parseInt(page as string, 10) || 1
       const limitNumber = parseInt(limit as string, 10) || 10
       const skip = (pageNumber - 1) * limitNumber
 
       // Busca paginada com apenas os campos necessários
-      const museus = await Museu.find(filtro)
+      const museus = await Museu.find(filtro, { score: { $meta: "textScore" } })
         .select("nome _id endereco")
+        .sort({ score: { $meta: "textScore" } })
         .skip(skip)
         .limit(limitNumber)
 
