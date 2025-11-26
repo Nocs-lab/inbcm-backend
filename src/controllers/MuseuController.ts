@@ -504,73 +504,61 @@ class MuseuController {
     }
   }
 
-static async listarMuseusComFiltro(req: Request, res: Response) {
+  static async listarMuseusComFiltro(req: Request, res: Response) {
     try {
-        const { pagina, tamanho, filtros } = filtroPaginacaoMuseus.parse(req.body);
+      const { pagina, tamanho, filtros } = filtroPaginacaoMuseus.parse(req.body)
 
-      
-        const { filtrosMuseu, filtrosAgregacao } = traduzirFiltrosParaMongo(filtros);
+      const { filtrosMuseu, filtrosAgregacao } =
+        traduzirFiltrosParaMongo(filtros)
 
-        
-        const pipeline: any[] = [];
+      const pipeline: any[] = []
 
-        if (Object.keys(filtrosMuseu).length > 0) {
-            pipeline.push({ $match: filtrosMuseu });
+      if (Object.keys(filtrosMuseu).length > 0) {
+        pipeline.push({ $match: filtrosMuseu })
+      }
+
+      pipeline.push({
+        $lookup: {
+          from: "estados",
+          localField: "endereco.uf",
+          foreignField: "uf",
+          as: "estadoInfo"
         }
+      })
 
-       
-        pipeline.push({
-            $lookup: {
-                from: "estados", 
-                localField: "endereco.uf", 
-                foreignField: "uf",        
-                as: "estadoInfo",         
-            },
-        });
+      pipeline.push({ $unwind: "$estadoInfo" })
 
-        
-        pipeline.push({ $unwind: "$estadoInfo" });
+      if (Object.keys(filtrosAgregacao).length > 0) {
+        pipeline.push({ $match: filtrosAgregacao })
+      }
 
-    
-        if (Object.keys(filtrosAgregacao).length > 0) {
-            pipeline.push({ $match: filtrosAgregacao });
+      const resultadoAgregacao = await Museu.aggregate([
+        ...pipeline,
+        {
+          $facet: {
+            metadata: [{ $count: "total" }],
+
+            dados: [{ $skip: (pagina - 1) * tamanho }, { $limit: tamanho }]
+          }
         }
-        
-       
-        const resultadoAgregacao = await Museu.aggregate([
-            ...pipeline,
-            {
-                $facet: {
-                   
-                    metadata: [{ $count: "total" }],
-                    
-                    dados: [
-                        { $skip: (pagina - 1) * tamanho },
-                        { $limit: tamanho },
-                    ],
-                },
-            },
-        ]);
+      ])
 
-      
-        const museus = resultadoAgregacao[0].dados;
-        const total = resultadoAgregacao[0].metadata[0]?.total || 0;
+      const museus = resultadoAgregacao[0].dados
+      const total = resultadoAgregacao[0].metadata[0]?.total || 0
 
-        return res.status(200).json({
-            dados: museus,
-            total,
-            pagina,
-            tamanho,
-        });
-
+      return res.status(200).json({
+        dados: museus,
+        total,
+        pagina,
+        tamanho
+      })
     } catch (erro) {
-        logger.error("Erro ao listar museus com filtro:", erro);
-        return res
-            .status(500)
-            .json({ mensagem: "Erro ao listar museus com filtro." });
+      logger.error("Erro ao listar museus com filtro:", erro)
+      return res
+        .status(500)
+        .json({ mensagem: "Erro ao listar museus com filtro." })
     }
-}
-
+  }
 }
 
 export default MuseuController
