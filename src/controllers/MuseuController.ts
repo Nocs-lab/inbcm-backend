@@ -141,11 +141,16 @@ class MuseuController {
       const skip = (pageNumber - 1) * limitNumber
 
       // Busca paginada com apenas os campos necessários
-      const museus = await Museu.find(filtro, { score: { $meta: "textScore" } })
-        .select("nome _id endereco")
-        .sort({ score: { $meta: "textScore" } })
-        .skip(skip)
-        .limit(limitNumber)
+      const museus = search
+        ? await Museu.find(filtro, { score: { $meta: "textScore" } })
+            .select("nome _id endereco")
+            .sort({ score: { $meta: "textScore" } })
+            .skip(skip)
+            .limit(limitNumber)
+        : await Museu.find(filtro)
+            .select("nome _id endereco")
+            .skip(skip)
+            .limit(limitNumber)
 
       const totalItems = await Museu.countDocuments(filtro)
       const totalPages = Math.ceil(totalItems / limitNumber)
