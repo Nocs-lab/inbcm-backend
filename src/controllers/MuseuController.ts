@@ -141,15 +141,16 @@ class MuseuController {
       const skip = (pageNumber - 1) * limitNumber
 
       // Busca paginada com apenas os campos necessários
-      // textScore projection and sort only apply when using text search
-      const projection = search ? { score: { $meta: "textScore" } } : {}
-      const sortOptions = search ? { score: { $meta: "textScore" } } : {}
-
-      const museus = await Museu.find(filtro, projection)
-        .select("nome _id endereco")
-        .sort(sortOptions)
-        .skip(skip)
-        .limit(limitNumber)
+      const museus = search
+        ? await Museu.find(filtro, { score: { $meta: "textScore" } })
+            .select("nome _id endereco")
+            .sort({ score: { $meta: "textScore" } })
+            .skip(skip)
+            .limit(limitNumber)
+        : await Museu.find(filtro)
+            .select("nome _id endereco")
+            .skip(skip)
+            .limit(limitNumber)
 
       const totalItems = await Museu.countDocuments(filtro)
       const totalPages = Math.ceil(totalItems / limitNumber)
