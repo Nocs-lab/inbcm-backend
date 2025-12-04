@@ -175,4 +175,4 @@ pnpm run create:default-profiles && pnpm run create:admin-user && pnpm run creat
 
 
 # Revisão e Aprovação
-Depois de criar o seu Pull Request, um dos mantenedores do projeto revisará suas alterações. Eles podem pedir modificações ou melhorias antes de aceitar o PR. Siga as orientações e faça os ajustes necessários. Assim que todas as revisões forem resolvidas e o PR for aprovado, suas alterações serão mescladas na branch principal do repositório.
+Depois de criar o seu Pull Request, um dos mantenedores do projeto revisará suas alterações. Eles podem pedir modificações ou melhorias antes de aceitar o PR. Siga as orientações e faça os ajustes necessários. Assim que todas as revisões forem resolvidas e o PR for aprovado, suas alterações serão mescladas na branch principal do repositório
