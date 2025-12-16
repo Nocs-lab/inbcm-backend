@@ -539,6 +539,20 @@ export default class ExportadorService {
     )
   }
 
+  private escapeCsvValue(value: any): string {
+    if (value === null || value === undefined) return ""
+    const stringValue = String(value)
+    if (
+      stringValue.includes(";") ||
+      stringValue.includes("\n") ||
+      stringValue.includes("\r") ||
+      stringValue.includes('"')
+    ) {
+      return `"${stringValue.replace(/"/g, '""')}"`
+    }
+    return stringValue
+  }
+
   gerarCsv(itens: any[], tipo: string): string {
     const fields = {
       museologico: museologicoFields,
@@ -551,9 +565,11 @@ export default class ExportadorService {
     }
 
     const csvContent = [
-      fields.map((field) => field.id).join(";"),
+      fields.map((field) => this.escapeCsvValue(field.id)).join(";"),
       ...itens.map((item) =>
-        fields.map((field) => item[field.id] || "").join(";")
+        fields
+          .map((field) => this.escapeCsvValue(item[field.id] || ""))
+          .join(";")
       )
     ].join("\n")
 
@@ -649,7 +665,7 @@ export default class ExportadorService {
             options: {
               delimiter: ";",
               multivalued_delimiter: "||",
-              enclosure: "",
+              enclosure: '"',
               encode: "utf8",
               escape_empty_value: "[empty value]",
               repeated_item: "update",
