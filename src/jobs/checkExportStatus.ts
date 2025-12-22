@@ -2,6 +2,13 @@ import pulse from "../lib/pulse";
 import ExportacaoModel from "../models/Exportacao";
 import ConfiguracaoPortalPublicoModel from "../models/Configuracao/portalPublico";
 
+const EXPORT_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+type Sessao = {
+  id?: string | number;
+  status: "em_andamento" | "concluida" | "erro";
+};
+
 pulse.define("checkExportStatus", async (_job) => {
   const exportacoes = await ExportacaoModel.find({
     status: "em_andamento",
@@ -16,7 +23,7 @@ pulse.define("checkExportStatus", async (_job) => {
   });
 
   if (!config) {
-    console.error("Configuração do portal público não encontrada ao verificar status da exportação");
+    console.error("Public portal configuration not found when checking export status");
     return;
   }
 
@@ -28,9 +35,9 @@ pulse.define("checkExportStatus", async (_job) => {
     if (!exportacao.sessoes) continue;
 
     const now = new Date();
-    if (exportacao.iniciadoEm && (now.getTime() - new Date(exportacao.iniciadoEm).getTime() > 24 * 60 * 60 * 1000)) {
+    if (exportacao.iniciadoEm && (now.getTime() - new Date(exportacao.iniciadoEm).getTime() > EXPORT_TIMEOUT_MS)) {
         exportacao.status = 'erro';
-        exportacao.erro = "Tempo limite de exportação excedido.";
+        exportacao.erro = "Export timeout exceeded.";
         await exportacao.save();
         continue;
     }
@@ -64,21 +71,25 @@ pulse.define("checkExportStatus", async (_job) => {
           }
         }
       } catch (error) {
-        console.error(`Erro ao verificar sessão ${sessao.id}:`, error);
+        console.error(`Error checking session ${sessao.id}:`, error);
+        sessao.status = "erro";
+        modified = true;
       }
     }
 
     if (modified) {
       exportacao.markModified("sessoes");
       
-      const allSessions = Object.values(sessoes).filter(s => s && typeof s === 'object');
-      const anyRunning = allSessions.some((s: any) => s.status === "em_andamento");
-      const anyError = allSessions.some((s: any) => s.status === "erro");
+      const allSessions = Object.values(sessoes).filter(
+        (s): s is Sessao => !!s && typeof s === "object" && "status" in s
+      );
+      const anyRunning = allSessions.some((s) => s.status === "em_andamento");
+      const anyError = allSessions.some((s) => s.status === "erro");
 
       if (!anyRunning) {
         if (anyError) {
           exportacao.status = "erro";
-          exportacao.erro = "Erro em uma ou mais sessões de importação.";
+          exportacao.erro = "Error in one or more import sessions.";
         } else {
           exportacao.status = "concluida";
           exportacao.finalizadoEm = new Date();

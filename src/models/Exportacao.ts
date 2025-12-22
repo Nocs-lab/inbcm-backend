@@ -47,16 +47,25 @@ const ExportacaoSchema = new Schema<Exportacao>({
   sessoes: {
     type: {
       museologico: {
-        id: { type: String },
-        status: { type: String, enum: ["em_andamento", "concluida", "erro"], default: "em_andamento" }
+        type: {
+          id: { type: String },
+          status: { type: String, enum: ["em_andamento", "concluida", "erro"], default: "em_andamento" }
+        },
+        required: false
       },
       bibliografico: {
-        id: { type: String },
-        status: { type: String, enum: ["em_andamento", "concluida", "erro"], default: "em_andamento" }
+        type: {
+          id: { type: String },
+          status: { type: String, enum: ["em_andamento", "concluida", "erro"], default: "em_andamento" }
+        },
+        required: false
       },
       arquivistico: {
-        id: { type: String },
-        status: { type: String, enum: ["em_andamento", "concluida", "erro"], default: "em_andamento" }
+        type: {
+          id: { type: String },
+          status: { type: String, enum: ["em_andamento", "concluida", "erro"], default: "em_andamento" }
+        },
+        required: false
       }
     }
   },
