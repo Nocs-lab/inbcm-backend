@@ -34,6 +34,11 @@ routes.get(
   exportadorController.obterExportacao
 )
 
+routes.get(
+  "/exportacao/:id/download",
+  exportadorController.baixarArquivos
+)
+
 routes.post(
   "/exportacao",
   userPermissionMiddleware("getEmailConfigs"),

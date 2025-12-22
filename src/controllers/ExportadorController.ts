@@ -10,6 +10,7 @@ export default class ExportadorController {
     this.listarExportacoes = this.listarExportacoes.bind(this)
     this.obterExportacao = this.obterExportacao.bind(this)
     this.criarExportacao = this.criarExportacao.bind(this)
+    this.baixarArquivos = this.baixarArquivos.bind(this)
   }
 
   async criarColecoes(
@@ -79,6 +80,24 @@ export default class ExportadorController {
       return response.status(201).json(exportacao)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao criar exportação.'
+      return response.status(500).json({ error: errorMessage })
+    }
+  }
+
+  async baixarArquivos(
+    request: Request,
+    response: Response
+  ): Promise<Response | void> {
+    try {
+      const { id } = request.params
+      const stream = await this.exportadorService.baixarArquivos(id!)
+      
+      response.setHeader('Content-Type', 'application/zip')
+      response.setHeader('Content-Disposition', `attachment; filename=exportacao-${id}.zip`)
+      
+      stream.pipe(response)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao baixar arquivos.'
       return response.status(500).json({ error: errorMessage })
     }
   }

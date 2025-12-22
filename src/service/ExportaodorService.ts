@@ -3,6 +3,7 @@ import ConfiguracaoPortalPublicoModel from "../models/Configuracao/portalPublico
 import ExportacaoModel from "../models/Exportacao"
 import { ObjectId } from "mongoose"
 import BemCultural from "../models/BemCultural"
+import archiver from "archiver"
 
 type TainacanField = {
   name: string
@@ -633,6 +634,8 @@ export default class ExportadorService {
     ).toString("base64")
 
     const mappings: Record<string, Record<string, string>> = exportacao.mapeamento || {}
+    
+    const sessoes: any = {}
 
     for (const { _id: tipo, items } of itens) {
       const tipoLower: string = (tipo || "").toLowerCase()
@@ -652,6 +655,8 @@ export default class ExportadorService {
       )
 
       const { id: sessionId } = await res.json()
+
+      sessoes[tipoLower] = { id: String(sessionId), status: "em_andamento" }
 
       await fetch(
         `${config.url}/wp-json/tainacan/v2/importers/session/${sessionId}`,
@@ -727,6 +732,7 @@ export default class ExportadorService {
       )
     }
 
+    exportacao.sessoes = sessoes
     exportacao.status = "em_andamento"
     exportacao.iniciadoEm = new Date()
     exportacao.numeroExportados = itens.length
@@ -773,5 +779,64 @@ export default class ExportadorService {
     await exportacao.save()
 
     return exportacao
+  }
+
+  async baixarArquivos(id: string): Promise<NodeJS.ReadableStream> {
+    const exportacao = await ExportacaoModel.findById(id)
+
+    if (!exportacao) {
+      throw new Error("Exportação não encontrada")
+    }
+
+    const declaracoes = await Declaracoes.find({
+      anoDeclaracao: exportacao.ano
+    }).select("_id")
+
+    const declaracaoIds = declaracoes.map((d) => d._id)
+
+    const maxVersaoResult = await BemCultural.aggregate([
+      {
+        $match: {
+          declaracao_ref: { $in: declaracaoIds }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          maxVersao: { $max: "$versao" }
+        }
+      }
+    ])
+
+    const maxVersao = maxVersaoResult[0]?.maxVersao
+
+    const itens = await BemCultural.aggregate([
+      {
+        $match: {
+          versao: maxVersao,
+          declaracao_ref: { $in: declaracaoIds }
+        }
+      },
+      {
+        $group: {
+          _id: "$__t",
+          items: { $push: "$$ROOT" }
+        }
+      }
+    ])
+
+    const archive = archiver("zip", {
+      zlib: { level: 9 }
+    })
+
+    for (const { _id: tipo, items } of itens) {
+      const tipoLower: string = (tipo || "").toLowerCase()
+      const csvContent = this.gerarCsv(items, tipoLower)
+      archive.append(csvContent, { name: `${tipoLower}.csv` })
+    }
+
+    archive.finalize()
+
+    return archive
   }
 }
