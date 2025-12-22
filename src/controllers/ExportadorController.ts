@@ -113,8 +113,9 @@ export default class ExportadorController {
 
       response.on('error', (err: unknown) => {
         const error = err instanceof Error ? err : new Error('Error in response during download.')
-        if (typeof (stream as any).destroy === 'function') {
-          ;(stream as any).destroy(error)
+        const streamWithDestroy = stream as NodeJS.ReadableStream & { destroy?: (error: Error) => void };
+        if (streamWithDestroy.destroy) {
+          streamWithDestroy.destroy(error)
         }
       })
       

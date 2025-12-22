@@ -6,7 +6,7 @@ const EXPORT_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 type Sessao = {
   id?: string | number;
-  status: string;
+  status: "em_andamento" | "concluida" | "erro";
 };
 
 pulse.define("checkExportStatus", async (_job) => {

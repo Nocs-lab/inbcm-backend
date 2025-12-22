@@ -233,7 +233,7 @@ const arquivisticoFields: FieldsDefinition = [
 ]
 
 export default class ExportadorService {
-  private async obterItensPorTipo(declaracaoIds: any[]): Promise<any[]> {
+  private async obterItensPorTipo(declaracaoIds: Array<any>): Promise<Array<{ _id: string; items: any[] }>> {
     const maxVersaoResult = await BemCultural.aggregate([
       {
         $match: {
