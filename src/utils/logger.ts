@@ -1,4 +1,8 @@
 import winston from "winston"
+import { MongoDB } from "winston-mongodb"
+import dotenv from "dotenv"
+
+dotenv.config()
 
 const logger = winston.createLogger({
   level: "http",
@@ -12,7 +16,16 @@ const logger = winston.createLogger({
       (info) => `${info.timestamp} ${info.level}: ${info.message}`
     )
   ),
-  transports: [new winston.transports.Console()],
+  transports: [
+    new winston.transports.Console(),
+    new MongoDB({
+      db: process.env.DB_URL as string,
+      collection: "log_erros",
+      level: "error",
+      options: { useUnifiedTopology: true },
+      metaKey: "meta"
+    }) as unknown as winston.transport
+  ],
   exitOnError: false
 })
 
