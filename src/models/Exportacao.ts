@@ -16,6 +16,11 @@ export interface Exportacao extends Document {
     bibliografico: string;
     arquivistico: string;
   };
+  sessoes?: {
+    museologico?: { id: string; status: "em_andamento" | "concluida" | "erro" };
+    bibliografico?: { id: string; status: "em_andamento" | "concluida" | "erro" };
+    arquivistico?: { id: string; status: "em_andamento" | "concluida" | "erro" };
+  };
   mapeamento?: {
     museologico: Record<string, string>;
     bibliografico: Record<string, string>;
@@ -39,6 +44,22 @@ const ExportacaoSchema = new Schema<Exportacao>({
     }
   },
   idSessao: { type: String },
+  sessoes: {
+    type: {
+      museologico: {
+        id: { type: String },
+        status: { type: String, enum: ["em_andamento", "concluida", "erro"], default: "em_andamento" }
+      },
+      bibliografico: {
+        id: { type: String },
+        status: { type: String, enum: ["em_andamento", "concluida", "erro"], default: "em_andamento" }
+      },
+      arquivistico: {
+        id: { type: String },
+        status: { type: String, enum: ["em_andamento", "concluida", "erro"], default: "em_andamento" }
+      }
+    }
+  },
   mapeamento: {
     type: {
       museologico: {
