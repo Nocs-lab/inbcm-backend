@@ -816,7 +816,7 @@ export default class ExportadorService {
       archive.append(csvContent, { name: `${tipoLower}.csv` })
     }
 
-    await archive.finalize()
+    archive.finalize()
 
     return archive
   }
