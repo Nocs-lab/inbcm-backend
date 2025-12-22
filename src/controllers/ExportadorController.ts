@@ -90,14 +90,37 @@ export default class ExportadorController {
   ): Promise<Response | void> {
     try {
       const { id } = request.params
-      const stream = await this.exportadorService.baixarArquivos(id!)
+      
+      if (!id) {
+        return response.status(400).json({ error: 'Export ID is required.' })
+      }
+      
+      const stream = await this.exportadorService.baixarArquivos(id)
       
       response.setHeader('Content-Type', 'application/zip')
       response.setHeader('Content-Disposition', `attachment; filename=exportacao-${id}.zip`)
+
+      stream.on('error', (err: unknown) => {
+        const error = err instanceof Error ? err : new Error('Error in download stream.')
+        if (!response.headersSent) {
+          response
+            .status(500)
+            .json({ error: error.message })
+        } else {
+          response.destroy(err as Error)
+        }
+      })
+
+      response.on('error', (err: unknown) => {
+        const error = err instanceof Error ? err : new Error('Error in response during download.')
+        if ('destroy' in stream && typeof stream.destroy === 'function') {
+          stream.destroy(error)
+        }
+      })
       
       stream.pipe(response)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao baixar arquivos.'
+      const errorMessage = error instanceof Error ? error.message : 'Unexpected error while downloading files.'
       return response.status(500).json({ error: errorMessage })
     }
   }

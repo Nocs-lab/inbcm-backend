@@ -233,6 +233,41 @@ const arquivisticoFields: FieldsDefinition = [
 ]
 
 export default class ExportadorService {
+  private async obterItensPorTipo(declaracaoIds: Array<any>): Promise<Array<{ _id: string; items: any[] }>> {
+    const maxVersaoResult = await BemCultural.aggregate([
+      {
+        $match: {
+          declaracao_ref: { $in: declaracaoIds }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          maxVersao: { $max: "$versao" }
+        }
+      }
+    ])
+  
+    const maxVersao = maxVersaoResult[0]?.maxVersao
+
+    const itens = await BemCultural.aggregate([
+      {
+        $match: {
+          versao: maxVersao,
+          declaracao_ref: { $in: declaracaoIds }
+        }
+      },
+      {
+        $group: {
+          _id: "$__t",
+          items: { $push: "$$ROOT" }
+        }
+      }
+    ])
+
+    return itens
+  }
+
   async criarColecoes(exportacaoId: string): Promise<void> {
     const config = await ConfiguracaoPortalPublicoModel.findOne({
       key: "portalPublico"
@@ -590,36 +625,7 @@ export default class ExportadorService {
   
     const declaracaoIds = declaracoes.map((d) => d._id)
 
-    const maxVersaoResult = await BemCultural.aggregate([
-      {
-        $match: {
-          declaracao_ref: { $in: declaracaoIds }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          maxVersao: { $max: "$versao" }
-        }
-      }
-    ])
-  
-    const maxVersao = maxVersaoResult[0]?.maxVersao
-
-    const itens = await BemCultural.aggregate([
-      {
-        $match: {
-          versao: maxVersao,
-          declaracao_ref: { $in: declaracaoIds }
-        }
-      },
-      {
-        $group: {
-          _id: "$__t",
-          items: { $push: "$$ROOT" }
-        }
-      }
-    ])
+    const itens = await this.obterItensPorTipo(declaracaoIds)
 
     const config = await ConfiguracaoPortalPublicoModel.findOne({
       key: "portalPublico"
@@ -635,7 +641,7 @@ export default class ExportadorService {
 
     const mappings: Record<string, Record<string, string>> = exportacao.mapeamento || {}
     
-    const sessoes: any = {}
+    const sessoes: Record<string, { id: string; status: "em_andamento" | "concluida" | "erro" }> = {}
 
     for (const { _id: tipo, items } of itens) {
       const tipoLower: string = (tipo || "").toLowerCase()
@@ -785,7 +791,11 @@ export default class ExportadorService {
     const exportacao = await ExportacaoModel.findById(id)
 
     if (!exportacao) {
-      throw new Error("Exportação não encontrada")
+      throw new Error("Export not found")
+    }
+
+    if (exportacao.status !== "concluida") {
+      throw new Error("Export has not been completed yet")
     }
 
     const declaracoes = await Declaracoes.find({
@@ -794,36 +804,7 @@ export default class ExportadorService {
 
     const declaracaoIds = declaracoes.map((d) => d._id)
 
-    const maxVersaoResult = await BemCultural.aggregate([
-      {
-        $match: {
-          declaracao_ref: { $in: declaracaoIds }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          maxVersao: { $max: "$versao" }
-        }
-      }
-    ])
-
-    const maxVersao = maxVersaoResult[0]?.maxVersao
-
-    const itens = await BemCultural.aggregate([
-      {
-        $match: {
-          versao: maxVersao,
-          declaracao_ref: { $in: declaracaoIds }
-        }
-      },
-      {
-        $group: {
-          _id: "$__t",
-          items: { $push: "$$ROOT" }
-        }
-      }
-    ])
+    const itens = await this.obterItensPorTipo(declaracaoIds)
 
     const archive = archiver("zip", {
       zlib: { level: 9 }
