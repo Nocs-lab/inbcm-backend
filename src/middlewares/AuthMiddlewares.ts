@@ -9,6 +9,56 @@ import { IUsuario } from "../models/Usuario"
 import HTTPError from "../utils/error"
 import logger from "../utils/logger"
 
+// Middleware de autenticação simples
+export const ensureAuthenticated: Handler = async (req, res, next) => {
+  try {
+    // Lógica para ambiente de desenvolvimento (basic auth)
+    if (config.NODE_ENV !== "PRODUCTION") {
+      const authHeader = req.headers["authorization"]
+      if (authHeader) {
+        const [email, password] = Buffer.from(
+          authHeader.split(" ")[1] ?? " : ",
+          "base64"
+        )
+          .toString()
+          .split(":")
+
+        const user = await Usuario.findOne({ email })
+        if (user) {
+          if (await verify(user.senha, password)) {
+            req.user = {
+              id: user.id,
+              admin: user.admin
+            } as unknown as IUsuario
+            return next()
+          }
+        }
+      }
+    }
+
+    const { token } = req.signedCookies
+
+    if (!token) {
+      return res
+        .status(401)
+        .json({ message: "Token não fornecido. Acesso negado." })
+    }
+
+    const payload = jwt.verify(token, config.JWT_SECRET) as jwt.JwtPayload
+
+    req.user = {
+      id: payload.sub
+    } as unknown as IUsuario
+
+    next()
+  } catch (error) {
+    logger.error("Erro no middleware de autenticação:", error)
+    return res
+      .status(401)
+      .json({ message: "Falha na autenticação." })
+  }
+}
+
 // Middleware de verificação de permissões do usuário
 export const userPermissionMiddleware: (permission: string) => Handler =
   (permission) => async (req, res, next) => {
