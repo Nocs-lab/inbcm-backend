@@ -11,10 +11,14 @@ import anoDeclaracaoRoutes from "./anodeclaracao"
 import configRoutes from "./config"
 import importRoutes from "./import"
 import exportadorRoutes from "./exportador"
+import { ensureAuthenticated } from "../../middlewares/AuthMiddlewares"
 
 const routes = express.Router()
 
 routes.use("/auth", authRoutes)
+
+routes.use(ensureAuthenticated)
+
 routes.use("/declaracoes", declaracoesRoutes)
 routes.use("/permissions", permissionsRoutes)
 routes.use("/museus", museusRoutes)
