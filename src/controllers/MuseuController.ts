@@ -280,43 +280,32 @@ class MuseuController {
    */
   static async desvincularUsuarioDoMuseu(req: Request, res: Response) {
     try {
-      const { museuId } = req.body
+      const { museuId, usuarioId } = req.body
 
-      if (!museuId) {
+      if (!museuId || !usuarioId) {
         return res.status(400).json({
-          mensagem: "O ID do museu é obrigatório."
+          mensagem: "O ID do museu e o ID do usuário são obrigatórios."
         })
       }
 
       const museu = await Museu.findById(museuId)
-
       if (!museu) {
         return res.status(404).json({ mensagem: "Museu não encontrado." })
       }
 
-      if (!museu.usuario) {
-        return res.status(400).json({
-          mensagem: "Este museu não possui um usuário vinculado."
-        })
-      }
-
-      const usuarioId = museu.usuario
-
-      museu.usuario = null
-      await museu.save()
-
       const usuario = await Usuario.findById(usuarioId)
-
-      if (usuario) {
-        usuario.museus = usuario.museus.filter(
-          (id) => id.toString() !== museuId
-        )
-        await usuario.save()
+      if (!usuario) {
+        return res.status(404).json({ mensagem: "Usuário não encontrado." })
       }
+
+      await Museu.findByIdAndUpdate(museuId, { $pull: { usuario: usuarioId } })
+      await Usuario.findByIdAndUpdate(usuarioId, { $pull: { museus: museuId } })
+
+      const museuAtualizado = await Museu.findById(museuId)
 
       return res.status(200).json({
         mensagem: "Usuário desvinculado do museu com sucesso.",
-        museu
+        museu: museuAtualizado
       })
     } catch (erro) {
       logger.error("Erro ao desvincular usuário do museu:", erro)
@@ -396,20 +385,22 @@ class MuseuController {
           continue
         }
 
-        museu.usuario = usuarioId
-        await museu.save()
-
-        if (!usuario.museus.includes(id)) {
-          usuario.museus.push(id)
-        }
+        await Museu.findByIdAndUpdate(
+          id,
+          { $addToSet: { usuario: usuarioId } },
+          { new: true }
+        )
+        await Usuario.findByIdAndUpdate(
+          usuarioId,
+          { $addToSet: { museus: id } },
+          { new: true }
+        )
 
         resultados.push({
           museuId: id,
           mensagem: "Usuário vinculado ao museu com sucesso."
         })
       }
-
-      await usuario.save()
 
       return res.status(200).json({
         mensagem: "Processo concluído.",

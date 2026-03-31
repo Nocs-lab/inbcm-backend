@@ -1,6 +1,13 @@
 import express from "express"
 import UsuarioController from "../../controllers/UsuarioController"
 import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
+import { validate } from "../../middlewares/validate.middleware"
+import {
+  registerUserSchema,
+  atualizarUsuarioSchema,
+  recuperarSenhaSchema,
+  redefinirSenhaSchema
+} from "../../validators/user"
 
 const usuarioController = new UsuarioController()
 
@@ -9,6 +16,7 @@ const routes = express.Router()
 routes.post(
   "/",
   userPermissionMiddleware("registerUsuario"),
+  validate(registerUserSchema),
   usuarioController.registerUsuario
 )
 routes.get(
@@ -34,6 +42,7 @@ routes.get(
 routes.put(
   "/:id",
   userPermissionMiddleware("atualizarUsuario"),
+  validate(atualizarUsuarioSchema),
   usuarioController.atualizarUsuario
 )
 routes.put(
@@ -48,6 +57,7 @@ routes.delete(
 )
 routes.post(
   "/recuperar-senha",
+  validate(recuperarSenhaSchema),
   usuarioController.recuperarSenhaAdmin
 )
 routes.get(
@@ -56,6 +66,7 @@ routes.get(
 )
 routes.post(
   "/redefinir-senha",
+  validate(redefinirSenhaSchema),
   usuarioController.redefinirSenha
 )
 

@@ -3,5 +3,8 @@ export enum Status {
   EmAnalise = "Em análise",
   NaoConformidade = "Não conformidade",
   Recebida = "Recebida",
-  Excluida = "Excluída"
+  Excluida = "Excluída",
+  Pendente = "Pendente",
+  Processando = "Processando",
+  Falha = "Falha"
 }

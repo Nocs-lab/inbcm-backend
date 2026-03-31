@@ -1,6 +1,11 @@
 import express from "express"
 import DeclaracaoController from "../../controllers/DeclaracaoController"
 import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
+import { validate } from "../../middlewares/validate.middleware"
+import {
+  enviarParaAnaliseSchema,
+  atualizarStatusBensSchema
+} from "../../validators/declaracao"
 
 const routes = express.Router()
 const declaracaoController = new DeclaracaoController()
@@ -66,6 +71,7 @@ routes.get(
 routes.put(
   "/:id/analises",
   userPermissionMiddleware("enviarParaAnalise"),
+  validate(enviarParaAnaliseSchema),
   declaracaoController.enviarParaAnalise.bind(declaracaoController)
 )
 
@@ -132,6 +138,7 @@ routes.post(
 routes.put(
   "/atualizarStatus/:id",
   userPermissionMiddleware("atualizarStatusBensDeclaracao"),
+  validate(atualizarStatusBensSchema),
   declaracaoController.atualizarStatusBensDeclaracao
 )
 

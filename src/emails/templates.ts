@@ -1972,4 +1972,23 @@ templates["solicitar-acesso"] = template({
 
 Handlebars.partials = Handlebars.templates
 
+// Novos templates compilados dinamicamente para o fluxo assíncrono
+import fs from "fs"
+import path from "path"
+
+const emailsDir = path.join(__dirname)
+
+function loadTemplate(name: string): HandlebarsTemplateDelegate {
+  const filePath = path.join(emailsDir, `${name}.hbs`)
+  const source = fs.readFileSync(filePath, "utf8")
+  return Handlebars.compile(source)
+}
+
+templates["declaracao-processada"] = loadTemplate("declaracao-processada")
+templates["declaracao-falha-processamento"] = loadTemplate("declaracao-falha-processamento")
+templates["retificacao-recebida"] = loadTemplate("retificacao-recebida")
+templates["retificacao-processada"] = loadTemplate("retificacao-processada")
+
+Handlebars.partials = Handlebars.templates
+
 export default templates

@@ -23,7 +23,9 @@ const parsed = {
   METABASE_SITE_URL: process.env.METABASE_SITE_URL ?? "",
   METABASE_SECRET_KEY: process.env.METABASE_SECRET_KEY ?? "",
   METABASE_DASHBOARD_ID: process.env.METABASE_DASHBOARD_ID ?? "",
-  PUBLIC_SITE_URL: process.env.PUBLIC_SITE_URL ?? "https://localhost:5173"
+  PUBLIC_SITE_URL: process.env.PUBLIC_SITE_URL ?? "https://localhost:5173",
+  CRON_UPLOAD_INTERVAL: process.env.CRON_UPLOAD_INTERVAL ?? "*/2 * * * *",
+  CRON_MODE: process.env.CRON_MODE ?? "inline"
 }
 logger.info("Carregando configurações...")
 
@@ -52,7 +54,9 @@ const schema = z.object({
     .string()
     .min(1)
     .transform((val) => parseInt(val)),
-  PUBLIC_SITE_URL: z.string().min(1).url()
+  PUBLIC_SITE_URL: z.string().min(1).url(),
+  CRON_UPLOAD_INTERVAL: z.string().min(1),
+  CRON_MODE: z.enum(["inline", "worker"])
 })
 
 const config = schema.parse(parsedEnv)

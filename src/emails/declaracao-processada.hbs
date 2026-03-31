@@ -1,0 +1,42 @@
+{{#> layout title="[INBCM] Declaração processada com sucesso" }}
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  Olá prezado(a),</p>
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  O processamento da sua declaração foi <strong>concluído com sucesso</strong>.</p>
+
+<table style="font-family: Helvetica, sans-serif; font-size: 16px; border-collapse: collapse; width: 100%;">
+  <tr>
+    <td style="padding: 8px; border: 1px solid #ddd;">Museu:</td>
+    <td style="padding: 8px; border: 1px solid #ddd;">{{museu}}</td>
+  </tr>
+  <tr>
+    <td style="padding: 8px; border: 1px solid #ddd;">Ano de referência:</td>
+    <td style="padding: 8px; border: 1px solid #ddd;">{{anoReferencia}}</td>
+  </tr>
+  <tr>
+    <td style="padding: 8px; border: 1px solid #ddd;">Total de itens declarados:</td>
+    <td style="padding: 8px; border: 1px solid #ddd;">{{totalItens}}</td>
+  </tr>
+  <tr>
+    <td style="padding: 8px; border: 1px solid #ddd;">Código da declaração:</td>
+    <td style="padding: 8px; border: 1px solid #ddd; word-wrap: break-word; max-width: 200px;">
+      {{hash}}
+    </td>
+  </tr>
+</table>
+
+<br><p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  Para acompanhar o status da sua declaração, acesse o nosso portal:</p>
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  {{url}}</p>
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  Atenciosamente,</p>
+
+<p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">
+  Equipe INBCM</p>
+
+{{/layout}}

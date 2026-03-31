@@ -4,15 +4,20 @@ import uploadMiddleware from "../../middlewares/UploadMiddleware"
 import { userPermissionMiddleware } from "../../middlewares/AuthMiddlewares"
 import retificacaoPeriodoMiddleware from "../../middlewares/RetificacaoPeriodoMiddleware"
 import uploadAnalise from "../../middlewares/uploadAnalise"
+import { validate } from "../../middlewares/validate.middleware"
+import {
+  uploadDeclaracaoSchema,
+  retificarDeclaracaoSchema
+} from "../../validators/declaracao"
 
 const routes = express.Router()
 const declaracaoController = new DeclaracaoController()
 
-
-routes.post("/pendencias/:id",
+routes.post(
+  "/pendencias/:id",
   userPermissionMiddleware("listarPendencias"),
-  declaracaoController.listarPendencias)
-
+  declaracaoController.listarPendencias
+)
 
 routes.get(
   "/download/analise/:declaracaoId/:tipoArquivo",
@@ -138,6 +143,7 @@ routes.get(
 routes.post(
   "/uploads/:museu/:anoDeclaracao",
   uploadMiddleware,
+  validate(uploadDeclaracaoSchema),
   userPermissionMiddleware("uploadDeclaracao"),
   declaracaoController.uploadDeclaracao
 )
@@ -217,6 +223,7 @@ routes.post(
 routes.put(
   "/retificar/:museu/:anoDeclaracao/:idDeclaracao",
   uploadMiddleware,
+  validate(retificarDeclaracaoSchema),
   userPermissionMiddleware("retificarDeclaracao"),
   retificacaoPeriodoMiddleware,
   declaracaoController.retificarDeclaracao.bind(declaracaoController)
@@ -464,6 +471,5 @@ routes.delete(
   userPermissionMiddleware("excluirDeclaracao"),
   declaracaoController.excluirDeclaracao
 )
-
 
 export default routes

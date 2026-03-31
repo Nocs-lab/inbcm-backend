@@ -4,6 +4,7 @@ import conn from "./db/conn"
 import logger from "./utils/logger"
 import pulse from "./lib/pulse"
 import "./jobs/checkExportStatus"
+import { iniciarCronProcessamento } from "./jobs/processamento.cron"
 
 conn()
 
@@ -17,5 +18,9 @@ app.listen(PORT, async () => {
     await pulse.every("1 minute", "checkExportStatus")
   } catch (error) {
     logger.error("Failed to initialize Pulse or schedule jobs", error)
+  }
+
+  if (process.env.CRON_MODE === "inline") {
+    iniciarCronProcessamento()
   }
 })

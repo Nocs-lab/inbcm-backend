@@ -35,6 +35,7 @@ import {
 import HTTPError from "../utils/error"
 
 import { AnoDeclaracao, AnoDeclaracaoModel } from "../models/AnoDeclaracao"
+import minioClient from "../db/minioClient"
 import { sendEmail } from "../emails"
 import config from "../config"
 import { PendenciaDetalhadaModel } from "../models/PendenciasDetalhadas"
@@ -1688,6 +1689,237 @@ class DeclaracaoService {
       logger.error("Erro ao salvar time-line na declaração:", error)
       throw new Error("Falha ao salvar a time-line de exclusão.")
     }
+  }
+
+  async criarDeclaracaoPendente(
+    museu_id: string,
+    anoDeclaracao: string,
+    user_id: string,
+    arquivos: { [fieldname: string]: Express.Multer.File[] }
+  ) {
+    if (!museu_id || !user_id) {
+      throw new HTTPError("Dados obrigatórios ausentes", 400)
+    }
+
+    const user = await Usuario.findById(user_id).populate("profile")
+    if (!user) {
+      throw new HTTPError("Usuário não encontrado", 404)
+    }
+
+    const userProfile = (user.profile as any).name
+    const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
+    if (!museu) {
+      throw new HTTPError("Museu inválido ou usuário não autorizado", 404)
+    }
+
+    const declaracaoExistente = await Declaracoes.findOne({
+      museu_id,
+      anoDeclaracao,
+      status: { $ne: Status.Excluida },
+      ultimaDeclaracao: true
+    })
+    if (declaracaoExistente) {
+      throw new HTTPError(
+        "Já existe declaração para o museu e ano referência.",
+        403
+      )
+    }
+
+    const anoDoc = await AnoDeclaracao.findById(anoDeclaracao)
+    if (!anoDoc) {
+      throw new HTTPError("Ano de declaração inválido.", 404)
+    }
+
+    const responsavelEnvio = await Usuario.findById(user_id).select("nome")
+    if (!responsavelEnvio) {
+      throw new HTTPError("Responsável pelo envio não encontrado.", 404)
+    }
+
+    const salt = generateSalt()
+    const novaDeclaracaoData = {
+      anoDeclaracao,
+      museu_id: museu._id,
+      museu_nome: museu.nome,
+      responsavelEnvio: user_id,
+      responsavelEnvioNome: responsavelEnvio.nome,
+      retificacao: false,
+      versao: 1,
+      status: Status.Pendente,
+      hashDeclaracao: createHash(new mongoose.Types.ObjectId(), salt),
+      dataCriacao: DataUtils.getCurrentData(),
+      ultimaDeclaracao: true
+    }
+
+    const novaDeclaracao = new Declaracoes(novaDeclaracaoData)
+    novaDeclaracao.timeLine.push({
+      nomeEvento: Eventos.EnvioDeclaracao,
+      dataEvento: DataUtils.getCurrentData(),
+      autorEvento: responsavelEnvio.nome,
+      profileName: userProfile,
+      enumName: "EnvioDeclaracao"
+    })
+
+    const bucketName = process.env.MINIO_BUCKET || "inbcm"
+    const tiposArquivo = ["arquivistico", "bibliografico", "museologico"] as const
+
+    for (const tipo of tiposArquivo) {
+      const files = arquivos[tipo]
+      if (files && files.length > 0) {
+        const file = files[0]
+        const { generateFilePath } = await import("../utils/minioUtil")
+        const { Readable } = await import("stream")
+        const objectPath = generateFilePath(file.originalname, museu_id, anoDoc.ano, tipo)
+        await minioClient.putObject(
+          bucketName,
+          objectPath,
+          Readable.from(file.buffer),
+          file.buffer.length,
+          { "Content-Type": file.mimetype }
+        )
+        novaDeclaracao[tipo] = {
+          nome: objectPath,
+          status: Status.Pendente,
+          quantidadeItens: 0,
+          versao: 1,
+          comentarios: [],
+          naoEcontrados: [],
+          usuario: user_id as unknown as mongoose.Types.ObjectId,
+          usuarioNome: responsavelEnvio.nome
+        } as any
+      }
+    }
+
+    await novaDeclaracao.save()
+
+    return novaDeclaracao
+  }
+
+  async retificarDeclaracaoPendente(
+    museu_id: string,
+    anoDeclaracao: string,
+    user_id: string,
+    arquivos: { [fieldname: string]: Express.Multer.File[] },
+    idDeclaracao: string
+  ) {
+    if (!museu_id || !user_id || !idDeclaracao) {
+      throw new HTTPError("Dados obrigatórios ausentes", 400)
+    }
+
+    const user = await Usuario.findById(user_id).populate("profile")
+    if (!user) {
+      throw new HTTPError("Usuário não encontrado", 404)
+    }
+
+    const userProfile = (user.profile as any).name
+    const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
+    if (!museu) {
+      throw new HTTPError("Museu inválido ou usuário não autorizado", 404)
+    }
+
+    const declaracaoExistente = await Declaracoes.findOne({
+      _id: idDeclaracao,
+      anoDeclaracao,
+      museu_id,
+      status: { $ne: Status.Excluida }
+    }).exec()
+
+    if (!declaracaoExistente) {
+      throw new HTTPError("Não foi encontrada declaração para retificar.", 404)
+    }
+
+    if (declaracaoExistente.ultimaDeclaracao === false) {
+      throw new HTTPError(
+        "Apenas a versão mais recente da declaração pode ser retificada.",
+        400
+      )
+    }
+
+    const anoDoc = await AnoDeclaracao.findById(anoDeclaracao)
+    if (!anoDoc) {
+      throw new HTTPError("Ano de declaração inválido.", 404)
+    }
+
+    const responsavelEnvio = await Usuario.findById(user_id).select("nome")
+    if (!responsavelEnvio) {
+      throw new HTTPError("Responsável pelo envio não encontrado.", 404)
+    }
+
+    const novaVersao = (declaracaoExistente.versao || 0) + 1
+    const salt = generateSalt()
+
+    const novaDeclaracao = new Declaracoes({
+      museu_id: declaracaoExistente.museu_id,
+      museu_nome: declaracaoExistente.museu_nome,
+      anoDeclaracao: declaracaoExistente.anoDeclaracao,
+      responsavelEnvio: user_id,
+      responsavelEnvioNome: responsavelEnvio.nome,
+      retificacao: true,
+      retificacaoRef: declaracaoExistente._id,
+      versao: novaVersao,
+      status: Status.Pendente,
+      hashDeclaracao: createHash(
+        declaracaoExistente._id as mongoose.Types.ObjectId,
+        salt
+      ),
+      dataCriacao: DataUtils.getCurrentData(),
+      ultimaDeclaracao: true
+    })
+
+    const timeLineAnterior = declaracaoExistente.timeLine || []
+    novaDeclaracao.timeLine = [
+      ...timeLineAnterior,
+      {
+        nomeEvento: Eventos.RetificacaoDeclaracao,
+        dataEvento: DataUtils.getCurrentData(),
+        autorEvento: responsavelEnvio.nome,
+        profileName: userProfile,
+        enumName: "RetificacaoDeclaracao"
+      }
+    ].sort(
+      (a, b) =>
+        new Date(a.dataEvento).getTime() - new Date(b.dataEvento).getTime()
+    )
+
+    const bucketName = process.env.MINIO_BUCKET || "inbcm"
+    const tiposArquivo = ["arquivistico", "bibliografico", "museologico"] as const
+
+    for (const tipo of tiposArquivo) {
+      const files = arquivos[tipo]
+      if (files && files.length > 0) {
+        const file = files[0]
+        const { generateFilePath } = await import("../utils/minioUtil")
+        const { Readable } = await import("stream")
+        const objectPath = generateFilePath(file.originalname, museu_id, anoDoc.ano, tipo)
+        await minioClient.putObject(
+          bucketName,
+          objectPath,
+          Readable.from(file.buffer),
+          file.buffer.length,
+          { "Content-Type": file.mimetype }
+        )
+        novaDeclaracao[tipo] = {
+          nome: objectPath,
+          status: Status.Pendente,
+          quantidadeItens: 0,
+          versao: novaVersao,
+          comentarios: [],
+          naoEcontrados: [],
+          usuario: user_id as unknown as mongoose.Types.ObjectId,
+          usuarioNome: responsavelEnvio.nome
+        } as any
+      } else if (declaracaoExistente[tipo]) {
+        novaDeclaracao[tipo] = { ...declaracaoExistente[tipo] } as any
+      }
+    }
+
+    await novaDeclaracao.save()
+
+    await Declaracoes.updateMany(
+      { museu_id, anoDeclaracao, _id: { $ne: novaDeclaracao._id } },
+      { ultimaDeclaracao: false }
+    )
+
+    return novaDeclaracao
   }
 
   async criarDeclaracao(

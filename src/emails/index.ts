@@ -68,6 +68,34 @@ type Templates = {
     diasFim: number
     anoReferencia: number
   }
+  "declaracao-processada": {
+    museu: string
+    anoReferencia: string
+    totalItens: number
+    hash: string
+    url: string
+  }
+  "declaracao-falha-processamento": {
+    museu: string
+    anoReferencia: string
+    hash: string
+    url: string
+  }
+  "retificacao-recebida": {
+    museu: string
+    anoReferencia: string
+    dataAtual: string
+    hash: string
+    hashOriginal: string
+    url: string
+  }
+  "retificacao-processada": {
+    museu: string
+    anoReferencia: string
+    totalItens: number
+    hash: string
+    url: string
+  }
 }
 
 const pulse = new Pulse({
@@ -103,7 +131,13 @@ const subjects: Record<
   "declaracao-em-analise": () =>
     "[INBCM] Declaração enviada para análise",
   "prazo-declaracao": () => "[INBCM] Prazo para envio de declaração",
-  "prazo-retificacao": () => "[INBCM] Prazo para retificação de declaração"
+  "prazo-retificacao": () => "[INBCM] Prazo para retificação de declaração",
+  "declaracao-processada": () => "[INBCM] Declaração processada com sucesso",
+  "declaracao-falha-processamento": () =>
+    "[INBCM] Problema no processamento da declaração",
+  "retificacao-recebida": () =>
+    "[INBCM] Retificação recebida — aguardando processamento",
+  "retificacao-processada": () => "[INBCM] Retificação processada com sucesso"
 }
 
 async function getSender() {

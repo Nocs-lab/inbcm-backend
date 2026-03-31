@@ -20,6 +20,7 @@ import config from "../config"
 import { DataUtils } from "../utils/dataUtils"
 import { MuseuHelper } from "../utils/museuHelper"
 import { filtroPaginacaoSchema } from "../types/FiltroPaginacao"
+import { ProcessamentoJob } from "../models/ProcessamentoJob"
 
 export class DeclaracaoController {
   private declaracaoService: DeclaracaoService
@@ -147,6 +148,11 @@ export class DeclaracaoController {
   async getDeclaracaoAno(req: Request, res: Response) {
     try {
       const { anoDeclaracao, museu } = req.params
+
+      if (!mongoose.Types.ObjectId.isValid(museu) || !mongoose.Types.ObjectId.isValid(anoDeclaracao)) {
+        return res.status(400).json({ message: "Parâmetros inválidos." })
+      }
+
       const declaracao = await Declaracoes.findOne({
         anoDeclaracao,
         museu_id: museu,
@@ -619,67 +625,42 @@ export class DeclaracaoController {
 
   async uploadDeclaracao(req: Request, res: Response) {
     try {
-      const declaracaoExistente =
-        await this.declaracaoService.verificarDeclaracaoExistente(
-          req.params.museu,
-          req.params.anoDeclaracao
-        )
-      if (declaracaoExistente) {
-        return res.status(406).json({
-          status: false,
-          message:
-            "Já existe declaração para museu e ano referência informados. Para alterar a declaração é preciso retificá-la ou excluí-la e declarar novamente."
-        })
-      }
-
-      const anoDeclaracao = await AnoDeclaracao.findOne({
-        _id: req.params.anoDeclaracao
-      })
-      if (!anoDeclaracao) {
-        return res.status(404).json({
-          status: false,
-          message: "Ano de declaração inválido."
-        })
-      }
-
       const user_id = req.user.id
       const museu_id = req.params.museu
       const files = req.files as { [fieldname: string]: Express.Multer.File[] }
-      const response = await this.declaracaoService.criarDeclaracao(
+
+      const novaDeclaracao = await this.declaracaoService.criarDeclaracaoPendente(
         museu_id,
         req.params.anoDeclaracao,
         user_id,
         files
       )
 
-      // Coletando dados para enviar e-mail de confirmação de envio de declaração
-      const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
-      if (!museu) {
-        return res.status(404).json({
-          success: false,
-          message: "Museu não encontrado ou usuário não autorizado."
-        })
-      }
-      const ano = await AnoDeclaracao.findOne({ _id: req.params.anoDeclaracao })
-      if (!ano) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Ano Referência não encontrado." })
-      }
-      const anoReferencia = ano.ano
-      const url = `${config.PUBLIC_SITE_URL}`
-      const horario = DataUtils.gerarDataHoraExtenso(response.dataCriacao)
+      await ProcessamentoJob.create({
+        declaracaoId: novaDeclaracao._id,
+        tipo: "upload",
+        status: "pending"
+      })
+
+      const museu = await Museu.findById(museu_id)
+      const ano = await AnoDeclaracao.findById(req.params.anoDeclaracao)
+      const anoReferencia = ano ? ano.ano.toString() : "N/A"
+      const dataAtual = DataUtils.gerarDataHoraExtenso(novaDeclaracao.dataCriacao)
       const emails = await MuseuHelper.getEmailsFromMuseuUsers(museu_id)
 
-      await sendEmail("confirmacao-envio-declaracao", emails, {
-        url,
-        horario,
-        response,
-        museu,
+      await sendEmail("declaracao-recebida", emails, {
+        dataAtual,
+        hash: novaDeclaracao.hashDeclaracao,
+        url: config.PUBLIC_SITE_URL,
+        museu: museu?.nome || novaDeclaracao.museu_nome,
         anoReferencia
       })
 
-      return res.status(201).json(response)
+      return res.status(202).json({
+        message: "Declaração recebida. O processamento será realizado em breve.",
+        declaracaoId: novaDeclaracao._id,
+        status: "pending"
+      })
     } catch (error) {
       if (error instanceof HTTPError) {
         logger.error(error)
@@ -697,77 +678,66 @@ export class DeclaracaoController {
   }
 
   async retificarDeclaracao(req: Request, res: Response) {
-    const { idDeclaracao } = req.params
-    const declaracaoExistente = await Declaracoes.findOne({
-      ultimaDeclaracao: true,
-      status: { $ne: Status.Excluida }
-    })
-    if (!declaracaoExistente) {
-      return res.status(404).json({
+    try {
+      const { idDeclaracao } = req.params
+      const user_id = req.user.id
+      const museu_id = req.params.museu
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] }
+
+      const novaDeclaracao = await this.declaracaoService.retificarDeclaracaoPendente(
+        museu_id,
+        req.params.anoDeclaracao,
+        user_id,
+        files,
+        idDeclaracao
+      )
+
+      await ProcessamentoJob.create({
+        declaracaoId: novaDeclaracao._id,
+        tipo: "retificacao",
+        status: "pending"
+      })
+
+      const museu = await Museu.findById(museu_id)
+      const declaracaoOriginal = await Declaracoes.findOne({
+        museu_id,
+        versao: 1,
+        anoDeclaracao: req.params.anoDeclaracao
+      })
+      const hashOriginal = declaracaoOriginal?.hashDeclaracao || ""
+      const ano = await AnoDeclaracao.findById(req.params.anoDeclaracao)
+      const anoReferencia = ano ? ano.ano.toString() : "N/A"
+      const dataAtual = DataUtils.gerarDataHoraExtenso(novaDeclaracao.dataCriacao)
+      const emails = await MuseuHelper.getEmailsFromMuseuUsers(museu_id)
+
+      await sendEmail("retificacao-recebida", emails, {
+        museu: museu?.nome || novaDeclaracao.museu_nome,
+        anoReferencia,
+        dataAtual,
+        hash: novaDeclaracao.hashDeclaracao,
+        hashOriginal,
+        url: config.PUBLIC_SITE_URL
+      })
+
+      return res.status(202).json({
+        message: "Retificação recebida. O processamento será realizado em breve.",
+        declaracaoId: novaDeclaracao._id,
+        status: "pending"
+      })
+    } catch (error) {
+      if (error instanceof HTTPError) {
+        logger.error(error)
+        return res.status(error.status).json({
+          status: false,
+          message: error.message
+        })
+      }
+      logger.error(error)
+      return res.status(500).json({
         status: false,
-        message: "Declaração não encontrada."
+        message: "Erro interno do servidor. Tente novamente mais tarde."
       })
     }
-    const anoDeclaracao = await AnoDeclaracao.findOne({
-      _id: req.params.anoDeclaracao
-    })
-    if (!anoDeclaracao) {
-      return res.status(404).json({
-        status: false,
-        message: "Ano de declaração inválido."
-      })
-    }
-
-    const declaracao_id = idDeclaracao
-    const user_id = req.user.id
-    const museu_id = req.params.museu
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] }
-    const response = await this.declaracaoService.retificarDeclaracao(
-      museu_id,
-      req.params.anoDeclaracao,
-      user_id,
-      files,
-      declaracao_id
-    )
-
-    // Coletando dados para enviar e-mail de confirmação de envio de retificação
-    const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
-    if (!museu) {
-      return res.status(404).json({
-        success: false,
-        message: "Museu não encontrado ou usuário não autorizado."
-      })
-    }
-    const declaracaoOriginal = await Declaracoes.findOne({
-      museu_id: museu_id,
-      versao: 1,
-      anoDeclaracao: req.params.anoDeclaracao
-    })
-    if (!declaracaoOriginal) {
-      return res.status(404).json({ error: "Declaração não encontrada." })
-    }
-    const hashOriginal = declaracaoOriginal.hashDeclaracao
-    const ano = await AnoDeclaracao.findOne({ _id: req.params.anoDeclaracao })
-    if (!ano) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Ano Referência não encontrado." })
-    }
-    const anoReferencia = ano.ano
-    const url = `${config.PUBLIC_SITE_URL}`
-    const horario = DataUtils.gerarDataHoraExtenso(response.dataCriacao)
-    const emails = await MuseuHelper.getEmailsFromMuseuUsers(museu_id)
-
-    await sendEmail("confirmacao-retificacao-declaracao", emails, {
-      url,
-      horario,
-      response,
-      museu,
-      anoReferencia,
-      hashOriginal
-    })
-
-    return res.status(201).json(response)
   }
   /**
    * Controlador responsável por chamar o método de serviço para restaurar uma declaração
