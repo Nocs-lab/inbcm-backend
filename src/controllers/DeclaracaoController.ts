@@ -264,7 +264,9 @@ export class DeclaracaoController {
     try {
       const userId = req.user?.id
 
-      const user = await Usuario.findById(userId).populate<{ profile: IProfile }>("profile")
+      const user = await Usuario.findById(userId).populate<{
+        profile: IProfile
+      }>("profile")
 
       if (!user) {
         return res.status(404).json({ message: "Usuário não encontrado." })
@@ -394,7 +396,7 @@ export class DeclaracaoController {
     try {
       const { id } = req.params
       const user_id = req.user.id
-      await this.declaracaoService.excluirDeclaracao(id,user_id)
+      await this.declaracaoService.excluirDeclaracao(id, user_id)
       return res.status(204).send()
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -572,15 +574,17 @@ export class DeclaracaoController {
       }
 
       const processedTimeline = declaracao.timeLine
-        .filter(evento => evento.enumName !== "MudancaDeAnalista") // Remove os eventos indesejados
+        .filter((evento) => evento.enumName !== "MudancaDeAnalista") // Remove os eventos indesejados
         .map((evento) => ({
           label: evento.nomeEvento,
           dataEvento: `${DataUtils.formatarDataHoraSP(evento.dataEvento)}${
-            evento.profileName === "declarant" ? `, por ${evento.autorEvento}` : ""
+            evento.profileName === "declarant"
+              ? `, por ${evento.autorEvento}`
+              : ""
           }`,
           enumName: evento.enumName,
           analistaResponsavel: evento.analistaResponsavel
-      }));
+        }))
 
       return res.json(processedTimeline)
     } catch (error) {
@@ -608,7 +612,7 @@ export class DeclaracaoController {
         dataEvento: `${DataUtils.formatarDataHoraSP(evento.dataEvento)}, por ${evento.autorEvento}`,
         enumName: evento.enumName,
         analistaResponsavel: evento.analistaResponsavel
-      }));
+      }))
 
       return res.json(processedTimeline)
     } catch (error) {
@@ -653,7 +657,10 @@ export class DeclaracaoController {
       )
 
       // Coletando dados para enviar e-mail de confirmação de envio de declaração
-      const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
+      const museu = await Museu.findOne({
+        _id: museu_id,
+        usuario: { $in: [user_id] }
+      })
       if (!museu) {
         return res.status(404).json({
           success: false,
@@ -731,7 +738,10 @@ export class DeclaracaoController {
     )
 
     // Coletando dados para enviar e-mail de confirmação de envio de retificação
-    const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
+    const museu = await Museu.findOne({
+      _id: museu_id,
+      usuario: { $in: [user_id] }
+    })
     if (!museu) {
       return res.status(404).json({
         success: false,
@@ -782,7 +792,10 @@ export class DeclaracaoController {
       const user_id = req.user.id.toString()
       const { declaracaoId } = req.params
 
-      const resultado = await this.declaracaoService.restauraDeclaracao(declaracaoId, user_id)
+      const resultado = await this.declaracaoService.restauraDeclaracao(
+        declaracaoId,
+        user_id
+      )
 
       return res.status(200).json(resultado)
     } catch (error) {
@@ -1002,65 +1015,62 @@ export class DeclaracaoController {
     }
   }
 
-
-
   async getItensPorAnoETipo(req: Request, res: Response): Promise<Response> {
     try {
-      const { museuId, anoInicio, anoFim } = req.params;
-      const user_id = req.user.id;
-  
+      const { museuId, anoInicio, anoFim } = req.params
+      const user_id = req.user.id
+
       if (!museuId || !anoInicio || !anoFim) {
-        throw new HTTPError("Parâmetros insuficientes", 400);
+        throw new HTTPError("Parâmetros insuficientes", 400)
       }
-  
-      const anoInicioNum = parseInt(anoInicio, 10);
-      const anoFimNum = parseInt(anoFim, 10);
-  
+
+      const anoInicioNum = parseInt(anoInicio, 10)
+      const anoFimNum = parseInt(anoFim, 10)
+
       if (isNaN(anoInicioNum) || isNaN(anoFimNum)) {
-        throw new HTTPError("Anos devem ser valores numéricos", 400);
+        throw new HTTPError("Anos devem ser valores numéricos", 400)
       }
-  
+
       if (anoInicioNum > anoFimNum) {
-        throw new HTTPError("Ano início não pode ser maior que ano fim", 400);
+        throw new HTTPError("Ano início não pode ser maior que ano fim", 400)
       }
-  
-     
-      const museu = await Museu.findOne({ 
-        _id: museuId, 
+
+      const museu = await Museu.findOne({
+        _id: museuId,
         usuario: { $in: [user_id] }
-      });
+      })
       if (!museu) {
-        throw new HTTPError("Museu não encontrado ou não autorizado", 404);
+        throw new HTTPError("Museu não encontrado ou não autorizado", 404)
       }
-  
+
       const agregacao = await this.declaracaoService.getItensPorAnoETipo(
         museuId,
         anoInicioNum,
         anoFimNum
-      );
-  
+      )
+
       return res.status(200).json({
         success: true,
-        message: agregacao.length > 0 
-          ? "Dados encontrados com sucesso" 
-          : "Nenhuma declaração encontrada",
+        message:
+          agregacao.length > 0
+            ? "Dados encontrados com sucesso"
+            : "Nenhuma declaração encontrada",
         data: agregacao
-      });
-  
+      })
     } catch (error) {
-      logger.error("Erro na controller getItensPorAnoETipo:", error);
-  
+      logger.error("Erro na controller getItensPorAnoETipo:", error)
+
       if (error instanceof HTTPError) {
         return res.status(error.status).json({
           success: false,
           message: error.message
-        });
+        })
       }
-  
+
       return res.status(500).json({
         success: false,
         message: "Erro interno ao processar a requisição"
-      });
+      })
     }
   }
 
@@ -1087,10 +1097,9 @@ export class DeclaracaoController {
   }
 
   async listarItensPorTipodeBemAdmin(req: Request, res: Response) {
-    
     const { museuId, ano, tipo } = req.params
     const { page = 1, limit = 50 } = req.query
-   
+
     try {
       const result = await this.declaracaoService.buscarItensPorTipoAdmin(
         museuId,
@@ -1124,35 +1133,35 @@ export class DeclaracaoController {
       }
     }
   }
-  
 
   async listarPendencias(req: Request, res: Response) {
-  try {
-    const { id } = req.params
-    const parsed = filtroPaginacaoSchema.safeParse(req.body)
+    try {
+      const { id } = req.params
+      const parsed = filtroPaginacaoSchema.safeParse(req.body)
 
-    if (!parsed.success) {
-      return res.status(400).json({ errors: parsed.error.format() })
+      if (!parsed.success) {
+        return res.status(400).json({ errors: parsed.error.format() })
+      }
+
+      const { filtros, pagina, tamanho, tipoArquivo } = parsed.data
+
+      const resultado =
+        await this.declaracaoService.listarPendenciasDetalhadasComFiltro({
+          declaracaoId: id,
+          tipoArquivo,
+          filtros
+        })
+
+      return res.status(200).json({
+        conteudo: resultado.slice((pagina - 1) * tamanho, pagina * tamanho),
+        totalElementos: resultado.length
+      })
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ message: "Erro ao buscar pendências", error: err })
     }
-
-    const { filtros, pagina, tamanho,tipoArquivo } = parsed.data
-  
-
-      const resultado = await this.declaracaoService.listarPendenciasDetalhadasComFiltro({
-      declaracaoId: id,
-      tipoArquivo,
-      filtros,
-    })
-
-    return res.status(200).json({
-      conteudo: resultado.slice((pagina - 1) * tamanho, pagina * tamanho),
-      totalElementos: resultado.length
-    })
-  } catch (err) {
-    return res.status(500).json({ message: "Erro ao buscar pendências", error: err })
   }
-
-}
 
   /**
    * Lista itens por tipo de bem cultural para um museu específico em um determinado ano.
@@ -1162,54 +1171,53 @@ export class DeclaracaoController {
    * @description Este método verifica se o museu pertence ao usuário que está fazendo a requisição, e se válido, busca itens de um tipo específico (Arquivistico, Bibliografico, Museologico) da maior versão da declaração para aquele museu e ano.
    * @returns {Promise<void>} - Retorna uma promessa que resolve quando a resposta é enviada ao cliente. A promessa não retorna nenhum valor, mas durante sua execução, ela pode enviar uma resposta JSON contendo os itens encontrados ou uma mensagem de erro apropriada.
    */
-  
-async listarItensPorTipodeBem(req: Request, res: Response) {
-  const { museuId, ano, tipo } = req.params
-  const { page = 1, limit = 50 } = req.query
-  const user_id = req.user.id
 
-  try {
-    const museu = await Museu.findOne({ _id: museuId, usuario: user_id })
+  async listarItensPorTipodeBem(req: Request, res: Response) {
+    const { museuId, ano, tipo } = req.params
+    const { page = 1, limit = 50 } = req.query
+    const user_id = req.user.id
 
-    if (!museu) {
-      return res.status(400).json({
-        success: false,
-        message: "Museu inválido ou você não tem permissão para acessá-lo"
-      })
-    }
+    try {
+      const museu = await Museu.findOne({ _id: museuId, usuario: user_id })
 
-    const result = await this.declaracaoService.buscarItensPorTipo(
-      museuId,
-      ano,
-      user_id,
-      tipo,
-      Number(page),
-      Number(limit)
-    )
+      if (!museu) {
+        return res.status(400).json({
+          success: false,
+          message: "Museu inválido ou você não tem permissão para acessá-lo"
+        })
+      }
 
-    if (!result) {
-      return res
-        .status(404)
-        .json({ message: `Itens ${tipo} não encontrados` })
-    }
+      const result = await this.declaracaoService.buscarItensPorTipo(
+        museuId,
+        ano,
+        user_id,
+        tipo,
+        Number(page),
+        Number(limit)
+      )
 
-    res.status(200).json(result)
-  } catch (error) {
-    logger.error(`Erro ao listar itens ${tipo}:`, error)
+      if (!result) {
+        return res
+          .status(404)
+          .json({ message: `Itens ${tipo} não encontrados` })
+      }
 
-    if (error instanceof Error) {
-      res.status(500).json({
-        message: `Erro ao listar itens ${tipo}`,
-        error: error.message
-      })
-    } else {
-      res
-        .status(500)
-        .json({ message: `Erro desconhecido ao listar itens ${tipo}` })
+      res.status(200).json(result)
+    } catch (error) {
+      logger.error(`Erro ao listar itens ${tipo}:`, error)
+
+      if (error instanceof Error) {
+        res.status(500).json({
+          message: `Erro ao listar itens ${tipo}`,
+          error: error.message
+        })
+      } else {
+        res
+          .status(500)
+          .json({ message: `Erro desconhecido ao listar itens ${tipo}` })
+      }
     }
   }
-}
-
 }
 
 export default DeclaracaoController

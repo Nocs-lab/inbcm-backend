@@ -294,24 +294,21 @@ class MuseuController {
         return res.status(404).json({ mensagem: "Museu não encontrado." })
       }
 
-      if (!museu.usuario) {
+      if (!museu.usuario || museu.usuario.length === 0) {
         return res.status(400).json({
           mensagem: "Este museu não possui um usuário vinculado."
         })
       }
 
-      const usuarioId = museu.usuario
+      const usuarioIds = [...museu.usuario]
 
-      museu.usuario = null
-      await museu.save()
-
-      const usuario = await Usuario.findById(usuarioId)
-
-      if (usuario) {
-        usuario.museus = usuario.museus.filter(
-          (id) => id.toString() !== museuId
-        )
-        await usuario.save()
+      for (const usuarioId of usuarioIds) {
+        await Museu.findByIdAndUpdate(museuId, {
+          $pull: { usuario: usuarioId }
+        })
+        await Usuario.findByIdAndUpdate(String(usuarioId), {
+          $pull: { museus: museuId }
+        })
       }
 
       return res.status(200).json({
@@ -396,20 +393,16 @@ class MuseuController {
           continue
         }
 
-        museu.usuario = usuarioId
-        await museu.save()
-
-        if (!usuario.museus.includes(id)) {
-          usuario.museus.push(id)
-        }
+        await Museu.findByIdAndUpdate(id, { $addToSet: { usuario: usuarioId } })
+        await Usuario.findByIdAndUpdate(usuarioId, {
+          $addToSet: { museus: id }
+        })
 
         resultados.push({
           museuId: id,
           mensagem: "Usuário vinculado ao museu com sucesso."
         })
       }
-
-      await usuario.save()
 
       return res.status(200).json({
         mensagem: "Processo concluído.",

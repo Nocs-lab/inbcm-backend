@@ -55,8 +55,6 @@ interface Params {
 }
 
 class DeclaracaoService {
-
-  
   async showCards(declaracoes: DeclaracaoModel[]) {
     // Contagem do total de declarações
     const totalDeclaracoes = declaracoes.length
@@ -397,12 +395,6 @@ class DeclaracaoService {
         }
   }
 
-
-
- 
-  
-  
-
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *
@@ -428,80 +420,86 @@ class DeclaracaoService {
         const novoHashBemCultural = createHashUpdate(
           arquivos[0].path,
           arquivos[0].filename
-        );
-  
-        let validate = validate_arquivistico;
-        let requiredFields: string[] = [];
-  
+        )
+
+        let validate = validate_arquivistico
+        let requiredFields: string[] = []
+
         // Define o validador e os campos obrigatórios com base no tipo de arquivo
         switch (tipo) {
           case "arquivistico":
-            validate = validate_arquivistico;
-            requiredFields = arquivistico.required;
-            break;
+            validate = validate_arquivistico
+            requiredFields = arquivistico.required
+            break
           case "bibliografico":
-            validate = validate_bibliografico;
-            requiredFields = bibliografico.required;
-            break;
+            validate = validate_bibliografico
+            requiredFields = bibliografico.required
+            break
           case "museologico":
-            validate = validate_museologico;
-            requiredFields = museologico.required;
-            break;
+            validate = validate_museologico
+            requiredFields = museologico.required
+            break
           default:
-            throw new Error("Tipo de declaração inválido");
+            throw new Error("Tipo de declaração inválido")
         }
-  
+
         // Valida o arquivo
         const {
           data: arquivoData,
           detailedErrors,
           naoEncontrados
-        } = await validate(arquivos[0].buffer);
-  
-       const errosPorLinha = new Map<number, Record<string, string>>()
+        } = await validate(arquivos[0].buffer)
 
-      for (const [linha, campos] of detailedErrors) {
-        if (!errosPorLinha.has(linha)) {
-          errosPorLinha.set(linha, {})
+        const errosPorLinha = new Map<number, Record<string, string>>()
+
+        for (const [linha, campos] of detailedErrors) {
+          if (!errosPorLinha.has(linha)) {
+            errosPorLinha.set(linha, {})
+          }
+          const entry = errosPorLinha.get(linha)!
+          for (const campo of campos) {
+            entry[campo] = "Campo vazio"
+          }
         }
-        const entry = errosPorLinha.get(linha)!
-        for (const campo of campos) {
-          entry[campo] = "Campo vazio"
+
+        for (const linha of naoEncontrados) {
+          if (!errosPorLinha.has(linha)) {
+            errosPorLinha.set(linha, {})
+          }
+          const entry = errosPorLinha.get(linha)!
+          entry["situacao"] = "Não localizado"
         }
-      }
 
-      for (const linha of naoEncontrados) {
-        if (!errosPorLinha.has(linha)) {
-          errosPorLinha.set(linha, {})
-        }
-        const entry = errosPorLinha.get(linha)!
-        entry["situacao"] = "Não localizado"
-      }
+        const detailedErrorsFinal = Array.from(
+          errosPorLinha,
+          ([linha, camposComErro]) => ({
+            linha,
+            camposComErro
+          })
+        )
 
-      const detailedErrorsFinal = Array.from(errosPorLinha, ([linha, camposComErro]) => ({
-        linha,
-        camposComErro
-      }))
+        await salvarPendenciasEmChunks({
+          declaracaoId: novaDeclaracao._id as Types.ObjectId,
+          tipoArquivo: tipo,
+          erros: detailedErrorsFinal
+        })
 
-      await salvarPendenciasEmChunks({
-        declaracaoId: novaDeclaracao._id as Types.ObjectId,
-        tipoArquivo: tipo,
-        erros: detailedErrorsFinal
-      })
-  
         // Calcula os percentuais de preenchimento
         const {
           porcentagemGeral,
           porcentagemPorCampo,
           errors: camposObrigatorios
-        } = calcularPercentuais(arquivoData, requiredFields);
-  
-        
-      if (detailedErrorsFinal.some(e => e.camposComErro["identificador"] === "Não localizado") &&
-          !camposObrigatorios.includes("situacao")) {
-        camposObrigatorios.push("situacao")
-      }
-  
+        } = calcularPercentuais(arquivoData, requiredFields)
+
+        if (
+          detailedErrorsFinal.some(
+            (e) => e.camposComErro["identificador"] === "Não localizado"
+          ) &&
+          !camposObrigatorios.includes("situacao")
+        ) {
+          camposObrigatorios.push("situacao")
+        }
+
         // Prepara os dados alterados
         const dadosAlterados: Partial<Arquivo> = {
           nome: arquivos[0].filename,
@@ -514,59 +512,60 @@ class DeclaracaoService {
           porcentagemPorCampo,
           usuario: userId as unknown as mongoose.Types.ObjectId,
           usuarioNome: responsavelEnvioNome
-        };
-  
+        }
+
         novaDeclaracao[tipo] = {
           ...arquivoAnterior,
           ...dadosAlterados
-        } as Arquivo;
-  
+        } as Arquivo
+
         // Adiciona metadados aos itens do arquivo
         arquivoData.forEach((item: { [key: string]: unknown }) => {
-          item.declaracao_ref = novaDeclaracao._id;
-          item.versao = novaVersao;
-        });
-  
+          item.declaracao_ref = novaDeclaracao._id
+          item.versao = novaVersao
+        })
+
         // Seleciona o modelo correto para inserção dos dados
-        let Modelo;
+        let Modelo
         switch (tipo) {
           case "arquivistico":
-            Modelo = Arquivistico;
-            break;
+            Modelo = Arquivistico
+            break
           case "bibliografico":
-            Modelo = Bibliografico;
-            break;
+            Modelo = Bibliografico
+            break
           case "museologico":
-            Modelo = Museologico;
-            break;
+            Modelo = Museologico
+            break
           default:
-            throw new Error("Tipo de declaração inválido");
+            throw new Error("Tipo de declaração inválido")
         }
-  
-        await Modelo.insertMany(arquivoData);
+
+        await Modelo.insertMany(arquivoData)
       } else if (arquivoAnterior) {
-        novaDeclaracao[tipo] = { ...arquivoAnterior } as Arquivo;
+        novaDeclaracao[tipo] = { ...arquivoAnterior } as Arquivo
       }
-  
+
       // Atualiza informações de retificação, se houver
       if (novaDeclaracao.retificacaoRef) {
-        const declaracaoAnterior = await Declaracoes.findById(novaDeclaracao.retificacaoRef).exec();
+        const declaracaoAnterior = await Declaracoes.findById(
+          novaDeclaracao.retificacaoRef
+        ).exec()
         if (declaracaoAnterior) {
-          novaDeclaracao.retificacaoRef = declaracaoAnterior._id as mongoose.Types.ObjectId;
-          novaDeclaracao.retificacao = true;
+          novaDeclaracao.retificacaoRef =
+            declaracaoAnterior._id as mongoose.Types.ObjectId
+          novaDeclaracao.retificacao = true
         }
       }
-  
-      novaDeclaracao.responsavelEnvioNome = responsavelEnvioNome;
-  
-      await novaDeclaracao.save();
+
+      novaDeclaracao.responsavelEnvioNome = responsavelEnvioNome
+
+      await novaDeclaracao.save()
     } catch (error) {
-      console.error("Erro ao atualizar a declaração:", error);
-      throw new Error("Erro ao atualizar a declaração: " + error);
+      console.error("Erro ao atualizar a declaração:", error)
+      throw new Error("Erro ao atualizar a declaração: " + error)
     }
   }
-  
-  
 
   async getItensMuseu(museuId: string) {
     const declaracoesExistentes = await Declaracoes.find({
@@ -671,14 +670,16 @@ class DeclaracaoService {
       arquivistico: "arquivístico",
       museologico: "museológico",
       bibliografico: "bibliográfico"
-    };
+    }
 
     const evento = {
-      nomeEvento: Eventos.MudancaDeAnalista + ` do acervo ${tipoComAcento[arquivoTipo] || arquivoTipo} de ${analistaAnterior} para ${autor.nome}`,
+      nomeEvento:
+        Eventos.MudancaDeAnalista +
+        ` do acervo ${tipoComAcento[arquivoTipo] || arquivoTipo} de ${analistaAnterior} para ${autor.nome}`,
       dataEvento: DataUtils.getCurrentData(),
       autorEvento: autor.nome,
       analistaResponsavel: [analista.nome],
-      profileName: 'admin',
+      profileName: "admin",
       enumName: "MudancaDeAnalista"
     }
 
@@ -826,13 +827,17 @@ class DeclaracaoService {
         nomeEvento: `${Eventos.EnvioParaAnalise}`,
         dataEvento: DataUtils.getCurrentData(),
         autorEvento: responsavelNome,
-        analistaResponsavel: Object.entries(analistasPorTipo)
-          .flatMap(([tipo, ids]) =>
-            ids.map(id => {
-              const analista = analistasList.find(a => a._id.toString() === id);
-              return analista ? `${tipo}: ${analista.nome}` : `${tipo}: Desconhecido`;
+        analistaResponsavel: Object.entries(analistasPorTipo).flatMap(
+          ([tipo, ids]) =>
+            ids.map((id) => {
+              const analista = analistasList.find(
+                (a) => a._id.toString() === id
+              )
+              return analista
+                ? `${tipo}: ${analista.nome}`
+                : `${tipo}: Desconhecido`
             })
-          ),
+        ),
         profileName: "admin",
         enumName: "EnvioParaAnalise"
       }
@@ -851,25 +856,36 @@ class DeclaracaoService {
         const emailDeclarants = await MuseuHelper.getEmailsFromMuseuUsers(museu)
 
         // Buscar informações do ano de declaração
-        const anoDeclaracaoDoc = await AnoDeclaracao.findById(declaracao.anoDeclaracao)
-        const anoReferencia = anoDeclaracaoDoc ? anoDeclaracaoDoc.ano.toString() : "N/A"
+        const anoDeclaracaoDoc = await AnoDeclaracao.findById(
+          declaracao.anoDeclaracao
+        )
+        const anoReferencia = anoDeclaracaoDoc
+          ? anoDeclaracaoDoc.ano.toString()
+          : "N/A"
 
         const dataAtual = DataUtils.gerarDataHoraExtenso()
         const url = `${config.PUBLIC_SITE_URL}`
 
         // Preparar lista de analistas para o e-mail
-        const analistasFormatados = Object.entries(analistasPorTipo)
-          .flatMap(([tipo, ids]) => {
+        const analistasFormatados = Object.entries(analistasPorTipo).flatMap(
+          ([tipo, ids]) => {
             const tipoFormatado: { [key: string]: string } = {
               arquivistico: "Arquivístico",
               bibliografico: "Bibliográfico",
               museologico: "Museológico"
             }
-            return ids.map(id => {
-              const analista = analistasList.find(a => a._id.toString() === id)
-              return analista ? `${tipoFormatado[tipo] || tipo}: ${analista.nome}` : null
-            }).filter((item): item is string => item !== null)
-          })
+            return ids
+              .map((id) => {
+                const analista = analistasList.find(
+                  (a) => a._id.toString() === id
+                )
+                return analista
+                  ? `${tipoFormatado[tipo] || tipo}: ${analista.nome}`
+                  : null
+              })
+              .filter((item): item is string => item !== null)
+          }
+        )
 
         await sendEmail("declaracao-em-analise", emailDeclarants, {
           dataAtual,
@@ -1038,8 +1054,8 @@ class DeclaracaoService {
           const tipoFormatado: { [key: string]: string } = {
             arquivistico: "Arquivístico",
             bibliografico: "Bibliográfico",
-            museologico: "Museológico",
-          };
+            museologico: "Museológico"
+          }
 
           declaracao.timeLine.push({
             nomeEvento: `${Eventos.MudancaStatus} do tipo ${tipoFormatado[tipo] || tipo} para: "${status}"`,
@@ -1065,7 +1081,13 @@ class DeclaracaoService {
           status === Status.EmConformidade || status === Status.NaoConformidade
       )
       const timeLineAnterior = declaracao?.timeLine || []
-      let novoEvento: { nomeEvento: string; dataEvento: Date; autorEvento: string; profileName: string; enumName: string } | null = null;
+      let novoEvento: {
+        nomeEvento: string
+        dataEvento: Date
+        autorEvento: string
+        profileName: string
+        enumName: string
+      } | null = null
       // Setup e-mail
       const dataAtual = DataUtils.gerarDataHoraExtenso()
       const urlAprovada = `${config.PUBLIC_SITE_URL}`
@@ -1075,7 +1097,7 @@ class DeclaracaoService {
       }
       const emailsDeclarantsIds = museuEmail.usuario
       const usuarios = await Usuario.find({ _id: { $in: emailsDeclarantsIds } })
-      const emailDeclarants = usuarios.map(usuario => usuario.email)
+      const emailDeclarants = usuarios.map((usuario) => usuario.email)
 
       // Atualizar o status da declaração
       if (todosFinalizados) {
@@ -1087,18 +1109,17 @@ class DeclaracaoService {
           novoEvento = {
             nomeEvento: Eventos.FinalizacaoAnalise + ` para "Em conformidade"`,
             dataEvento: DataUtils.getCurrentData(),
-            autorEvento: 'Sistema INBCM',
-            profileName: 'analyst',
+            autorEvento: "Sistema INBCM",
+            profileName: "analyst",
             enumName: "FinalizacaoAnalise"
           }
           // Envio de e-mail para situação em conformidade
           await sendEmail("declaracao-em-conformidade", emailDeclarants, {
-              dataAtual: dataAtual,
-              hash: declaracao.hashDeclaracao,
-              url: urlAprovada,
-              museu: declaracao.museu_nome
+            dataAtual: dataAtual,
+            hash: declaracao.hashDeclaracao,
+            url: urlAprovada,
+            museu: declaracao.museu_nome
           })
-
         } else {
           // Caso contrário, a declaração deve ser "Não Conformidade" se houver algum bem "Não Conformidade"
           declaracao.status = Status.NaoConformidade
@@ -1107,8 +1128,8 @@ class DeclaracaoService {
           novoEvento = {
             nomeEvento: Eventos.FinalizacaoAnalise + ` para "Não conformidade"`,
             dataEvento: DataUtils.getCurrentData(),
-            autorEvento: 'Sistema INBCM',
-            profileName: 'analyst',
+            autorEvento: "Sistema INBCM",
+            profileName: "analyst",
             enumName: "FinalizacaoAnalise"
           }
 
@@ -1122,9 +1143,13 @@ class DeclaracaoService {
         }
       }
 
-      declaracao.timeLine = [...timeLineAnterior, ...(novoEvento ? [novoEvento] : [])].sort(
-        (a, b) => new Date(a.dataEvento).getTime() - new Date(b.dataEvento).getTime()
-      );
+      declaracao.timeLine = [
+        ...timeLineAnterior,
+        ...(novoEvento ? [novoEvento] : [])
+      ].sort(
+        (a, b) =>
+          new Date(a.dataEvento).getTime() - new Date(b.dataEvento).getTime()
+      )
 
       await declaracao.save()
 
@@ -1147,7 +1172,7 @@ class DeclaracaoService {
    * @returns Um objeto com a mensagem de sucesso ou erro
    * @throws Error caso a declaração não possa ser restaurada
    */
-  async restauraDeclaracao(declaracaoId: string, user_id:string) {
+  async restauraDeclaracao(declaracaoId: string, user_id: string) {
     const objectId = new mongoose.Types.ObjectId(declaracaoId)
     const declaracao = await Declaracoes.findById(objectId)
 
@@ -1162,11 +1187,11 @@ class DeclaracaoService {
       )
     }
 
-    const user = await Usuario.findById(user_id).populate("profile");
+    const user = await Usuario.findById(user_id).populate("profile")
     if (!user) {
-        throw new HTTPError("Usuário não encontrado", 404);
+      throw new HTTPError("Usuário não encontrado", 404)
     }
-    const userProfile = (user.profile as IProfile).name;
+    const userProfile = (user.profile as IProfile).name
 
     const novoEvento = {
       nomeEvento: Eventos.DeclaracaoRestaurada,
@@ -1206,9 +1231,15 @@ class DeclaracaoService {
     // Envio de e-mail para notificar sobre a restauração
     const museu = await Museu.findById(declaracao.museu_id)
     if (museu) {
-      const emailsMuseu = await MuseuHelper.getEmailsFromMuseuUsers(declaracao.museu_id.toString())
-      const anoDeclaracaoDoc = await AnoDeclaracao.findById(declaracao.anoDeclaracao)
-      const anoReferencia = anoDeclaracaoDoc ? anoDeclaracaoDoc.ano.toString() : "N/A"
+      const emailsMuseu = await MuseuHelper.getEmailsFromMuseuUsers(
+        declaracao.museu_id.toString()
+      )
+      const anoDeclaracaoDoc = await AnoDeclaracao.findById(
+        declaracao.anoDeclaracao
+      )
+      const anoReferencia = anoDeclaracaoDoc
+        ? anoDeclaracaoDoc.ano.toString()
+        : "N/A"
       const dataAtual = DataUtils.gerarDataHoraExtenso()
       const url = `${config.PUBLIC_SITE_URL}`
 
@@ -1256,24 +1287,24 @@ class DeclaracaoService {
           model: AnoDeclaracao,
           select: ["_id", "ano"]
         })
-        .exec();
+        .exec()
 
       const declaracoesFiltradas = declaracoesExistentes.filter(
         (declaracao) => declaracao.anoDeclaracao !== null
-      );
+      )
 
       // Se não houver declarações, retorna array vazio em vez de lançar erro
       if (declaracoesFiltradas.length === 0) {
-        return [];
+        return []
       }
 
       const anos = declaracoesFiltradas.map(
         (declaracao) => declaracao.anoDeclaracao
-      ) as unknown as { _id: mongoose.Types.ObjectId; ano: number }[];
+      ) as unknown as { _id: mongoose.Types.ObjectId; ano: number }[]
 
       const anoDeclaracaoIds = declaracoesFiltradas.map(
         (declaracao) => declaracao.anoDeclaracao._id
-      );
+      )
 
       const agregacao = await Declaracoes.aggregate([
         {
@@ -1315,20 +1346,20 @@ class DeclaracaoService {
           }
         },
         { $sort: { anoDeclaracao: 1 } }
-      ]);
+      ])
 
       const result = agregacao.map((item) => {
-        const ano = anos.find((ano) => ano._id.equals(item.anoDeclaracao));
+        const ano = anos.find((ano) => ano._id.equals(item.anoDeclaracao))
         return {
           ...item,
           ano: ano?.ano
-        };
-      });
+        }
+      })
 
-      return result;
+      return result
     } catch (error) {
-      logger.error("Erro no getItensPorAnoETipo:", error);
-      throw new Error("Erro ao processar a busca de declarações");
+      logger.error("Erro no getItensPorAnoETipo:", error)
+      throw new Error("Erro ao processar a busca de declarações")
     }
   }
 
@@ -1374,41 +1405,39 @@ class DeclaracaoService {
     page = 1,
     limit = 10
   ) {
-    const museu = await Museu.findOne({ _id: museuId });
-  
+    const museu = await Museu.findOne({ _id: museuId })
+
     if (!museu) {
-      throw new Error("Museu inválido ou você não tem permissão para acessá-lo");
+      throw new Error("Museu inválido ou você não tem permissão para acessá-lo")
     }
-  
-  
-    let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico;
-    let retornoPorItem: string;
-  
+
+    let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico
+    let retornoPorItem: string
+
     switch (tipoItem) {
       case "arquivistico":
-        Model = Arquivistico;
-        retornoPorItem = "_id coddereferencia titulo nomedoprodutor";
-        break;
+        Model = Arquivistico
+        retornoPorItem = "_id coddereferencia titulo nomedoprodutor"
+        break
       case "bibliografico":
-        Model = Bibliografico;
-        retornoPorItem = "_id nderegistro situacao titulo localdeproducao";
-        break;
+        Model = Bibliografico
+        retornoPorItem = "_id nderegistro situacao titulo localdeproducao"
+        break
       case "museologico":
-        Model = Museologico;
-        retornoPorItem = "_id nderegistro autor situacao denominacao";
-        break;
+        Model = Museologico
+        retornoPorItem = "_id nderegistro autor situacao denominacao"
+        break
       default:
-        throw new Error("Tipo de item inválido");
+        throw new Error("Tipo de item inválido")
     }
-  
-   
+
     const declaracoes = await Declaracoes.find({
       museu_id: new mongoose.Types.ObjectId(museuId),
       anoDeclaracao: new mongoose.Types.ObjectId(ano)
-    }).select("_id");
-  
-    const declaracaoIds = declaracoes.map((d) => d._id);
-  
+    }).select("_id")
+
+    const declaracaoIds = declaracoes.map((d) => d._id)
+
     if (declaracaoIds.length === 0) {
       return {
         total: 0,
@@ -1422,10 +1451,9 @@ class DeclaracaoService {
           next: null,
           last: null
         }
-      };
+      }
     }
-  
-    
+
     const maxVersaoResult = await Model.aggregate([
       {
         $match: {
@@ -1438,9 +1466,9 @@ class DeclaracaoService {
           maxVersao: { $max: "$versao" }
         }
       }
-    ]);
-  
-    const maxVersao = maxVersaoResult[0]?.maxVersao;
+    ])
+
+    const maxVersao = maxVersaoResult[0]?.maxVersao
     if (maxVersao === undefined) {
       return {
         total: 0,
@@ -1454,17 +1482,16 @@ class DeclaracaoService {
           next: null,
           last: null
         }
-      };
+      }
     }
-  
- 
+
     const total = await Model.countDocuments({
       versao: maxVersao,
       declaracao_ref: { $in: declaracaoIds }
-    });
-  
-    const totalPages = Math.ceil(total / limit);
-  
+    })
+
+    const totalPages = Math.ceil(total / limit)
+
     const itens = await Model.find({
       versao: maxVersao,
       declaracao_ref: { $in: declaracaoIds }
@@ -1472,16 +1499,17 @@ class DeclaracaoService {
       .select(retornoPorItem)
       .skip((page - 1) * limit)
       .limit(limit)
-      .lean();
-  
-    const baseUrl = `/api/admin/declaracoes/listar-itens/${museuId}/${ano}/${tipoItem}`;
+      .lean()
+
+    const baseUrl = `/api/admin/declaracoes/listar-itens/${museuId}/${ano}/${tipoItem}`
     const links = {
       first: `${baseUrl}?page=1&limit=${limit}`,
       prev: page > 1 ? `${baseUrl}?page=${page - 1}&limit=${limit}` : null,
-      next: page < totalPages ? `${baseUrl}?page=${page + 1}&limit=${limit}` : null,
+      next:
+        page < totalPages ? `${baseUrl}?page=${page + 1}&limit=${limit}` : null,
       last: `${baseUrl}?page=${totalPages}&limit=${limit}`
-    };
-  
+    }
+
     return {
       total,
       page,
@@ -1489,9 +1517,9 @@ class DeclaracaoService {
       totalPages,
       itens,
       links
-    };
+    }
   }
-  
+
   /**
    * Processa e atualiza o histórico da declaração de um tipo específico de bem (arquivístico, bibliográfico ou museológico) em uma declaração.
    *
@@ -1515,14 +1543,14 @@ class DeclaracaoService {
       _id: museuId,
       usuario: { $in: [new mongoose.Types.ObjectId(userId)] }
     })
-  
+
     if (!museu) {
       throw new Error("Museu inválido ou você não tem permissão para acessá-lo")
     }
-  
+
     let Model: typeof Arquivistico | typeof Bibliografico | typeof Museologico
     let retornoPorItem: string
-  
+
     switch (tipoItem) {
       case "arquivistico":
         Model = Arquivistico
@@ -1539,15 +1567,15 @@ class DeclaracaoService {
       default:
         throw new Error("Tipo de item inválido")
     }
-  
+
     // Buscar declarações do museu e ano
     const declaracoes = await Declaracoes.find({
       museu_id: new mongoose.Types.ObjectId(museuId),
       anoDeclaracao: new mongoose.Types.ObjectId(ano)
     }).select("_id")
-  
-    const declaracaoIds = declaracoes.map(d => d._id)
-  
+
+    const declaracaoIds = declaracoes.map((d) => d._id)
+
     if (declaracaoIds.length === 0) {
       return {
         total: 0,
@@ -1558,7 +1586,7 @@ class DeclaracaoService {
         links: {}
       }
     }
-  
+
     // Descobrir a maior versão dentro das declarações
     const maxVersaoResult = await Model.aggregate([
       {
@@ -1573,9 +1601,9 @@ class DeclaracaoService {
         }
       }
     ])
-  
+
     const maxVersao = maxVersaoResult[0]?.maxVersao
-  
+
     if (maxVersao === undefined) {
       return {
         total: 0,
@@ -1586,9 +1614,9 @@ class DeclaracaoService {
         links: {}
       }
     }
-  
+
     const skip = (page - 1) * limit
-  
+
     const [result, total] = await Promise.all([
       Model.find({
         versao: maxVersao,
@@ -1597,24 +1625,25 @@ class DeclaracaoService {
         .select(retornoPorItem)
         .skip(skip)
         .limit(limit),
-  
+
       Model.countDocuments({
         versao: maxVersao,
         declaracao_ref: { $in: declaracaoIds }
       })
     ])
-  
+
     const totalPages = Math.ceil(total / limit)
-  
+
     const baseUrl = `/api/public/declaracoes/listar-itens/${museuId}/${ano}/${tipoItem}`
-  
+
     const links = {
       first: `${baseUrl}?page=1&limit=${limit}`,
       prev: page > 1 ? `${baseUrl}?page=${page - 1}&limit=${limit}` : null,
-      next: page < totalPages ? `${baseUrl}?page=${page + 1}&limit=${limit}` : null,
+      next:
+        page < totalPages ? `${baseUrl}?page=${page + 1}&limit=${limit}` : null,
       last: `${baseUrl}?page=${totalPages}&limit=${limit}`
     }
-  
+
     return {
       total,
       page,
@@ -1624,9 +1653,7 @@ class DeclaracaoService {
       links
     }
   }
-  
- 
-  
+
   async adicionarEvento(
     declaracaoId: mongoose.Types.ObjectId,
     evento: TimeLine
@@ -1642,15 +1669,15 @@ class DeclaracaoService {
    * Processa e atualiza uma  declaração,fazendo a deleção lógica.
    * @param id - String  contendo um  id de da declaracao.
    */
-  async excluirDeclaracao(id: string,user_id: string): Promise<void> {
+  async excluirDeclaracao(id: string, user_id: string): Promise<void> {
     const declaracaoId = new mongoose.Types.ObjectId(id)
 
-    const user = await Usuario.findById(user_id).populate("profile");
+    const user = await Usuario.findById(user_id).populate("profile")
     if (!user) {
-        throw new HTTPError("Usuário não encontrado", 404);
+      throw new HTTPError("Usuário não encontrado", 404)
     }
 
-    const userProfile = (user.profile as IProfile).name;
+    const userProfile = (user.profile as IProfile).name
 
     const resultado = await Declaracoes.updateOne(
       { _id: declaracaoId, status: Status.Recebida },
@@ -1700,13 +1727,16 @@ class DeclaracaoService {
       if (!museu_id || !user_id) {
         throw new HTTPError("Dados obrigatórios ausentes", 404)
       }
-      const user = await Usuario.findById(user_id).populate("profile");
+      const user = await Usuario.findById(user_id).populate("profile")
       if (!user) {
-          throw new HTTPError("Usuário não encontrado", 404);
+        throw new HTTPError("Usuário não encontrado", 404)
       }
 
-      const userProfile = (user.profile as IProfile).name;
-      const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
+      const userProfile = (user.profile as IProfile).name
+      const museu = await Museu.findOne({
+        _id: museu_id,
+        usuario: { $in: [user_id] }
+      })
       if (!museu) {
         throw new HTTPError("Museu inválido", 404)
       }
@@ -1790,8 +1820,12 @@ class DeclaracaoService {
       // Envio de e-mail para confirmar o recebimento da declaração
       const emailsMuseu = await MuseuHelper.getEmailsFromMuseuUsers(museu_id)
       const anoDeclaracaoDoc = await AnoDeclaracao.findById(anoDeclaracao)
-      const anoReferencia = anoDeclaracaoDoc ? anoDeclaracaoDoc.ano.toString() : "N/A"
-      const dataAtual = DataUtils.gerarDataHoraExtenso(novaDeclaracao.dataCriacao)
+      const anoReferencia = anoDeclaracaoDoc
+        ? anoDeclaracaoDoc.ano.toString()
+        : "N/A"
+      const dataAtual = DataUtils.gerarDataHoraExtenso(
+        novaDeclaracao.dataCriacao
+      )
       const url = `${config.PUBLIC_SITE_URL}`
 
       await sendEmail("declaracao-recebida", emailsMuseu, {
@@ -1826,16 +1860,19 @@ class DeclaracaoService {
     if (!museu_id || !user_id || !idDeclaracao) {
       throw new HTTPError("Dados obrigatórios ausentes", 404)
     }
-    const museu = await Museu.findOne({ _id: museu_id, usuario: user_id })
+    const museu = await Museu.findOne({
+      _id: museu_id,
+      usuario: { $in: [user_id] }
+    })
     if (!museu) {
       throw new HTTPError("Museu inválido", 404)
     }
-    const user = await Usuario.findById(user_id).populate("profile");
+    const user = await Usuario.findById(user_id).populate("profile")
     if (!user) {
-        throw new HTTPError("Usuário não encontrado", 404);
+      throw new HTTPError("Usuário não encontrado", 404)
     }
 
-    const userProfile = (user.profile as IProfile).name;
+    const userProfile = (user.profile as IProfile).name
 
     const files = arquivos as { [fieldname: string]: Express.Multer.File[] }
     const salt = generateSalt()
@@ -1943,8 +1980,12 @@ class DeclaracaoService {
     if (declaracaoExistente) {
       const emailsMuseu = await MuseuHelper.getEmailsFromMuseuUsers(museu_id)
       const anoDeclaracaoDoc = await AnoDeclaracao.findById(anoDeclaracao)
-      const anoReferencia = anoDeclaracaoDoc ? anoDeclaracaoDoc.ano.toString() : "N/A"
-      const dataAtual = DataUtils.gerarDataHoraExtenso(novaDeclaracao.dataCriacao)
+      const anoReferencia = anoDeclaracaoDoc
+        ? anoDeclaracaoDoc.ano.toString()
+        : "N/A"
+      const dataAtual = DataUtils.gerarDataHoraExtenso(
+        novaDeclaracao.dataCriacao
+      )
       const url = `${config.PUBLIC_SITE_URL}`
       const museuDoc = await Museu.findById(museu_id)
 
@@ -1959,165 +2000,162 @@ class DeclaracaoService {
 
     return novaDeclaracao
   }
- async listarPendenciasDetalhadas({
-  declaracaoId,
-  tipoArquivo,
-  tipoPendencia,
-  page = 1,
-  limit = 10
-}: {
-  declaracaoId: string;
-  tipoArquivo: "arquivistico" | "bibliografico" | "museologico";
-  tipoPendencia?: "naoLocalizado" | "campoVazio";
-  page?: number;
-  limit?: number;
-}) {
-  try {
-    const pipeline: any[] = [
-      {
-        $match: {
-          declaracaoId: new mongoose.Types.ObjectId(declaracaoId),
-          tipoArquivo
+  async listarPendenciasDetalhadas({
+    declaracaoId,
+    tipoArquivo,
+    tipoPendencia,
+    page = 1,
+    limit = 10
+  }: {
+    declaracaoId: string
+    tipoArquivo: "arquivistico" | "bibliografico" | "museologico"
+    tipoPendencia?: "naoLocalizado" | "campoVazio"
+    page?: number
+    limit?: number
+  }) {
+    try {
+      const pipeline: any[] = [
+        {
+          $match: {
+            declaracaoId: new mongoose.Types.ObjectId(declaracaoId),
+            tipoArquivo
+          }
+        },
+        { $unwind: "$erros" },
+        {
+          $addFields: {
+            camposArray: { $objectToArray: "$erros.camposComErro" }
+          }
         }
-      },
-      { $unwind: "$erros" },
-      {
-        $addFields: {
-          camposArray: { $objectToArray: "$erros.camposComErro" }
-        }
+      ]
+
+      if (tipoPendencia === "naoLocalizado") {
+        pipeline.push({
+          $match: {
+            "camposArray.v": "Não localizado"
+          }
+        })
+      } else if (tipoPendencia === "campoVazio") {
+        pipeline.push({
+          $match: {
+            "camposArray.v": { $ne: "Não localizado" }
+          }
+        })
       }
-    ];
 
-    if (tipoPendencia === "naoLocalizado") {
-      pipeline.push({
-        $match: {
-          "camposArray.v": "Não localizado"
-        }
-      });
-    } else if (tipoPendencia === "campoVazio") {
-      pipeline.push({
-        $match: {
-          "camposArray.v": { $ne: "Não localizado" }
-        }
-      });
+      // Pipeline de contagem de total
+      const countPipeline = [...pipeline, { $count: "total" }]
+      const countResult = await PendenciaDetalhadaModel.aggregate(countPipeline)
+      const total = countResult[0]?.total || 0
+      const totalPages = Math.ceil(total / limit)
+
+      // Adiciona paginação e projeção ao pipeline principal
+      pipeline.push(
+        {
+          $project: {
+            linha: "$erros.linha",
+            camposComErro: "$erros.camposComErro",
+            _id: "$erros._id"
+          }
+        },
+        { $sort: { linha: 1 } },
+        { $skip: (page - 1) * limit },
+        { $limit: limit }
+      )
+
+      const resultados = await PendenciaDetalhadaModel.aggregate(pipeline)
+
+      const baseUrl = `/api/admin/pendencias/${declaracaoId}/${tipoArquivo}`
+      const links = {
+        first: `${baseUrl}?page=1&limit=${limit}`,
+        prev: page > 1 ? `${baseUrl}?page=${page - 1}&limit=${limit}` : null,
+        next:
+          page < totalPages
+            ? `${baseUrl}?page=${page + 1}&limit=${limit}`
+            : null,
+        last: `${baseUrl}?page=${totalPages}&limit=${limit}`
+      }
+
+      return {
+        total,
+        page,
+        limit,
+        totalPages,
+        pendencias: resultados,
+        links
+      }
+    } catch (err) {
+      console.error("Erro na agregação MongoDB:", err)
+      throw new Error("Erro ao consultar pendências detalhadas no MongoDB")
     }
-
-    // Pipeline de contagem de total
-    const countPipeline = [...pipeline, { $count: "total" }];
-    const countResult = await PendenciaDetalhadaModel.aggregate(countPipeline);
-    const total = countResult[0]?.total || 0;
-    const totalPages = Math.ceil(total / limit);
-
-    // Adiciona paginação e projeção ao pipeline principal
-    pipeline.push(
-      {
-        $project: {
-          linha: "$erros.linha",
-          camposComErro: "$erros.camposComErro",
-          _id: "$erros._id"
-        }
-      },
-      { $sort: { linha: 1 } },
-      { $skip: (page - 1) * limit },
-      { $limit: limit }
-    );
-
-    const resultados = await PendenciaDetalhadaModel.aggregate(pipeline);
-
-    const baseUrl = `/api/admin/pendencias/${declaracaoId}/${tipoArquivo}`;
-    const links = {
-      first: `${baseUrl}?page=1&limit=${limit}`,
-      prev: page > 1 ? `${baseUrl}?page=${page - 1}&limit=${limit}` : null,
-      next: page < totalPages ? `${baseUrl}?page=${page + 1}&limit=${limit}` : null,
-      last: `${baseUrl}?page=${totalPages}&limit=${limit}`
-    };
-
-    return {
-      total,
-      page,
-      limit,
-      totalPages,
-      pendencias: resultados,
-      links
-    };
-  } catch (err) {
-    console.error("Erro na agregação MongoDB:", err);
-    throw new Error("Erro ao consultar pendências detalhadas no MongoDB");
   }
-}
 
-async listarPendenciasDetalhadasComFiltro({
-  declaracaoId,
-  tipoArquivo,
-  filtros
-}: {
-  declaracaoId: string
-  tipoArquivo: "arquivistico" | "bibliografico" | "museologico"
-  filtros: Filtro[]
-}) {
-  try {
-   
-    if (!filtros.length) {
-      return []
-    }
+  async listarPendenciasDetalhadasComFiltro({
+    declaracaoId,
+    tipoArquivo,
+    filtros
+  }: {
+    declaracaoId: string
+    tipoArquivo: "arquivistico" | "bibliografico" | "museologico"
+    filtros: Filtro[]
+  }) {
+    try {
+      if (!filtros.length) {
+        return []
+      }
 
-    const pipeline: any[] = [
-      {
-        $match: {
-          declaracaoId: new mongoose.Types.ObjectId(declaracaoId),
-          tipoArquivo
-        }
-      },
-      { $unwind: "$erros" },
-      {
-        $addFields: {
-          camposComErroFiltrados: {
-            $filter: {
-              input: { $objectToArray: "$erros.camposComErro" },
-              as: "item",
-              cond: {
-                $in: ["$$item.v", filtros[0].valores]
+      const pipeline: any[] = [
+        {
+          $match: {
+            declaracaoId: new mongoose.Types.ObjectId(declaracaoId),
+            tipoArquivo
+          }
+        },
+        { $unwind: "$erros" },
+        {
+          $addFields: {
+            camposComErroFiltrados: {
+              $filter: {
+                input: { $objectToArray: "$erros.camposComErro" },
+                as: "item",
+                cond: {
+                  $in: ["$$item.v", filtros[0].valores]
+                }
               }
             }
           }
-        }
-      },
-      {
-        $match: {
-          $expr: { $gt: [{ $size: "$camposComErroFiltrados" }, 0] }
-        }
-      },
-      {
-        $addFields: {
-          camposComErro: {
-            $arrayToObject: "$camposComErroFiltrados"
+        },
+        {
+          $match: {
+            $expr: { $gt: [{ $size: "$camposComErroFiltrados" }, 0] }
           }
+        },
+        {
+          $addFields: {
+            camposComErro: {
+              $arrayToObject: "$camposComErroFiltrados"
+            }
+          }
+        },
+        {
+          $project: {
+            linha: "$erros.linha",
+            camposComErro: 1,
+            _id: "$erros._id"
+          }
+        },
+        {
+          $sort: { linha: 1 }
         }
-      },
-      {
-        $project: {
-          linha: "$erros.linha",
-          camposComErro: 1,
-          _id: "$erros._id"
-        }
-      },
-      {
-        $sort: { linha: 1 }
-      }
-    ]
+      ]
 
-    const resultados = await PendenciaDetalhadaModel.aggregate(pipeline)
-    return resultados
-  } catch (err) {
-    console.error("Erro na agregação MongoDB:", err)
-    throw new Error("Erro ao consultar pendências detalhadas")
+      const resultados = await PendenciaDetalhadaModel.aggregate(pipeline)
+      return resultados
+    } catch (err) {
+      console.error("Erro na agregação MongoDB:", err)
+      throw new Error("Erro ao consultar pendências detalhadas")
+    }
   }
-}
-
-
-
-
-
 }
 
 export default DeclaracaoService
