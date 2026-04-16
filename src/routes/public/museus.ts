@@ -5,6 +5,8 @@ import {
 import MuseuController from "../../controllers/MuseuController"
 
 const routes = express.Router()
+
+routes.get("/buscar", MuseuController.listarMuseus)
 /**
  * @swagger
  * /api/public/museus:

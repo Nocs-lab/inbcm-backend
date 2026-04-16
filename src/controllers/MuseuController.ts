@@ -130,27 +130,25 @@ class MuseuController {
    */
   static async listarMuseus(req: Request, res: Response) {
     try {
+      // 1. Removido o 'semVinculoUsuario' daqui
       const { search, page, limit } = req.query
 
-      const filtro: MuseuFiltro = {}
+      const filtro: any = {} 
+
       if (search) {
-        filtro.$text = { $search: search as string }
+        filtro.nome = { $regex: search as string, $options: "i" }
       }
+
+      // 2. O bloco if (semVinculoUsuario === 'true') {...} foi apagado
+
       const pageNumber = parseInt(page as string, 10) || 1
       const limitNumber = parseInt(limit as string, 10) || 10
       const skip = (pageNumber - 1) * limitNumber
 
-      // Busca paginada com apenas os campos necessários
-      const museus = search
-        ? await Museu.find(filtro, { score: { $meta: "textScore" } })
-            .select("nome _id endereco")
-            .sort({ score: { $meta: "textScore" } })
-            .skip(skip)
-            .limit(limitNumber)
-        : await Museu.find(filtro)
-            .select("nome _id endereco")
-            .skip(skip)
-            .limit(limitNumber)
+      const museus = await Museu.find(filtro)
+        .select("nome endereco.municipio endereco.uf")
+        .skip(skip)
+        .limit(limitNumber)
 
       const totalItems = await Museu.countDocuments(filtro)
       const totalPages = Math.ceil(totalItems / limitNumber)
