@@ -14,13 +14,14 @@ import { sendEmail } from "../emails"
 import argon from "@node-rs/argon2"
 import { createHash, randomUUID } from "crypto"
 import config from "../config"
+import { DataUtils } from "../utils/dataUtils"
 
 class UsuarioController {
   constructor() {
-    this.registerUsuarioExternoDeclarant = this.registerUsuarioExternoDeclarant.bind(this)
-    this.registerUsuarioExternoAnalyst = this.registerUsuarioExternoAnalyst.bind(
-      this
-    )
+    this.registerUsuarioExternoDeclarant =
+      this.registerUsuarioExternoDeclarant.bind(this)
+    this.registerUsuarioExternoAnalyst =
+      this.registerUsuarioExternoAnalyst.bind(this)
     this.registerUsuario = this.registerUsuario.bind(this)
     this.getUsuarios = this.getUsuarios.bind(this)
     this.getUsuarioPorId = this.getUsuarioPorId.bind(this)
@@ -48,6 +49,7 @@ class UsuarioController {
         cpf,
         senha
       })
+      logger.info(">>> Validação OK")
 
       const novoUsuario = await UsuarioService.criarUsuarioExternoDeclarant({
         nome,
@@ -58,6 +60,30 @@ class UsuarioController {
         arquivo: req.file!,
         senha
       })
+      logger.info(">>> Usuário criado OK")
+
+      await sendEmail("solicitar-acesso", email, { name: nome })
+      logger.info(">>> E-mail solicitante OK")
+
+      const adminsDeclarant = await Usuario.find({
+        situacao: SituacaoUsuario.Ativo
+      }).populate("profile")
+      logger.info(">>> Admins encontrados:", adminsDeclarant.length)
+
+      const emailsAdminDeclarant = adminsDeclarant
+        .filter((u) => u.profile && (u.profile as IProfile).name === "admin")
+        .map((u) => u.email)
+      logger.info(">>> E-mails admin filtrados:", emailsAdminDeclarant)
+
+      if (emailsAdminDeclarant.length > 0) {
+        await sendEmail("novo-usuario-admin", emailsAdminDeclarant, {
+          nome,
+          email,
+          horario: DataUtils.gerarDataHoraExtenso(new Date()),
+          url: `${config.ADMIN_SITE_URL}/usuarios`
+        })
+      }
+      logger.info(">>> Tudo OK")
 
       return res.status(201).json({
         message:
@@ -70,7 +96,8 @@ class UsuarioController {
         return res.status(400).json({ message: error.message })
       }
       return res.status(500).json({
-        message: "Erro desconhecido ao criar usuário declarante externo." + error
+        message:
+          "Erro desconhecido ao criar usuário declarante externo." + error
       })
     }
   }
@@ -98,6 +125,24 @@ class UsuarioController {
         especialidadeAnalista
       })
 
+      await sendEmail("solicitar-acesso", email, { name: nome })
+
+      const adminsAnalyst = await Usuario.find({
+        situacao: SituacaoUsuario.Ativo
+      }).populate("profile")
+      const emailsAdminAnalyst = adminsAnalyst
+        .filter((u) => (u.profile as IProfile).name === "admin")
+        .map((u) => u.email)
+
+      if (emailsAdminAnalyst.length > 0) {
+        await sendEmail("novo-usuario-admin", emailsAdminAnalyst, {
+          nome,
+          email,
+          horario: DataUtils.gerarDataHoraExtenso(new Date()),
+          url: `${config.ADMIN_SITE_URL}/usuarios`
+        })
+      }
+
       return res.status(201).json({
         message:
           "Pedido de acesso ao sistema INBCM feito com sucesso. Aguarde análise.",
@@ -115,7 +160,6 @@ class UsuarioController {
   }
 
   async registerUsuario(req: Request, res: Response) {
-
     const { nome, email, senha, cpf, profile, especialidadeAnalista, museus } =
       req.body
 
@@ -162,13 +206,13 @@ class UsuarioController {
 
       logger.error("Erro inesperado:", error)
       return res.status(500).json({
-        message: "Erro desconhecido ao criar usuário, ", error
+        message: "Erro desconhecido ao criar usuário, ",
+        error
       })
     }
   }
 
   async getUsuarios(req: Request, res: Response) {
-
     try {
       const { perfil } = req.query
 
@@ -214,7 +258,6 @@ class UsuarioController {
   async getUsuario(req: Request, res: Response) {
     const userId = req.user?.id
 
-
     try {
       const usuario = await Usuario.findById(userId)
         .populate("museus")
@@ -230,7 +273,6 @@ class UsuarioController {
   }
 
   async atualizarUsuario(req: Request, res: Response) {
-
     try {
       const { id } = req.params
       const {
@@ -260,6 +302,8 @@ class UsuarioController {
       //   return res.status(401).json({ message: "Senha atual incorreta." })
       // }
 
+      const situacaoOriginal = usuario.situacao
+
       if (situacao !== undefined) {
         if (!Object.values(SituacaoUsuario).includes(situacao)) {
           throw new HTTPError("Situação do usuário inválida.", 400)
@@ -277,8 +321,9 @@ class UsuarioController {
             ]
           })
 
-
-          const declaracaoEmAnalise = declaracoesUsuario.some(declaracao => declaracao.status === Status.EmAnalise)
+          const declaracaoEmAnalise = declaracoesUsuario.some(
+            (declaracao) => declaracao.status === Status.EmAnalise
+          )
 
           if (declaracaoEmAnalise) {
             throw new HTTPError(
@@ -286,15 +331,14 @@ class UsuarioController {
               400
             )
           }
-
-          
-         
         }
-
 
         if (situacao === SituacaoUsuario.NaoAprovado) {
           if (desvincularMuseus && Array.isArray(desvincularMuseus)) {
-            await UsuarioService.desvincularMuseusDoUsuario(usuario, desvincularMuseus)
+            await UsuarioService.desvincularMuseusDoUsuario(
+              usuario,
+              desvincularMuseus
+            )
           }
         }
 
@@ -327,12 +371,13 @@ class UsuarioController {
           museuIds: museus
         })
       }
-      
 
       if (desvincularMuseus && Array.isArray(desvincularMuseus)) {
-        await UsuarioService.desvincularMuseusDoUsuario(usuario, desvincularMuseus)
+        await UsuarioService.desvincularMuseusDoUsuario(
+          usuario,
+          desvincularMuseus
+        )
       }
-
 
       if (especialidadeAnalista) {
         const perfilAtual = await Profile.findById(usuario.profile)
@@ -367,9 +412,33 @@ class UsuarioController {
       }
 
       await usuario.save()
-      if (usuario.situacao == 0 && situacao == 3){
-        await sendEmail("reprovacao-cadastro-usuario", usuario.email, {nome:usuario.nome})
+
+      if (situacao !== undefined) {
+        if (
+          situacao === SituacaoUsuario.Ativo &&
+          situacaoOriginal === SituacaoUsuario.ParaAprovar
+        ) {
+          const perfilUsuario = await Profile.findById(usuario.profile)
+          const url =
+            perfilUsuario?.name === "declarant"
+              ? `${config.PUBLIC_SITE_URL}/usuarios`
+              : `${config.ADMIN_SITE_URL}/usuarios`
+          await sendEmail("aprovacao-cadastro-usuario", usuario.email, {
+            nome: usuario.nome,
+            email: usuario.email,
+            senha: "(definida no cadastro)",
+            url
+          })
+        } else if (
+          situacao === SituacaoUsuario.NaoAprovado &&
+          situacaoOriginal === SituacaoUsuario.ParaAprovar
+        ) {
+          await sendEmail("reprovacao-cadastro-usuario", usuario.email, {
+            nome: usuario.nome
+          })
+        }
       }
+
       return res
         .status(200)
         .json({ message: "Usuário atualizado com sucesso.", usuario })
@@ -409,7 +478,6 @@ class UsuarioController {
       if (nome) usuario.nome = nome
       if (email) usuario.email = email
       if (senha) usuario.senha = await argon2.hash(senha)
-
 
       if (especialidadeAnalista) {
         const perfilAtual = await Profile.findById(usuario.profile)
@@ -528,7 +596,6 @@ class UsuarioController {
   }
 
   async getUsersByProfile(req: Request, res: Response) {
-
     const { profileId } = req.params
 
     try {
@@ -560,7 +627,10 @@ class UsuarioController {
         return res.status(404).json({ message: "Usuário não encontrado." })
       }
 
-      if (!usuario.documentoComprobatorio || usuario.documentoComprobatorio == null) {
+      if (
+        !usuario.documentoComprobatorio ||
+        usuario.documentoComprobatorio == null
+      ) {
         return res.status(404).json({ message: "Erro ao buscar documento" })
       }
 
@@ -573,7 +643,8 @@ class UsuarioController {
         return res.status(404).json({ message: "Documento não encontrado." })
       }
 
-      const fileName = usuario.documentoComprobatorio.split("/").pop() || "documento.pdf"
+      const fileName =
+        usuario.documentoComprobatorio.split("/").pop() || "documento.pdf"
 
       res.setHeader("Content-Type", "application/pdf")
       res.setHeader("Content-Disposition", `attachment; filename=${fileName}`)
@@ -604,11 +675,11 @@ class UsuarioController {
 
     try {
       const usuario = await Usuario.findOne({ email: email.toLowerCase() })
-  
+
       if (!usuario) {
         return res.status(404).json({ message: "Usuário não encontrado." })
       }
-      
+
       const token = createHash("sha256").update(randomUUID()).digest("hex")
       const tokenExpiracao = new Date(Date.now() + 60 * 60 * 1000)
 
@@ -621,10 +692,14 @@ class UsuarioController {
         url: `${admin ? config.ADMIN_SITE_URL : config.PUBLIC_SITE_URL}/resetarSenha/${token}`
       })
 
-      return res.status(200).json({ message: "Email de recuperação de senha enviado." })
+      return res
+        .status(200)
+        .json({ message: "Email de recuperação de senha enviado." })
     } catch (error) {
       logger.error("Erro ao processar recuperação de senha:", error)
-      return res.status(500).json({ message: "Erro ao processar recuperação de senha." })
+      return res
+        .status(500)
+        .json({ message: "Erro ao processar recuperação de senha." })
     }
   }
 
@@ -640,7 +715,7 @@ class UsuarioController {
       if (!usuario) {
         return res.status(400).json({ message: "Token inválido ou expirado." })
       }
-      
+
       return res.status(200).json({ message: "Token válido." })
     } catch (error) {
       logger.error("Erro ao verificar token de recuperação de senha:", error)
@@ -652,7 +727,9 @@ class UsuarioController {
     const { token, novaSenha } = req.body
 
     if (!token || !novaSenha) {
-      return res.status(400).json({ message: "Token e nova senha são obrigatórios." })
+      return res
+        .status(400)
+        .json({ message: "Token e nova senha são obrigatórios." })
     }
 
     try {
@@ -668,11 +745,10 @@ class UsuarioController {
       usuario.senha = await argon2.hash(novaSenha)
       usuario.resetPasswordToken = undefined
       usuario.resetPasswordExpires = undefined
-      
+
       await usuario.save()
       return res.status(200).json({ message: "Senha redefinida com sucesso." })
-    }
-    catch (error) {
+    } catch (error) {
       logger.error("Erro ao redefinir senha:", error)
       return res.status(500).json({ message: "Erro ao redefinir senha." })
     }
