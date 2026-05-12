@@ -513,25 +513,72 @@ class MuseuController {
       pipeline.push({
         $lookup: {
           from: "estados",
-          localField: "endereco.uf",
-          foreignField: "uf",
+          let: { ufMuseu: { $toUpper: "$endereco.uf" } },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$uf", "$$ufMuseu"] }
+              }
+            }
+          ],
           as: "estadoInfo"
         }
       })
 
-      pipeline.push({ $unwind: "$estadoInfo" })
+      pipeline.push({
+        $unwind: {
+          path: "$estadoInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      })
 
       if (Object.keys(filtrosAgregacao).length > 0) {
         pipeline.push({ $match: filtrosAgregacao })
       }
+
+      pipeline.push({
+        $lookup: {
+          from: "usuarios",
+          localField: "usuario",
+          foreignField: "_id",
+          as: "usuariosVinculados"
+        }
+      })
+
+      pipeline.push({
+        $addFields: {
+          localidade: {
+            regiao: { $ifNull: ["$estadoInfo.regiao", "Não informado"] },
+            uf: { $toUpper: "$endereco.uf" },
+            municipio: "$endereco.municipio"
+          },
+          declarante: {
+            $cond: {
+              if: {
+                $gt: [{ $size: { $ifNull: ["$usuariosVinculados", []] } }, 0]
+              },
+              then: { $arrayElemAt: ["$usuariosVinculados.nome", 0] },
+              else: "Não informado"
+            }
+          }
+        }
+      })
 
       const resultadoAgregacao = await Museu.aggregate([
         ...pipeline,
         {
           $facet: {
             metadata: [{ $count: "total" }],
-
-            dados: [{ $skip: (pagina - 1) * tamanho }, { $limit: tamanho }]
+            dados: [
+              { $skip: (pagina - 1) * tamanho },
+              { $limit: tamanho },
+              {
+                $project: {
+                  usuariosVinculados: 0,
+                  estadoInfo: 0
+                }
+              }
+            ]
           }
         }
       ])
