@@ -13,16 +13,19 @@ export default class ExportadorController {
     this.baixarArquivos = this.baixarArquivos.bind(this)
   }
 
-  async criarColecoes(
-    request: Request,
-    response: Response
-  ): Promise<Response> {
+  async criarColecoes(request: Request, response: Response): Promise<Response> {
     try {
       const { id } = request.params
       await this.exportadorService.criarColecoes(id)
-      return response.status(200).json({ message: "Coleções criadas com sucesso!" })
+      return response
+        .status(200)
+        .json({ message: "Coleções criadas com sucesso!" })
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao criar coleções.'
+      console.error("Erro crítico em criarColecoes:", error)
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Erro inesperado ao criar coleções."
       return response.status(500).json({ error: errorMessage })
     }
   }
@@ -36,7 +39,11 @@ export default class ExportadorController {
       await this.exportadorService.exportar(id!)
       return response.status(200).json({})
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao iniciar a exportação.'
+      console.error("Erro crítico em iniciarExportacao:", error)
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Erro inesperado ao iniciar a exportação."
       return response.status(500).json({ error: errorMessage })
     }
   }
@@ -49,7 +56,11 @@ export default class ExportadorController {
       const exportacoes = await this.exportadorService.listarExportacoes()
       return response.status(200).json(exportacoes)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao listar exportações.'
+      console.error("Erro crítico em listarExportacoes:", error)
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Erro inesperado ao listar exportações."
       return response.status(500).json({ error: errorMessage })
     }
   }
@@ -62,11 +73,17 @@ export default class ExportadorController {
       const { id } = request.params
       const exportacao = await this.exportadorService.obterExportacao(id)
       if (!exportacao) {
-        return response.status(404).json({ error: "Exportação não encontrada." })
+        return response
+          .status(404)
+          .json({ error: "Exportação não encontrada." })
       }
       return response.status(200).json(exportacao)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao obter exportação.'
+      console.error("Erro crítico em obterExportacao:", error)
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Erro inesperado ao obter exportação."
       return response.status(500).json({ error: errorMessage })
     }
   }
@@ -76,10 +93,17 @@ export default class ExportadorController {
     response: Response
   ): Promise<Response> {
     try {
-      const exportacao = await this.exportadorService.criarExportacao(request.user.id, request.body.anoId)
+      const exportacao = await this.exportadorService.criarExportacao(
+        request.user.id,
+        request.body.anoId
+      )
       return response.status(201).json(exportacao)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro inesperado ao criar exportação.'
+      console.error("Erro crítico em criarExportacao:", error)
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Erro inesperado ao criar exportação."
       return response.status(500).json({ error: errorMessage })
     }
   }
@@ -90,37 +114,48 @@ export default class ExportadorController {
   ): Promise<Response | void> {
     try {
       const { id } = request.params
-      
-      if (!id) {
-        return response.status(400).json({ error: 'Export ID is required.' })
-      }
-      
-      const stream = await this.exportadorService.baixarArquivos(id)
-      
-      response.setHeader('Content-Type', 'application/zip')
-      response.setHeader('Content-Disposition', `attachment; filename=exportacao-${id}.zip`)
 
-      stream.on('error', (err: unknown) => {
-        const error = err instanceof Error ? err : new Error('Error in download stream.')
+      if (!id) {
+        return response.status(400).json({ error: "Export ID is required." })
+      }
+
+      const stream = await this.exportadorService.baixarArquivos(id)
+
+      response.setHeader("Content-Type", "application/zip")
+      response.setHeader(
+        "Content-Disposition",
+        `attachment; filename=exportacao-${id}.zip`
+      )
+
+      stream.on("error", (err: unknown) => {
+        const error =
+          err instanceof Error ? err : new Error("Error in download stream.")
+        console.error("Erro na stream de download:", error)
         if (!response.headersSent) {
-          response
-            .status(500)
-            .json({ error: error.message })
+          response.status(500).json({ error: error.message })
         } else {
           response.destroy(err as Error)
         }
       })
 
-      response.on('error', (err: unknown) => {
-        const error = err instanceof Error ? err : new Error('Error in response during download.')
-        if ('destroy' in stream && typeof stream.destroy === 'function') {
+      response.on("error", (err: unknown) => {
+        const error =
+          err instanceof Error
+            ? err
+            : new Error("Error in response during download.")
+        console.error("Erro na resposta de download:", error)
+        if ("destroy" in stream && typeof stream.destroy === "function") {
           stream.destroy(error)
         }
       })
-      
+
       stream.pipe(response)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unexpected error while downloading files.'
+      console.error("Erro crítico em baixarArquivos:", error)
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Unexpected error while downloading files."
       return response.status(500).json({ error: errorMessage })
     }
   }
