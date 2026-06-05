@@ -1,3 +1,4 @@
+/* eslint-disable no-constant-condition */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import mongoose, { ObjectId } from "mongoose"
 import { Declaracoes } from "../models"
@@ -83,11 +84,7 @@ const museologicoFields: FieldsDefinition = [
     name: "Mídias Relacionadas",
     type: tainacanFields.texto
   },
-  {
-    id: "museu",
-    name: "Museu",
-    type: tainacanFields.texto
-  }
+  { id: "museu", name: "Museu", type: tainacanFields.texto }
 ]
 
 const bibliograficoFields: FieldsDefinition = [
@@ -149,11 +146,7 @@ const bibliograficoFields: FieldsDefinition = [
     name: "Mídias Relacionadas",
     type: tainacanFields.texto
   },
-  {
-    id: "museu",
-    name: "Museu",
-    type: tainacanFields.texto
-  }
+  { id: "museu", name: "Museu", type: tainacanFields.texto }
 ]
 
 const arquivisticoFields: FieldsDefinition = [
@@ -226,11 +219,7 @@ const arquivisticoFields: FieldsDefinition = [
     name: "Mídias Relacionadas",
     type: tainacanFields.texto
   },
-  {
-    id: "museu",
-    name: "Museu",
-    type: tainacanFields.texto
-  }
+  { id: "museu", name: "Museu", type: tainacanFields.texto }
 ]
 
 export default class ExportadorService {
@@ -261,31 +250,123 @@ export default class ExportadorService {
 
     const itens = await BemCultural.aggregate([
       { $match: { $or: orConditions } },
-      {
-        $group: {
-          _id: "$__t",
-          items: { $push: "$$ROOT" }
-        }
-      }
+      { $group: { _id: "$__t", items: { $push: "$$ROOT" } } }
     ])
 
     return itens
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Limpa todos os itens de uma coleção deletando página a página (force=true).
+  // Isso garante RN03/CA02: sem duplicação em reexportações.
+  // Erros de rede são tratados com retry — se persistirem, lança erro e aborta.
+  // ─────────────────────────────────────────────────────────────────────────────
+  private async limparColecaoTainacan(
+    baseUrl: string,
+    credentials: string,
+    collectionId: string,
+    tipo: string
+  ): Promise<void> {
+    console.log(
+      `[LIMPEZA:${tipo}] Iniciando limpeza da coleção ${collectionId}...`
+    )
+
+    let deletados = 0
+    let tentativasConsecutivasVazias = 0
+
+    // Continua paginando enquanto houver itens
+    while (true) {
+      // Busca até 100 itens da coleção
+      let listData: any
+      for (let retry = 0; retry < 5; retry++) {
+        try {
+          const listRes = await fetch(
+            `${baseUrl}/wp-json/tainacan/v2/collection/${collectionId}/items/?perpage=100&paged=1&context=edit`,
+            {
+              method: "GET",
+              headers: { Authorization: `Basic ${credentials}` }
+            }
+          )
+          if (!listRes.ok) {
+            console.warn(
+              `[LIMPEZA:${tipo}] HTTP ${listRes.status} ao listar itens. Tentativa ${retry + 1}/5.`
+            )
+            await new Promise((r) => setTimeout(r, 3000))
+            continue
+          }
+          listData = await listRes.json()
+          break
+        } catch (err) {
+          console.warn(
+            `[LIMPEZA:${tipo}] Erro de rede ao listar (tentativa ${retry + 1}/5): ${err}`
+          )
+          await new Promise((r) => setTimeout(r, 3000))
+        }
+      }
+
+      if (!listData) {
+        throw new Error(
+          `[LIMPEZA:${tipo}] Não foi possível listar itens da coleção após 5 tentativas.`
+        )
+      }
+
+      const items: any[] = listData?.items ?? []
+
+      if (items.length === 0) {
+        tentativasConsecutivasVazias++
+        // Aguarda um pouco e tenta mais uma vez para garantir que o Tainacan não está atrasando
+        if (tentativasConsecutivasVazias >= 2) break
+        await new Promise((r) => setTimeout(r, 2000))
+        continue
+      }
+
+      tentativasConsecutivasVazias = 0
+
+      // Deleta cada item permanentemente
+      for (const item of items) {
+        for (let retry = 0; retry < 3; retry++) {
+          try {
+            const delRes = await fetch(
+              `${baseUrl}/wp-json/tainacan/v2/items/${item.id}?force=true`,
+              {
+                method: "DELETE",
+                headers: { Authorization: `Basic ${credentials}` }
+              }
+            )
+            if (delRes.ok) {
+              deletados++
+            } else {
+              console.warn(
+                `[LIMPEZA:${tipo}] Falha ao deletar item ${item.id}: HTTP ${delRes.status}`
+              )
+            }
+            break
+          } catch (err) {
+            console.warn(
+              `[LIMPEZA:${tipo}] Erro de rede ao deletar item ${item.id} (tentativa ${retry + 1}/3): ${err}`
+            )
+            await new Promise((r) => setTimeout(r, 2000))
+          }
+        }
+      }
+    }
+
+    console.log(
+      `[LIMPEZA:${tipo}] ✅ ${deletados} itens removidos da coleção ${collectionId}.`
+    )
   }
 
   async criarColecoes(exportacaoId: string): Promise<void> {
     const config = await ConfiguracaoPortalPublicoModel.findOne({
       key: "portalPublico"
     })
-
-    if (!config) {
+    if (!config)
       throw new Error("Configuração do portal público não encontrada")
-    }
 
     const exportacao = await ExportacaoModel.findById(exportacaoId)
-    if (!exportacao) {
-      throw new Error("Exportação não encontrada")
-    }
+    if (!exportacao) throw new Error("Exportação não encontrada")
 
+    // Reutiliza coleções de exportações anteriores do mesmo ano
     const exportacaoAnterior = await ExportacaoModel.findOne({
       ano: exportacao.ano,
       colecoesCriadas: true,
@@ -302,11 +383,12 @@ export default class ExportadorService {
 
     let anoLabel = "Sem_Ano"
     if (exportacao.ano) {
-      const anoDoc = await mongoose.connection.db
-        .collection("anodeclaracoes")
-        .findOne({ _id: exportacao.ano })
-      if (anoDoc && anoDoc.ano) {
-        anoLabel = String(anoDoc.ano)
+      const db = mongoose.connection.db
+      if (db) {
+        const anoDoc = await db
+          .collection("anodeclaracoes")
+          .findOne({ _id: exportacao.ano })
+        if (anoDoc && anoDoc.ano) anoLabel = String(anoDoc.ano)
       }
     }
 
@@ -314,7 +396,7 @@ export default class ExportadorService {
       `${config.node_de_usuario}:${config.senha}`
     ).toString("base64")
 
-    const [res1, res2, res3] = await Promise.all([
+    const criarColecao = (nome: string) =>
       fetch(`${config.url}/wp-json/tainacan/v2/collections/?context=edit`, {
         method: "POST",
         headers: {
@@ -322,103 +404,7 @@ export default class ExportadorService {
           Authorization: `Basic ${credentials}`
         },
         body: JSON.stringify({
-          name: `Museológico - ${anoLabel}`,
-          description: "",
-          enable_cover_page: "no",
-          cover_page_id: "",
-          slug: "",
-          status: "publish",
-          parent: 0,
-          enabled_view_modes: ["table", "cards", "masonry"],
-          default_view_mode: "table",
-          default_order: "ASC",
-          default_orderby: "date",
-          allows_submission: "no",
-          submission_anonymous_user: "no",
-          submission_default_status: "draft",
-          submission_use_recaptcha: "no",
-          allow_comments: "closed",
-          allow_item_slug_editing: "no",
-          allow_item_author_editing: "no",
-          hide_items_thumbnail_on_lists: "no",
-          item_enabled_document_types: {
-            attachment: {
-              enabled: "yes",
-              label: "Arquivo",
-              icon: "attachments"
-            },
-            url: { enabled: "yes", label: "URL", icon: "url" },
-            text: { enabled: "yes", label: "Texto simples", icon: "text" }
-          },
-          item_publication_label: "Data da publicação",
-          item_document_label: "Documento",
-          item_thumbnail_label: "Miniatura",
-          item_enable_thumbnail: "yes",
-          item_attachment_label: "Anexos",
-          item_enable_attachments: "yes",
-          item_enable_metadata_focus_mode: "yes",
-          item_enable_metadata_required_filter: "yes",
-          item_enable_metadata_searchbar: "yes",
-          item_enable_metadata_collapses: "yes",
-          item_enable_metadata_enumeration: "no"
-        })
-      }),
-      fetch(`${config.url}/wp-json/tainacan/v2/collections/?context=edit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${credentials}`
-        },
-        body: JSON.stringify({
-          name: `Bibliográfico - ${anoLabel}`,
-          description: "",
-          enable_cover_page: "no",
-          cover_page_id: "",
-          slug: "",
-          status: "publish",
-          parent: 0,
-          enabled_view_modes: ["table", "cards", "masonry"],
-          default_view_mode: "table",
-          default_order: "ASC",
-          default_orderby: "date",
-          allows_submission: "no",
-          submission_anonymous_user: "no",
-          submission_default_status: "draft",
-          submission_use_recaptcha: "no",
-          allow_comments: "closed",
-          allow_item_slug_editing: "no",
-          allow_item_author_editing: "no",
-          hide_items_thumbnail_on_lists: "no",
-          item_enabled_document_types: {
-            attachment: {
-              enabled: "yes",
-              label: "Arquivo",
-              icon: "attachments"
-            },
-            url: { enabled: "yes", label: "URL", icon: "url" },
-            text: { enabled: "yes", label: "Texto simples", icon: "text" }
-          },
-          item_publication_label: "Data da publicação",
-          item_document_label: "Documento",
-          item_thumbnail_label: "Miniatura",
-          item_enable_thumbnail: "yes",
-          item_attachment_label: "Anexos",
-          item_enable_attachments: "yes",
-          item_enable_metadata_focus_mode: "yes",
-          item_enable_metadata_required_filter: "yes",
-          item_enable_metadata_searchbar: "yes",
-          item_enable_metadata_collapses: "yes",
-          item_enable_metadata_enumeration: "no"
-        })
-      }),
-      fetch(`${config.url}/wp-json/tainacan/v2/collections/?context=edit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${credentials}`
-        },
-        body: JSON.stringify({
-          name: `Arquivístico - ${anoLabel}`,
+          name: nome,
           description: "",
           enable_cover_page: "no",
           cover_page_id: "",
@@ -459,13 +445,18 @@ export default class ExportadorService {
           item_enable_metadata_enumeration: "no"
         })
       })
+
+    const [res1, res2, res3] = await Promise.all([
+      criarColecao(`Museológico - ${anoLabel}`),
+      criarColecao(`Bibliográfico - ${anoLabel}`),
+      criarColecao(`Arquivístico - ${anoLabel}`)
     ])
 
     const failedRes = [res1, res2, res3].find((r) => !r.ok)
     if (failedRes) {
-      const errorData = await failedRes.json().catch(() => ({
-        message: "Erro de autorização no servidor de homologação."
-      }))
+      const errorData = await failedRes
+        .json()
+        .catch(() => ({ message: "Erro de autorização." }))
       throw new Error(
         `Falha na criação no Tainacan: ${JSON.stringify(errorData)}`
       )
@@ -505,35 +496,21 @@ export default class ExportadorService {
         metadataRes3.json()
       ])
 
-    for (const field of museologicoMetadata) {
-      if (field.metadata_type === "Tainacan\\Metadata_Types\\Core_Title") {
-        mappings.museologico["titulo"] = String(field.id)
-      } else if (
-        field.metadata_type === "Tainacan\\Metadata_Types\\Core_Description"
-      ) {
-        mappings.museologico["resumodescritivo"] = String(field.id)
+    const mapearCoreFields = (metadata: any[], collection: string) => {
+      for (const field of metadata) {
+        if (field.metadata_type === "Tainacan\\Metadata_Types\\Core_Title") {
+          mappings[collection]["titulo"] = String(field.id)
+        } else if (
+          field.metadata_type === "Tainacan\\Metadata_Types\\Core_Description"
+        ) {
+          mappings[collection]["resumodescritivo"] = String(field.id)
+        }
       }
     }
 
-    for (const field of bibliograficoMetadata) {
-      if (field.metadata_type === "Tainacan\\Metadata_Types\\Core_Title") {
-        mappings.bibliografico["titulo"] = String(field.id)
-      } else if (
-        field.metadata_type === "Tainacan\\Metadata_Types\\Core_Description"
-      ) {
-        mappings.bibliografico["resumodescritivo"] = String(field.id)
-      }
-    }
-
-    for (const field of arquivisticoMetadata) {
-      if (field.metadata_type === "Tainacan\\Metadata_Types\\Core_Title") {
-        mappings.arquivistico["titulo"] = String(field.id)
-      } else if (
-        field.metadata_type === "Tainacan\\Metadata_Types\\Core_Description"
-      ) {
-        mappings.arquivistico["resumodescritivo"] = String(field.id)
-      }
-    }
+    mapearCoreFields(museologicoMetadata, "museologico")
+    mapearCoreFields(bibliograficoMetadata, "bibliografico")
+    mapearCoreFields(arquivisticoMetadata, "arquivistico")
 
     for (const { field, collectionId, collection } of [
       ...museologicoFields
@@ -577,7 +554,6 @@ export default class ExportadorService {
           })
         }
       )
-
       const { id } = await res.json()
       mappings[collection][field.id] = String(id)
     }
@@ -615,19 +591,14 @@ export default class ExportadorService {
       bibliografico: bibliograficoFields
     }[tipo]
 
-    if (!fields) {
-      throw new Error(`Tipo de exportação inválido: ${tipo}`)
-    }
+    if (!fields) throw new Error(`Tipo de exportação inválido: ${tipo}`)
 
     const header = fields.map((field) => `"${field.id}"`).join(",")
-
     const rows = itens.map((item) =>
       fields
         .map((field) => {
           let valor = item[field.id] || ""
-          if (typeof valor === "string") {
-            valor = valor.replace(/,/g, ".")
-          }
+          if (typeof valor === "string") valor = valor.replace(/,/g, ".")
           return this.escapeCsvValue(valor)
         })
         .join(",")
@@ -638,46 +609,44 @@ export default class ExportadorService {
 
   async exportar(id: string): Promise<void> {
     const exportacao = await ExportacaoModel.findById(id)
-
-    if (!exportacao) {
-      throw new Error("Exportação não encontrada")
-    }
+    if (!exportacao) throw new Error("Exportação não encontrada")
 
     exportacao.status = "em_andamento"
     exportacao.iniciadoEm = new Date()
     await exportacao.save()
 
+    // RN04: executa em background sem bloquear a resposta HTTP
     setImmediate(() => {
       this.executarExportacaoBackground(id).catch(async (error) => {
         console.error(`Falha na exportação em background [${id}]:`, error)
-        const exp = await ExportacaoModel.findById(id)
-        if (exp) {
-          exp.status = "erro"
-          exp.erro = error instanceof Error ? error.message : "Erro fatal"
-          exp.finalizadoEm = new Date()
-          await exp.save()
-        }
+        await ExportacaoModel.updateOne(
+          { _id: id },
+          {
+            $set: {
+              status: "erro",
+              erro: error instanceof Error ? error.message : "Erro fatal",
+              finalizadoEm: new Date()
+            }
+          }
+        )
       })
     })
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Aguarda o job do Tainacan terminar e loga cada detalhe do progresso.
-  // Retorna o JSON final da sessão (ou null se a sessão foi apagada pelo Tainacan,
-  // o que indica sucesso).
+  // Polling do bg-process real do Tainacan.
+  // O /run retorna bg_process_id — usamos esse ID para saber quando o job terminou.
   // ─────────────────────────────────────────────────────────────────────────────
-  private async aguardarJobTainacan(
+  private async aguardarBgProcess(
     baseUrl: string,
     credentials: string,
-    sessionId: string,
+    bgProcessId: string,
     label: string
-  ): Promise<any | null> {
-    const MAX_TENTATIVAS = 120 // 10 minutos (120 × 5s)
+  ): Promise<"concluida" | "erro" | "em_andamento"> {
+    const MAX_TENTATIVAS = 120 // 10 minutos
     const INTERVALO_MS = 5000
 
-    console.log(
-      `\n[POLLING:${label}] Iniciando polling da sessão ${sessionId}...`
-    )
+    console.log(`[POLLING:${label}] Aguardando bg-process ${bgProcessId}...`)
 
     for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
       await new Promise((resolve) => setTimeout(resolve, INTERVALO_MS))
@@ -685,7 +654,7 @@ export default class ExportadorService {
       let pollRes: Response
       try {
         pollRes = await fetch(
-          `${baseUrl}/wp-json/tainacan/v2/importers/session/${sessionId}`,
+          `${baseUrl}/wp-json/tainacan/v2/bg-processes/${bgProcessId}`,
           { method: "GET", headers: { Authorization: `Basic ${credentials}` } }
         )
       } catch (err) {
@@ -695,85 +664,39 @@ export default class ExportadorService {
         continue
       }
 
-      // ── Tainacan apaga a sessão quando conclui com sucesso ──
-      if (pollRes.status === 400) {
-        const body = await pollRes.json().catch(() => ({}))
-        if (
-          (body as any).error_message === "Sessão de Importador não encontrada"
-        ) {
-          console.log(
-            `[POLLING:${label}] ✅ Sessão removida pelo Tainacan (job concluído com sucesso). Tentativa ${tentativa}.`
-          )
-          return null // sucesso — sessão apagada
-        }
-        console.error(
-          `[POLLING:${label}] ❌ HTTP 400 inesperado:`,
-          JSON.stringify(body)
-        )
-        return body
-      }
-
       if (!pollRes.ok) {
-        console.error(
-          `[POLLING:${label}] ❌ HTTP ${pollRes.status} inesperado na tentativa ${tentativa}.`
+        console.warn(
+          `[POLLING:${label}] HTTP ${pollRes.status} na tentativa ${tentativa}. Tentando novamente...`
         )
-        return null
+        continue
       }
 
       const poll = await pollRes.json()
-
-      // ── Log de progresso ──
       console.log(
-        `[POLLING:${label}] Tentativa ${tentativa}/${MAX_TENTATIVAS} | ` +
-          `status=${poll.status ?? "?"} | ` +
-          `progress=${poll.progress ?? "?"}% | ` +
-          `processed=${poll.processed_item_count ?? "?"} | ` +
-          `inserted=${poll.inserted_item_count ?? "?"} | ` +
-          `updated=${poll.updated_item_count ?? "?"} | ` +
-          `errors=${poll.error_log?.length ?? 0}`
+        `[POLLING:${label}] Tentativa ${tentativa}/${MAX_TENTATIVAS} | status=${poll.status ?? "?"}`
       )
 
-      // ── Log de erros item a item ──
-      if (Array.isArray(poll.error_log) && poll.error_log.length > 0) {
-        console.error(
-          `[POLLING:${label}] ⚠️  ${poll.error_log.length} erro(s) reportado(s) pelo Tainacan:`
-        )
-        poll.error_log.forEach((err: any, idx: number) => {
-          console.error(`  [erro ${idx + 1}]`, JSON.stringify(err))
-        })
-      }
-
-      // ── Verificação de conclusão ──
       if (
+        poll.status === "closed" ||
         poll.status === "finished" ||
-        poll.status === "done" ||
-        Number(poll.progress) === 100
+        poll.status === "done"
       ) {
-        console.log(
-          `[POLLING:${label}] ✅ Job CONCLUÍDO. ` +
-            `inserted=${poll.inserted_item_count ?? "?"} | ` +
-            `updated=${poll.updated_item_count ?? "?"} | ` +
-            `errors=${poll.error_log?.length ?? 0}`
-        )
-        return poll
+        console.log(`[POLLING:${label}] ✅ Job CONCLUÍDO.`)
+        return "concluida"
       }
 
       if (["failed", "error", "cancelled"].includes(poll.status)) {
         console.error(
           `[POLLING:${label}] ❌ Job FALHOU com status="${poll.status}".`
         )
-        console.error(
-          `[POLLING:${label}] Resposta completa:`,
-          JSON.stringify(poll, null, 2)
-        )
-        return poll
+        return "erro"
       }
     }
 
     console.warn(
-      `[POLLING:${label}] ⏱️  Timeout: job não concluiu em ${MAX_TENTATIVAS} tentativas.`
+      `[POLLING:${label}] ⏱️ Timeout após ${MAX_TENTATIVAS} tentativas. Deixando checkExportStatus resolver.`
     )
-    return null
+    return "em_andamento"
   }
 
   private async executarExportacaoBackground(id: string): Promise<void> {
@@ -781,6 +704,7 @@ export default class ExportadorService {
     if (!exportacao) return
 
     try {
+      // Garante que não há outra exportação em andamento para o mesmo ano (RN04)
       const exportacaoEmAndamento = await ExportacaoModel.findOne({
         ano: exportacao.ano,
         status: "em_andamento",
@@ -793,6 +717,7 @@ export default class ExportadorService {
         )
       }
 
+      // RN01: apenas declarações "Em conformidade"
       const declaracoes = await Declaracoes.find({
         anoDeclaracao: exportacao.ano,
         status: "Em conformidade"
@@ -801,39 +726,58 @@ export default class ExportadorService {
       )
 
       console.log(
-        `[Exportação ${id}] Declarações em conformidade encontradas: ${declaracoes.length}`
+        `[Exportação ${id}] Declarações em conformidade: ${declaracoes.length}`
       )
 
       const itens = await this.obterItensPorTipo(declaracoes)
-
       console.log(
-        `[Exportação ${id}] Tipos encontrados: ${itens.map((i) => `${i._id}(${i.items.length})`).join(", ")}`
+        `[Exportação ${id}] Tipos: ${itens.map((i) => `${i._id}(${i.items.length})`).join(", ")}`
       )
 
       const config = await ConfiguracaoPortalPublicoModel.findOne({
         key: "portalPublico"
       })
-
-      if (!config) {
+      if (!config)
         throw new Error("Configuração do portal público não encontrada")
-      }
 
       const credentials = Buffer.from(
         `${config.node_de_usuario}:${config.senha}`
       ).toString("base64")
-
       const exportacaoPlain = exportacao.toObject()
       const mappings: Record<
         string,
         Record<string, string>
       > = exportacaoPlain.mapeamento || {}
+
       const sessoes: Record<
         string,
-        { id: string; status: "em_andamento" | "concluida" | "erro" }
+        {
+          id: string
+          bgProcessId?: string
+          status: "em_andamento" | "concluida" | "erro"
+        }
       > = {}
-
       let totalExportados = 0
 
+      // RN03/CA02: limpa as coleções existentes antes de reimportar para evitar duplicação
+      if (exportacaoPlain.colecoesCriadas && exportacaoPlain.colecoes) {
+        for (const tipo of ["museologico", "bibliografico", "arquivistico"]) {
+          const colId =
+            exportacaoPlain.colecoes[
+              tipo as keyof typeof exportacaoPlain.colecoes
+            ]
+          if (colId) {
+            await this.limparColecaoTainacan(
+              config.url,
+              credentials,
+              String(colId),
+              tipo
+            )
+          }
+        }
+      }
+
+      // RN02: processa em lotes de 500
       for (const { _id: tipo, items } of itens) {
         const tipoLower: string = (tipo || "").toLowerCase()
         const tamanhoLote = 500
@@ -846,26 +790,33 @@ export default class ExportadorService {
           console.log(`[LOTE] ${label} — ${lote.length} itens`)
           console.log(`${"=".repeat(60)}`)
 
-          // ── 1. Criar sessão ──
-          const sessaoRes = await fetch(
-            `${config.url}/wp-json/tainacan/v2/importers/session/`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Basic ${credentials}`
-              },
-              body: JSON.stringify({ importer_slug: "csv" })
-            }
-          )
+          // 1. Criar sessão
+          let sessaoRes: Response
+          try {
+            sessaoRes = await fetch(
+              `${config.url}/wp-json/tainacan/v2/importers/session/`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Basic ${credentials}`
+                },
+                body: JSON.stringify({ importer_slug: "csv" })
+              }
+            )
+          } catch (err) {
+            console.error(`[${label}] Erro de rede ao criar sessão: ${err}`)
+            sessoes[label] = { id: "unknown", status: "erro" }
+            continue
+          }
+
           const sessaoJson = await sessaoRes.json()
           const sessionId = sessaoJson.id
           console.log(`[${label}] Sessão criada: ${sessionId}`)
-
           sessoes[label] = { id: String(sessionId), status: "em_andamento" }
 
-          // ── 2. Configurar opções ──
-          const opcoesRes = await fetch(
+          // 2. Configurar opções
+          await fetch(
             `${config.url}/wp-json/tainacan/v2/importers/session/${sessionId}`,
             {
               method: "PUT",
@@ -886,21 +837,14 @@ export default class ExportadorService {
               })
             }
           )
-          console.log(
-            `[${label}] Opções configuradas — HTTP ${opcoesRes.status}`
-          )
+          console.log(`[${label}] Opções configuradas`)
 
-          // ── 3. Upload do CSV ──
+          // 3. Upload do CSV
           const csvGerado = this.gerarCsv(lote, tipoLower)
-
-          // Log das primeiras linhas do CSV para conferência
           const csvLinhas = csvGerado.split("\n")
           console.log(
             `[${label}] CSV gerado — ${csvLinhas.length - 1} linhas de dados`
           )
-          console.log(`[${label}] CSV header: ${csvLinhas[0]}`)
-          console.log(`[${label}] CSV linha 1: ${csvLinhas[1] ?? "(vazia)"}`)
-          console.log(`[${label}] CSV linha 2: ${csvLinhas[2] ?? "(vazia)"}`)
 
           const formData = new FormData()
           formData.append(
@@ -913,40 +857,35 @@ export default class ExportadorService {
           uploadHeaders.set("Accept", "application/json")
           uploadHeaders.set("Authorization", `Basic ${credentials}`)
 
-          const uploadRes = await fetch(
-            `${config.url}/wp-json/tainacan/v2/importers/session/${sessionId}/file`,
-            { method: "POST", headers: uploadHeaders, body: formData }
-          )
-          const uploadText = await uploadRes.text()
-          console.log(`[${label}] Upload — HTTP ${uploadRes.status}`)
-          console.log(`[${label}] Upload resposta: ${uploadText}`)
-
-          if (!uploadRes.ok) {
-            console.error(`[${label}] ❌ Upload rejeitado. Pulando lote.`)
+          let uploadRes: Response
+          try {
+            uploadRes = await fetch(
+              `${config.url}/wp-json/tainacan/v2/importers/session/${sessionId}/file`,
+              { method: "POST", headers: uploadHeaders, body: formData }
+            )
+          } catch (err) {
+            console.error(`[${label}] Erro de rede no upload: ${err}`)
             sessoes[label].status = "erro"
             continue
           }
 
-          // ── 4. Configurar mapeamento ──
+          if (!uploadRes.ok) {
+            console.error(
+              `[${label}] ❌ Upload rejeitado HTTP ${uploadRes.status}. Pulando lote.`
+            )
+            sessoes[label].status = "erro"
+            continue
+          }
+          console.log(`[${label}] Upload OK`)
+
+          // 4. Mapeamento
           const rawMapping = mappings[tipoLower] ?? {}
           const invertedMapping: Record<string, string> = {}
           for (const [csvField, metadataId] of Object.entries(rawMapping)) {
             invertedMapping[String(metadataId)] = csvField
           }
 
-          console.log(
-            `[${label}] rawMapping:`,
-            JSON.stringify(rawMapping, null, 2)
-          )
-          console.log(
-            `[${label}] invertedMapping:`,
-            JSON.stringify(invertedMapping, null, 2)
-          )
-          console.log(
-            `[${label}] collection_id: ${exportacaoPlain.colecoes![tipoLower as keyof typeof exportacaoPlain.colecoes]}`
-          )
-
-          const mappingRes = await fetch(
+          await fetch(
             `${config.url}/wp-json/tainacan/v2/importers/session/${sessionId}`,
             {
               method: "PUT",
@@ -965,91 +904,100 @@ export default class ExportadorService {
               })
             }
           )
-          const mappingText = await mappingRes.text()
-          console.log(`[${label}] Mapping — HTTP ${mappingRes.status}`)
-          console.log(`[${label}] Mapping resposta: ${mappingText}`)
+          console.log(`[${label}] Mapping configurado`)
 
-          // ── 5. Disparar job ──
-          const runRes = await fetch(
-            `${config.url}/wp-json/tainacan/v2/importers/session/${sessionId}/run`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Basic ${credentials}`
+          // 5. Disparar job
+          let runRes: Response
+          try {
+            runRes = await fetch(
+              `${config.url}/wp-json/tainacan/v2/importers/session/${sessionId}/run`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Basic ${credentials}`
+                }
               }
-            }
-          )
-          const runText = await runRes.text()
-          console.log(`[${label}] Run — HTTP ${runRes.status}`)
-          console.log(`[${label}] Run resposta: ${runText}`)
+            )
+          } catch (err) {
+            console.error(`[${label}] Erro de rede ao disparar job: ${err}`)
+            sessoes[label].status = "erro"
+            continue
+          }
 
-          // ── 6. Aguardar e logar o resultado completo ──
-          const jobFinal = await this.aguardarJobTainacan(
+          const runJson = await runRes.json()
+          const bgProcessId = String(runJson.bg_process_id)
+          console.log(
+            `[${label}] Job disparado | bg_process_id: ${bgProcessId}`
+          )
+          sessoes[label].bgProcessId = bgProcessId
+
+          // 6. Polling do bg-process real — aguarda até o Tainacan confirmar conclusão
+          const resultado = await this.aguardarBgProcess(
             config.url,
             credentials,
-            sessionId,
+            bgProcessId,
             label
           )
-
-          // jobFinal === null significa que o Tainacan removeu a sessão (sucesso normal)
-          if (jobFinal?.status === "finished" || jobFinal?.status === "done") {
-            // Tainacan confirmou explicitamente que terminou
-            sessoes[label].status = "concluida"
-          } else if (
-            ["failed", "error", "cancelled"].includes(jobFinal?.status)
-          ) {
-            sessoes[label].status = "erro"
-          } else {
-            // null (sessão removida = job ainda na fila) ou timeout = aguardar checkExportStatus
-            sessoes[label].status = "em_andamento"
-          }
+          sessoes[label].status = resultado
 
           totalExportados += lote.length
         }
       }
 
-      exportacao.sessoes = sessoes
-      exportacao.numeroExportados = totalExportados
-
+      // RN05: registra resultado
       const algumErro = Object.values(sessoes).some((s) => s.status === "erro")
+      const todasConcluidas = Object.values(sessoes).every(
+        (s) => s.status === "concluida"
+      )
 
-      if (algumErro) {
-        exportacao.status = "erro"
-        exportacao.finalizadoEm = new Date()
-      } else {
-        // Sempre deixa em_andamento — o checkExportStatus vai concluir
-        exportacao.status = "em_andamento"
-      }
+      const statusFinal = algumErro
+        ? "erro"
+        : todasConcluidas
+          ? "concluida"
+          : "em_andamento"
 
-      await exportacao.save()
+      await ExportacaoModel.updateOne(
+        { _id: id },
+        {
+          $set: {
+            sessoes,
+            numeroExportados: totalExportados,
+            status: statusFinal,
+            ...(statusFinal !== "em_andamento" && { finalizadoEm: new Date() })
+          }
+        }
+      )
+
+      console.log(`[Exportação ${id}] Finalizada com status: ${statusFinal}`)
     } catch (error) {
-      exportacao.status = "erro"
-      exportacao.erro =
-        error instanceof Error
-          ? error.message
-          : "Erro desconhecido durante o processamento"
-      exportacao.finalizadoEm = new Date()
-      await exportacao.save()
+      console.error(`[Exportação ${id}] Erro fatal:`, error)
+      await ExportacaoModel.updateOne(
+        { _id: id },
+        {
+          $set: {
+            status: "erro",
+            erro: error instanceof Error ? error.message : "Erro desconhecido",
+            finalizadoEm: new Date()
+          }
+        }
+      )
     }
   }
 
   async listarExportacoes(): Promise<any> {
-    const exportacoes = await ExportacaoModel.find()
+    return ExportacaoModel.find()
       .sort({ createdAt: -1 })
       .select(
         "status iniciadoEm finalizadoEm numeroExportados totalExportacoesConcluidas"
       )
-    return exportacoes
   }
 
   async obterExportacao(id: string): Promise<any> {
     const exportacao = await ExportacaoModel.findById(id)
       .populate("usuario", "nome email")
       .lean()
-    if (!exportacao) {
-      throw new Error("Exportação não encontrada")
-    }
+    if (!exportacao) throw new Error("Exportação não encontrada")
     return {
       ...exportacao,
       usuario: exportacao.usuario
@@ -1070,40 +1018,29 @@ export default class ExportadorService {
       totalExportacoesConcluidas: 0,
       ano
     })
-
     await exportacao.save()
-
     return exportacao
   }
 
   async baixarArquivos(id: string): Promise<NodeJS.ReadableStream> {
     const exportacao = await ExportacaoModel.findById(id)
-
-    if (!exportacao) {
-      throw new Error("Export not found")
-    }
-
-    if (exportacao.status !== "concluida") {
+    if (!exportacao) throw new Error("Export not found")
+    if (exportacao.status !== "concluida")
       throw new Error("Export has not been completed yet")
-    }
 
     const declaracoes = await Declaracoes.find({
       anoDeclaracao: exportacao.ano
     }).select("_id arquivistico.versao museologico.versao bibliografico.versao")
     const itens = await this.obterItensPorTipo(declaracoes)
 
-    const archive = archiver("zip", {
-      zlib: { level: 9 }
-    })
-
+    const archive = archiver("zip", { zlib: { level: 9 } })
     for (const { _id: tipo, items } of itens) {
       const tipoLower: string = (tipo || "").toLowerCase()
-      const csvContent = this.gerarCsv(items, tipoLower)
-      archive.append(csvContent, { name: `${tipoLower}.csv` })
+      archive.append(this.gerarCsv(items, tipoLower), {
+        name: `${tipoLower}.csv`
+      })
     }
-
     archive.finalize()
-
     return archive
   }
 }

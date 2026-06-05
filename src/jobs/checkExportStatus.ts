@@ -1,30 +1,27 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import pulse from "../lib/pulse"
 import ExportacaoModel from "../models/Exportacao"
 import ConfiguracaoPortalPublicoModel from "../models/Configuracao/portalPublico"
 
-const EXPORT_TIMEOUT_MS = 1 * 60 * 60 * 1000 // Reduzido para 1 hora (limite justo para não travar o sistema)
+const EXPORT_TIMEOUT_MS = 2 * 60 * 60 * 1000 // 2 horas
 
 type Sessao = {
   id: string
+  bgProcessId?: string
   status: "em_andamento" | "concluida" | "erro"
 }
 
 pulse.define("checkExportStatus", async () => {
-  const exportacoes = await ExportacaoModel.find({
-    status: "em_andamento"
-  })
+  const exportacoes = await ExportacaoModel.find({ status: "em_andamento" })
 
-  if (exportacoes.length === 0) {
-    return
-  }
+  if (exportacoes.length === 0) return
 
   const config = await ConfiguracaoPortalPublicoModel.findOne({
     key: "portalPublico"
   })
-
   if (!config) {
     console.error(
-      "Configuração do portal público não encontrada ao checar status."
+      "[checkExportStatus] Configuração do portal público não encontrada."
     )
     return
   }
@@ -36,6 +33,7 @@ pulse.define("checkExportStatus", async () => {
   for (const exportacao of exportacoes) {
     if (!exportacao.sessoes) continue
 
+    // Timeout: se passou mais de 2h sem concluir, marca como erro
     const now = new Date()
     if (
       exportacao.iniciadoEm &&
@@ -44,8 +42,12 @@ pulse.define("checkExportStatus", async () => {
     ) {
       exportacao.status = "erro"
       exportacao.erro =
-        "Tempo limite da exportação (1 hora) excedido sem resposta final do Tainacan."
+        "Tempo limite de 2 horas excedido sem resposta final do Tainacan."
+      exportacao.finalizadoEm = new Date()
       await exportacao.save()
+      console.warn(
+        `[checkExportStatus] Exportação ${exportacao._id} marcada como erro por timeout.`
+      )
       continue
     }
 
@@ -53,26 +55,25 @@ pulse.define("checkExportStatus", async () => {
     const sessoes = exportacao.sessoes as Record<string, Sessao>
 
     for (const [, sessao] of Object.entries(sessoes)) {
-      if (!sessao || sessao.status !== "em_andamento") {
-        continue
-      }
+      if (!sessao || sessao.status !== "em_andamento") continue
 
       try {
-        const res = await fetch(
-          `${config.url}/wp-json/tainacan/v2/importers/session/${sessao.id}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Basic ${credentials}`
-            }
-          }
-        )
+        // Usa bgProcessId se disponível (mais confiável), senão cai para sessão legada
+        const usaBgProcess = !!sessao.bgProcessId
+        const url = usaBgProcess
+          ? `${config.url}/wp-json/tainacan/v2/bg-processes/${sessao.bgProcessId}`
+          : `${config.url}/wp-json/tainacan/v2/importers/session/${sessao.id}`
 
-        // 1. Tainacan respondeu com Sucesso (Pode ser que o job de importação ainda esteja rodando ou já terminou)
+        const res = await fetch(url, {
+          method: "GET",
+          headers: { Authorization: `Basic ${credentials}` }
+        })
+
         if (res.ok) {
           const data = await res.json()
 
           if (
+            data.status === "closed" ||
             data.status === "finished" ||
             data.status === "done" ||
             data.progress === 100
@@ -83,46 +84,44 @@ pulse.define("checkExportStatus", async () => {
             sessao.status = "erro"
             exportacao.erro =
               data.error_message ||
-              `Tainacan abortou a sessão com o status: ${data.status}`
+              `Tainacan abortou com status: ${data.status}`
             modified = true
           }
-          // Nota: Se for 'running' ou 'queued', não fazemos nada. Continua 'em_andamento'.
-
-          // 2. Erro 400 - O Tainacan costuma apagar a sessão quando ela termina com sucesso
-        } else if (res.status === 400) {
-          const data = await res.json()
-          if (data.error_message === "Sessão de Importador não encontrada") {
-            sessao.status = "concluida"
-            modified = true
+          // Se status=running ou open: não faz nada, aguarda próximo pulso
+        } else if (res.status === 400 && !usaBgProcess) {
+          // Sessão legada removida pelo Tainacan = job foi enfileirado
+          // Não marca como concluida aqui — bgProcess já cuida disso
+          const data = await res.json().catch(() => ({}))
+          if (
+            (data as any).error_message ===
+            "Sessão de Importador não encontrada"
+          ) {
+            // Sessão sumiu mas não temos bgProcessId para confirmar — marca em_andamento
+            // O timeout vai resolver se travar
+            console.warn(
+              `[checkExportStatus] Sessão ${sessao.id} não encontrada e sem bgProcessId. Aguardando...`
+            )
           } else {
             sessao.status = "erro"
             exportacao.erro =
-              data.error_message ||
-              "Erro 400: Requisição inválida ao checar sessão."
+              (data as any).error_message || "Erro 400 ao checar sessão."
             modified = true
           }
-
-          // 3. Erro 401 ou 403 - A senha de aplicação ou usuário estão errados
-        } else if ([401, 403].includes(res.status)) {
+        } else if (res.status === 401 || res.status === 403) {
           sessao.status = "erro"
-          exportacao.erro =
-            "Erro 401/403: Falha de autenticação ao tentar checar o status no Tainacan."
+          exportacao.erro = "Erro de autenticação ao checar status no Tainacan."
           modified = true
-
-          // 4. Erro 500+ - O servidor do IFRN (WordPress) deu erro fatal (Ex: estourou memória, bug PHP)
         } else if (res.status >= 500) {
-          sessao.status = "erro"
-          exportacao.erro = `O servidor do Tainacan caiu ou retornou erro interno (HTTP ${res.status}).`
-          modified = true
-
-          // 5. Outros erros HTTP (Ex: 404)
+          // Erro de servidor — não marca como erro definitivo, aguarda próximo pulso
+          console.warn(
+            `[checkExportStatus] Servidor Tainacan retornou HTTP ${res.status}. Tentando no próximo pulso.`
+          )
         } else {
           sessao.status = "erro"
-          exportacao.erro = `O servidor retornou um erro HTTP não tratado: ${res.status}`
+          exportacao.erro = `HTTP não tratado: ${res.status}`
           modified = true
         }
       } catch (error) {
-        // 6. TRATAMENTO DE REDE (Falhas temporárias não cancelam a exportação)
         const isNetworkError =
           error instanceof Error &&
           (error.message.includes("fetch failed") ||
@@ -131,46 +130,52 @@ pulse.define("checkExportStatus", async () => {
             error.message.includes("TIMEOUT"))
 
         if (isNetworkError) {
+          // Oscilação de rede — ignora e tenta no próximo pulso
           console.warn(
-            `[Aviso de Rede] A internet oscilou ou o DNS falhou ao checar a sessão ${sessao.id}. Tentando novamente no próximo pulso...`
+            `[checkExportStatus] Oscilação de rede ao checar sessão/processo. Tentando no próximo pulso...`
           )
-          // Não setamos modified = true nem mudamos status, apenas esperamos o próximo Job rodar.
         } else {
-          console.error(`Erro crítico ao checar sessão ${sessao.id}:`, error)
+          console.error(`[checkExportStatus] Erro crítico:`, error)
           sessao.status = "erro"
           exportacao.erro =
             error instanceof Error
               ? error.message
-              : "Erro desconhecido e fatal no Job de checagem."
+              : "Erro fatal no job de checagem."
           modified = true
         }
       }
     }
 
-    // Se houve mudança de status em qualquer sessão, consolida o resultado da Exportação Pai
     if (modified) {
       exportacao.markModified("sessoes")
+    }
 
-      const allSessions = Object.values(sessoes).filter(
-        (s): s is Sessao => !!s && typeof s === "object" && "status" in s
-      )
-      const anyRunning = allSessions.some((s) => s.status === "em_andamento")
-      const anyError = allSessions.some((s) => s.status === "erro")
+    // Consolida o status pai com base em todas as sessões
+    const allSessions = Object.values(sessoes).filter(
+      (s): s is Sessao => !!s && typeof s === "object" && "status" in s
+    )
+    const anyRunning = allSessions.some((s) => s.status === "em_andamento")
+    const anyError = allSessions.some((s) => s.status === "erro")
 
-      if (!anyRunning) {
-        if (anyError) {
-          exportacao.status = "erro"
-          // O detalhe do erro já foi populado nas condições acima
-          if (!exportacao.erro)
-            exportacao.erro = "Erro em uma ou mais sessões de importação."
-        } else {
-          exportacao.status = "concluida"
-          exportacao.finalizadoEm = new Date()
-          exportacao.totalExportacoesConcluidas =
-            (exportacao.totalExportacoesConcluidas || 0) + 1
-        }
+    if (!anyRunning) {
+      // Todas as sessões terminaram
+      if (anyError) {
+        exportacao.status = "erro"
+        if (!exportacao.erro)
+          exportacao.erro = "Erro em uma ou mais sessões de importação."
+        exportacao.finalizadoEm = new Date()
+      } else {
+        // Todas concluídas com sucesso — agora sim marca como concluida
+        exportacao.status = "concluida"
+        exportacao.finalizadoEm = new Date()
+        exportacao.totalExportacoesConcluidas =
+          (exportacao.totalExportacoesConcluidas || 0) + 1
+        console.log(
+          `[checkExportStatus] Exportação ${exportacao._id} CONCLUÍDA com sucesso.`
+        )
       }
-
+      await exportacao.save()
+    } else if (modified) {
       await exportacao.save()
     }
   }
